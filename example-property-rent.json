@@ -1,0 +1,139 @@
+{
+  "id": "prop_rent_001",
+  "title": "Beautiful 2 BHK Apartment in Andheri",
+  "price": 60000,
+  "pricePerSqft": 120,
+  "location": "Andheri East, Mumbai, Maharashtra",
+  "latitude": 19.1136,
+  "longitude": 72.8697,
+  "description": "Spacious 2 BHK apartment with good natural light, modern finishes, and excellent ventilation. Close to Metro station, shopping complexes, and schools. Ideal for families and working professionals.",
+  "images": [
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
+    "https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=800"
+  ],
+  "videos": [],
+  "videoUrl": "https://www.youtube.com/embed/abc1234567",
+  "brochure": "https://example.com/brochure-rent.pdf",
+  
+  "category": "apartment",
+  "status": "rent",
+  
+  "basicDetails": {
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "balconies": 1,
+    "kitchens": 1,
+    "areaSqft": 1200,
+    "carpetArea": 1050,
+    "superBuiltUp": 1350
+  },
+  
+  "propertyFeatures": {
+    "yearBuilt": 2018,
+    "parking": 1,
+    "parkingType": "open",
+    "floors": 15,
+    "floorNumber": 8,
+    "furnished": "semi-furnished",
+    "facingDirection": "east",
+    "waterSupply": "24/7",
+    "powerBackup": true,
+    "powerBackupType": "Partial",
+    "security": "24/7 Security",
+    "gatedCommunity": true,
+    "ageOfBuilding": "5-10 years",
+    "constructionStatus": "Completed",
+    "possession": "Immediate"
+  },
+  
+  "amenities": [
+    "Swimming Pool",
+    "Gym",
+    "Parking",
+    "Security",
+    "Lift",
+    "Balcony",
+    "Power Backup",
+    "Water Storage",
+    "Clubhouse",
+    "Play Area"
+  ],
+  
+  "rentalDetails": {
+    "rentAmount": 60000,
+    "securityDeposit": 180000,
+    "depositMonths": 3,
+    "maintenanceCharges": 3000,
+    "brokerage": "1 month rent",
+    "brokeragePayableBy": "Tenant",
+    "leaseTerm": "12 months",
+    "priceNegotiable": true
+  },
+  
+  "ownerDetails": {
+    "ownerId": "owner_002",
+    "ownerName": "Priya Sharma",
+    "ownerPhone": "9876543211",
+    "ownerEmail": "priya@example.com",
+    "ownerWhatsApp": "919876543211"
+  },
+  
+  "brokerDetails": {
+    "brokerId": "broker_002",
+    "brokerName": "Happy Rentals",
+    "brokerPhone": "9988776656",
+    "brokerEmail": "broker@happyrentals.com",
+    "brokerWhatsApp": "919988776656",
+    "brokerLicense": "RERA/MH/2024/001235"
+  },
+  
+  "tenantPreferences": {
+    "vegetarian": false,
+    "nonVegetarian": true,
+    "bachelor": false,
+    "bachelorette": false,
+    "family": true,
+    "studentsAllowed": false,
+    "petsAllowed": false,
+    "parentageAllowed": true
+  },
+  
+  "nearbyLocations": {
+    "nearestMetroStation": "Andheri Station - 0.7 km",
+    "nearestAirport": "Mumbai Airport - 15 km",
+    "nearestSchool": "DPS School - 1 km",
+    "nearestMall": "Infiniti Mall - 0.5 km",
+    "nearestHospital": "Apollo Hospital - 1.5 km",
+    "nearestMarket": "Andheri Market - 0.2 km"
+  },
+  
+  "pricing": {
+    "monthlyRent": 60000,
+    "securityDeposit": 180000,
+    "maintenanceCharges": 3000,
+    "brokerageAmount": 60000,
+    "processCharges": 2000
+  },
+  
+  "legalDetails": {
+    "propertyTitle": "Lease Hold",
+    "governmentRestriction": "No",
+    "mutualAgreement": "Yes",
+    "documentationStatus": "Clear",
+    "registrationStatus": "Registered with Society"
+  },
+  
+  "additionalInfo": {
+    "furnishingType": "Semi-Furnished",
+    "furnishingIncludes": ["Fridge", "Stove", "Bed", "Sofa"],
+    "utilities": "Owner covers water and maintenance",
+    "roadWidth": "30 ft",
+    "distanceFromRoad": "50 m"
+  },
+  
+  "featured": false,
+  "verified": true,
+  "createdAt": "2024-02-01T09:15:00Z",
+  "updatedAt": "2024-02-18T16:20:00Z",
+  "isDummy": true
+}
