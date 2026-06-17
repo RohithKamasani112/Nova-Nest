@@ -1,98 +1,86 @@
 import React, { useState } from 'react';
-import { Home, Menu, X, LogOut, Search } from 'lucide-react';
+import { Home, Menu, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PropertyFilters } from '../../types';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
-  onSearch: (filters: PropertyFilters) => void;
   currentPage: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPage }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  const handleBuyClick = () => {
-    onSearch({ status: 'buy' });
-    onNavigate('properties');
+  const navigate = (page: string) => {
+    onNavigate(page);
     setShowMobileMenu(false);
+  };
+
+  const handleBuyClick = () => {
+    navigate('properties');
   };
 
   const handleRentClick = () => {
-    onSearch({ status: 'rent' });
-    onNavigate('properties');
-    setShowMobileMenu(false);
+    navigate('properties');
   };
 
-  const handleExploreClick = () => {
-    onNavigate('properties');
-    setShowMobileMenu(false);
-  };
+  const navLinks = [
+    { label: 'Home', action: () => navigate('home'), active: currentPage === 'home' },
+    { label: 'Buy', action: handleBuyClick, active: false },
+    { label: 'Rent', action: handleRentClick, active: false },
+    { label: 'About Us', action: () => navigate('about'), active: currentPage === 'about' },
+    { label: 'Contact Us', action: () => navigate('contact'), active: currentPage === 'contact' },
+  ];
 
-  const isActive = (page: string) => currentPage === page;
-  const activeClass = 'text-blue-600 border-b-2 border-blue-600 pb-1';
-  const inactiveClass = 'text-gray-700 hover:text-blue-600 transition-colors pb-1';
+  const linkClass = (active: boolean) =>
+    `relative pb-1 text-sm font-semibold tracking-[0.05em] uppercase transition-colors after:absolute after:left-0 after:-bottom-0.5 after:h-px after:bg-gold after:transition-all after:duration-[250ms] ${
+      active
+        ? 'text-gold after:w-full'
+        : 'text-charcoal/70 hover:text-gold after:w-0 hover:after:w-full'
+    }`;
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 h-16">
+    <nav className="bg-cream/95 border-b border-black/5 sticky top-0 z-50 h-16 backdrop-blur-md shadow-subtle">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
         <div className="flex justify-between items-center h-full">
-          {/* Logo */}
-          <div
-            className="flex items-center gap-2 cursor-pointer flex-shrink-0"
-            onClick={() => onNavigate('home')}
+          <button
+            className="flex items-center gap-3 flex-shrink-0"
+            onClick={() => navigate('home')}
           >
-            <div className="bg-blue-600 p-1.5 rounded-lg">
-              <Home size={20} className="text-white" />
-            </div>
-            <span className="text-lg font-bold text-slate-900 hidden sm:inline">
+            <span className="gold-gradient p-2 rounded-md shadow-subtle transition-transform duration-[250ms] hover:scale-105">
+              <Home size={18} className="text-charcoal" />
+            </span>
+            <span className="font-display text-xl font-bold tracking-[0.015em] text-charcoal hidden sm:inline">
               My-Properties
             </span>
+          </button>
+
+          <div className="hidden md:flex items-center gap-[28px]">
+            {navLinks.map((link) => (
+              <button key={link.label} onClick={link.action} className={linkClass(link.active)}>
+                {link.label}
+              </button>
+            ))}
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="flex items-center gap-4 md:ml-4">
             <button
-              onClick={handleBuyClick}
-              className={`font-medium text-sm ${isActive('properties') ? activeClass : inactiveClass}`}
-            >
-              Buy
-            </button>
-            <button
-              onClick={handleRentClick}
-              className={`font-medium text-sm ${isActive('properties') ? activeClass : inactiveClass}`}
-            >
-              Rent
-            </button>
-            <button
-              onClick={handleExploreClick}
-              className={`font-medium text-sm ${isActive('properties') ? activeClass : inactiveClass}`}
-            >
-              Explore
-            </button>
-          </div>
-
-          {/* Right Actions */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => onNavigate('properties')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors hidden sm:block"
+              onClick={() => navigate('properties')}
+              className="hidden sm:flex h-10 w-10 items-center justify-center hover:bg-gold/10 rounded-md transition-colors"
               aria-label="Search"
             >
-              <Search size={20} className="text-gray-700" />
+              <Search size={20} className="text-charcoal/60 hover:text-gold transition-colors" />
             </button>
 
             <button
-              onClick={() => onNavigate('admin-login')}
-              className="hidden md:block px-4 py-2 border-2 border-slate-900 text-slate-900 rounded-lg font-semibold hover:bg-slate-50 transition-colors text-sm"
+              onClick={() => navigate('admin-login')}
+              className="hidden md:block border border-[#C99A3F] text-gold font-semibold px-5 py-2 rounded-md hover:bg-gold/10 active:bg-gold/15 transition-all duration-[250ms] text-sm"
             >
               Admin Login
             </button>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="md:hidden p-2 hover:bg-gold/10 rounded-md transition-colors text-charcoal hover:text-gold"
               aria-label="Menu"
             >
               {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
@@ -101,7 +89,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPag
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {showMobileMenu && (
           <motion.div
@@ -109,34 +96,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPag
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden border-t border-gray-200 overflow-hidden bg-white"
+            className="md:hidden border-t border-black/5 overflow-hidden bg-cream shadow-medium"
           >
-            <div className="px-4 py-4 space-y-3">
-              <button
-                onClick={handleBuyClick}
-                className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm"
-              >
-                Buy
-              </button>
-              <button
-                onClick={handleRentClick}
-                className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm"
-              >
-                Rent
-              </button>
-              <button
-                onClick={handleExploreClick}
-                className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm"
-              >
-                Explore
-              </button>
-              <div className="border-t border-gray-200 pt-3">
+            <div className="px-4 py-4 space-y-2">
+              {navLinks.map((link) => (
                 <button
-                  onClick={() => {
-                    onNavigate('admin-login');
-                    setShowMobileMenu(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm"
+                  key={link.label}
+                  onClick={link.action}
+                  className={`block w-full text-left px-4 py-3 rounded-md transition-colors font-semibold text-sm ${
+                    link.active ? 'text-gold bg-gold/10' : 'text-charcoal/75 hover:bg-gold/10 hover:text-gold'
+                  }`}
+                >
+                  {link.label}
+                </button>
+              ))}
+              <div className="border-t border-black/10 pt-3">
+                <button
+                  onClick={() => navigate('admin-login')}
+                  className="block w-full text-left px-4 py-3 rounded-md border border-gold/70 text-gold hover:bg-gold/10 transition-all duration-[250ms] font-semibold text-sm"
                 >
                   Admin Login
                 </button>

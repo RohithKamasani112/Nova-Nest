@@ -59,7 +59,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
 
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-full bg-[#FBF3E3]0 flex items-center justify-center flex-shrink-0 mt-1">
                   <span className="text-sm font-bold">✓</span>
                 </div>
                 <div>
@@ -69,7 +69,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-full bg-[#FBF3E3]0 flex items-center justify-center flex-shrink-0 mt-1">
                   <span className="text-sm font-bold">✓</span>
                 </div>
                 <div>
@@ -79,7 +79,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-full bg-[#FBF3E3]0 flex items-center justify-center flex-shrink-0 mt-1">
                   <span className="text-sm font-bold">✓</span>
                 </div>
                 <div>
@@ -118,7 +118,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A]"
                     placeholder="admin@example.com"
                   />
                 </div>
@@ -135,7 +135,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A]"
                     placeholder="••••••••"
                   />
                   <button
@@ -151,7 +151,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-[#C9922A] text-white rounded-lg font-semibold hover:bg-[#b07d20] transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -165,8 +165,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             </form>
 
             {/* Demo Credentials Info */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-xs text-blue-900">
+            <div className="mt-6 p-4 bg-[#FBF3E3] rounded-lg border border-[#C9922A]/20">
+              <p className="text-xs text-[#C9922A]">
                 <strong>Demo Credentials:</strong><br />
                 Email: demo@realestate.com<br />
                 Password: Demo123!
