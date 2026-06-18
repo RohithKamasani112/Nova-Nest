@@ -8,8 +8,8 @@
  * 
  * This script will:
  * 1. Generate 8 dummy property listings
- * 2. Upload them to your S3 bucket
- * 3. Make them visible when VITE_DUMMY_DATA=true in .env
+ * 2. Upload them to your dummy S3 bucket
+ * 3. Make them visible when VITE_IS_PRODUCTION=false in .env
  */
 
 import {
@@ -27,9 +27,13 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const VITE_AWS_REGION = process.env.VITE_AWS_REGION || 'us-east-1';
-const VITE_AWS_ACCESS_KEY = process.env.VITE_AWS_ACCESS_KEY || '';
-const VITE_AWS_SECRET_KEY = process.env.VITE_AWS_SECRET_KEY || '';
-const VITE_S3_BUCKET = process.env.VITE_S3_BUCKET_NAME || 'estate-properties';
+const VITE_AWS_ACCESS_KEY_ID = process.env.VITE_AWS_ACCESS_KEY_ID || '';
+const VITE_AWS_SECRET_ACCESS_KEY = process.env.VITE_AWS_SECRET_ACCESS_KEY || '';
+const isProd = process.env.VITE_IS_PRODUCTION === 'true';
+const SELECTED_S3_BUCKET = process.env.VITE_S3_BUCKET_NAME;
+const SELECTED_S3_FOLDER = isProd
+  ? process.env.VITE_S3_FOLDER_PROD
+  : process.env.VITE_S3_FOLDER_DUMMY;
 
 const dummyProperties = [
   {
@@ -210,16 +214,27 @@ const dummyProperties = [
 async function seedData() {
   console.log('\n🌱 Starting dummy data seed...\n');
 
+  if (isProd) {
+    console.log('Dummy data seeding is only available when VITE_IS_PRODUCTION=false.');
+    return;
+  }
+
   // Validate credentials
-  if (!VITE_AWS_ACCESS_KEY || !VITE_AWS_SECRET_KEY) {
+  if (!VITE_AWS_ACCESS_KEY_ID || !VITE_AWS_SECRET_ACCESS_KEY) {
     console.error('❌ Error: AWS credentials not found in .env');
-    console.error('   Please set VITE_AWS_ACCESS_KEY and VITE_AWS_SECRET_KEY');
+    console.error('   Please set VITE_AWS_ACCESS_KEY_ID and VITE_AWS_SECRET_ACCESS_KEY');
     process.exit(1);
   }
 
-  if (!VITE_S3_BUCKET) {
+  if (!SELECTED_S3_BUCKET) {
     console.error('❌ Error: S3 bucket name not found in .env');
-    console.error('   Please set VITE_S3_BUCKET');
+    console.error('   Please set VITE_S3_BUCKET_NAME');
+    process.exit(1);
+  }
+
+  if (!SELECTED_S3_FOLDER) {
+    console.error('❌ Error: S3 folder name not found in .env');
+    console.error('   Please set VITE_S3_FOLDER_DUMMY');
     process.exit(1);
   }
 
@@ -228,8 +243,8 @@ async function seedData() {
     const s3Client = new S3Client({
       region: VITE_AWS_REGION,
       credentials: {
-        accessKeyId: VITE_AWS_ACCESS_KEY,
-        secretAccessKey: VITE_AWS_SECRET_KEY,
+        accessKeyId: VITE_AWS_ACCESS_KEY_ID,
+        secretAccessKey: VITE_AWS_SECRET_ACCESS_KEY,
       },
     });
 
@@ -242,8 +257,8 @@ async function seedData() {
 
     // Upload to S3
     const uploadParams = new PutObjectCommand({
-      Bucket: VITE_S3_BUCKET,
-      Key: 'data/properties.json',
+      Bucket: SELECTED_S3_BUCKET,
+      Key: `${SELECTED_S3_FOLDER}/properties.json`,
       Body: JSON.stringify(propertiesWithMetadata, null, 2),
       ContentType: 'application/json',
     });
@@ -258,7 +273,7 @@ async function seedData() {
     });
 
     console.log('\n📝 Next steps:');
-    console.log('   1. Set VITE_DUMMY_DATA=true in your .env file');
+    console.log('   1. Keep VITE_IS_PRODUCTION=false in your .env file');
     console.log('   2. Restart your development server (npm run dev)');
     console.log('   3. Dummy properties will now be visible in the app\n');
 

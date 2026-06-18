@@ -1,37 +1,31 @@
 import { Property, Inquiry } from '../types';
 import {
-  uploadToS3,
   getJsonFromS3,
   uploadJsonToS3,
-  deleteFromS3,
 } from '../utils/s3Helper';
 
 /**
  * Storage Service - Always uses S3 with Dual Folder Structure
  * 
  * Folder Logic:
- * - VITE_PRODUCTION=false → Uses VITE_S3_DUMMY_FOLDER (dummy-properties)
- * - VITE_PRODUCTION=true → Uses VITE_S3_DATA_FOLDER (properties)
+ * - VITE_IS_PRODUCTION=false -> Uses VITE_S3_FOLDER_DUMMY
+ * - VITE_IS_PRODUCTION=true -> Uses VITE_S3_FOLDER_PROD
  * 
  * All data is persisted directly to AWS S3
  */
 
-// Get the correct S3 folder based on production flag
+// The S3 helper applies this selected folder to every object path.
 const getS3FolderPath = (): string => {
-  const isProduction = import.meta.env.VITE_PRODUCTION === 'true';
-  
-  if (isProduction) {
-    return import.meta.env.VITE_S3_DATA_FOLDER || 'properties';
-  } else {
-    return import.meta.env.VITE_S3_DUMMY_FOLDER || 'dummy-properties';
-  }
+  const isProd = import.meta.env.VITE_IS_PRODUCTION === 'true';
+  return isProd
+    ? import.meta.env.VITE_S3_FOLDER_PROD || 'properties'
+    : import.meta.env.VITE_S3_FOLDER_DUMMY || 'dummy-properties';
 };
 
 // Get all properties from correct S3 folder
 export const getAllProperties = async (): Promise<Property[]> => {
   try {
-    const folderPath = getS3FolderPath();
-    const filePath = `${folderPath}/properties.json`;
+    const filePath = 'properties.json';
     
     console.log(`📂 Loading properties from: ${filePath}`);
     
@@ -71,8 +65,7 @@ export const createProperty = async (
 
     const updatedProperties = [...properties, newProperty];
     
-    const folderPath = getS3FolderPath();
-    await uploadJsonToS3(updatedProperties, `${folderPath}/properties.json`);
+    await uploadJsonToS3(updatedProperties, 'properties.json');
 
     return newProperty;
   } catch (error) {
@@ -102,8 +95,7 @@ export const updateProperty = async (
 
     properties[index] = updatedProperty;
     
-    const folderPath = getS3FolderPath();
-    await uploadJsonToS3(properties, `${folderPath}/properties.json`);
+    await uploadJsonToS3(properties, 'properties.json');
 
     return updatedProperty;
   } catch (error) {
@@ -118,8 +110,7 @@ export const deleteProperty = async (id: string): Promise<void> => {
     const properties = await getAllProperties();
     const filteredProperties = properties.filter((p) => p.id !== id);
 
-    const folderPath = getS3FolderPath();
-    await uploadJsonToS3(filteredProperties, `${folderPath}/properties.json`);
+    await uploadJsonToS3(filteredProperties, 'properties.json');
   } catch (error) {
     console.error('Error deleting property:', error);
     throw new Error('Failed to delete property');
@@ -136,8 +127,7 @@ export const saveProperty = async (
 // Get all inquiries/leads
 export const getAllInquiries = async (): Promise<Inquiry[]> => {
   try {
-    const folderPath = getS3FolderPath();
-    const inquiries = await getJsonFromS3<Inquiry[]>(`${folderPath}/leads.json`);
+    const inquiries = await getJsonFromS3<Inquiry[]>('leads.json');
     return inquiries || [];
   } catch (error) {
     console.error('Error fetching inquiries:', error);
@@ -161,8 +151,7 @@ export const createInquiry = async (
 
     const updatedInquiries = [...inquiries, newInquiry];
     
-    const folderPath = getS3FolderPath();
-    await uploadJsonToS3(updatedInquiries, `${folderPath}/leads.json`);
+    await uploadJsonToS3(updatedInquiries, 'leads.json');
 
     return newInquiry;
   } catch (error) {
@@ -191,8 +180,7 @@ export const updateInquiry = async (
 
     inquiries[index] = updatedInquiry;
     
-    const folderPath = getS3FolderPath();
-    await uploadJsonToS3(inquiries, `${folderPath}/leads.json`);
+    await uploadJsonToS3(inquiries, 'leads.json');
 
     return updatedInquiry;
   } catch (error) {
@@ -207,8 +195,7 @@ export const deleteInquiry = async (id: string): Promise<void> => {
     const inquiries = await getAllInquiries();
     const filteredInquiries = inquiries.filter((i) => i.id !== id);
 
-    const folderPath = getS3FolderPath();
-    await uploadJsonToS3(filteredInquiries, `${folderPath}/leads.json`);
+    await uploadJsonToS3(filteredInquiries, 'leads.json');
   } catch (error) {
     console.error('Error deleting inquiry:', error);
     throw new Error('Failed to delete inquiry');

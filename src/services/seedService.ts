@@ -5,13 +5,16 @@ import { Property } from '../types/index';
 const s3Client = new S3Client({
   region: import.meta.env.VITE_AWS_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY || '',
-    secretAccessKey: import.meta.env.VITE_AWS_SECRET_KEY || '',
+    accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY || '',
   },
 });
 
-const BUCKET_NAME = import.meta.env.VITE_S3_BUCKET || 'estate-properties';
-const isDummyDataEnabled = import.meta.env.VITE_DUMMY_DATA === 'true';
+const isProd = import.meta.env.VITE_IS_PRODUCTION === 'true';
+const BUCKET_NAME = import.meta.env.VITE_S3_BUCKET_NAME;
+const FOLDER_NAME = isProd
+  ? import.meta.env.VITE_S3_FOLDER_PROD
+  : import.meta.env.VITE_S3_FOLDER_DUMMY;
 
 // Dummy property data
 const dummyProperties: Omit<Property, 'id' | 'createdAt'>[] = [
@@ -192,8 +195,8 @@ const dummyProperties: Omit<Property, 'id' | 'createdAt'>[] = [
 
 // Upload dummy data to S3
 export const seedDummyData = async () => {
-  if (!isDummyDataEnabled) {
-    console.log('Dummy data is disabled. Set VITE_DUMMY_DATA=true to enable.');
+  if (isProd) {
+    console.log('Dummy data seeding is only available when VITE_IS_PRODUCTION=false.');
     return;
   }
 
@@ -208,7 +211,7 @@ export const seedDummyData = async () => {
     }));
 
     // Upload to S3
-    const propertiesKey = 'data/properties.json';
+    const propertiesKey = `${FOLDER_NAME}/properties.json`;
     const uploadParams = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: propertiesKey,

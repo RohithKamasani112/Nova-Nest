@@ -141,7 +141,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
               placeholder="Search by title or location..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30"
             />
           </div>
         </div>
@@ -150,7 +150,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30"
           >
             <option value="all">All Status</option>
             <option value="buy">For Sale</option>
@@ -160,7 +160,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30"
           >
             {categories.map((cat) => (
               <option key={cat.value} value={cat.value}>
@@ -172,7 +172,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -227,7 +227,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
                     {formatPrice(property.price, property.status)}
                   </td>
                   <td className="px-6 py-3">
-                    <span className="text-xs font-medium px-2.5 py-1 bg-blue-100 text-blue-800 rounded capitalize">
+                    <span className="text-xs font-medium px-2.5 py-1 bg-[#FBF3E3] text-[#C9922A] rounded capitalize">
                       {property.category}
                     </span>
                   </td>
@@ -256,7 +256,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEdit(property)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-2 text-[#C9922A] hover:bg-[#FBF3E3] rounded-lg transition-colors"
                         title="Edit property"
                       >
                         <Edit2 size={18} />

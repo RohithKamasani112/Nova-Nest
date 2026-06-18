@@ -11,6 +11,24 @@ import { config } from './config';
 // Initialize S3 Client
 let s3Client: S3Client | null = null;
 
+const trimSlashes = (value: string): string => value.replace(/^\/+|\/+$/g, '');
+
+const getObjectKey = (path: string): string => {
+  if (/^https?:\/\//i.test(path)) {
+    const url = new URL(path);
+    return decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+  }
+
+  const cleanPath = trimSlashes(path);
+  const folderName = trimSlashes(config.aws.s3.folderName);
+
+  if (!folderName || cleanPath === folderName || cleanPath.startsWith(`${folderName}/`)) {
+    return cleanPath;
+  }
+
+  return `${folderName}/${cleanPath}`;
+};
+
 const getS3Client = (): S3Client => {
   if (!s3Client) {
     s3Client = new S3Client({
@@ -31,12 +49,13 @@ export const uploadToS3 = async (
 ): Promise<string> => {
   try {
     const client = getS3Client();
-    const key = `${config.aws.s3.folderName}/${path}`;
+    const key = getObjectKey(path);
+    const fileBody = new Uint8Array(await file.arrayBuffer());
 
     const command = new PutObjectCommand({
       Bucket: config.aws.s3.bucketName,
       Key: key,
-      Body: file,
+      Body: fileBody,
       ContentType: file.type,
     });
 
@@ -54,7 +73,7 @@ export const uploadToS3 = async (
 export const getFromS3 = async (path: string): Promise<string> => {
   try {
     const client = getS3Client();
-    const key = `${config.aws.s3.folderName}/${path}`;
+    const key = getObjectKey(path);
 
     const command = new GetObjectCommand({
       Bucket: config.aws.s3.bucketName,
@@ -89,7 +108,7 @@ export const getSignedS3Url = async (
 ): Promise<string> => {
   try {
     const client = getS3Client();
-    const key = `${config.aws.s3.folderName}/${path}`;
+    const key = getObjectKey(path);
 
     const command = new GetObjectCommand({
       Bucket: config.aws.s3.bucketName,
@@ -108,7 +127,7 @@ export const getSignedS3Url = async (
 export const deleteFromS3 = async (path: string): Promise<void> => {
   try {
     const client = getS3Client();
-    const key = `${config.aws.s3.folderName}/${path}`;
+    const key = getObjectKey(path);
 
     const command = new DeleteObjectCommand({
       Bucket: config.aws.s3.bucketName,
@@ -126,7 +145,7 @@ export const deleteFromS3 = async (path: string): Promise<void> => {
 export const listS3Files = async (prefix: string): Promise<string[]> => {
   try {
     const client = getS3Client();
-    const key = `${config.aws.s3.folderName}/${prefix}`;
+    const key = getObjectKey(prefix);
 
     const command = new ListObjectsV2Command({
       Bucket: config.aws.s3.bucketName,
@@ -148,7 +167,7 @@ export const uploadJsonToS3 = async (
 ): Promise<void> => {
   try {
     const client = getS3Client();
-    const key = `${config.aws.s3.folderName}/${path}`;
+    const key = getObjectKey(path);
 
     const command = new PutObjectCommand({
       Bucket: config.aws.s3.bucketName,

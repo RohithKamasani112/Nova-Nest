@@ -68,16 +68,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const recentLeads = leads.slice(0, 5);
 
   return (
-    <div className="p-6 max-w-7xl">
+    <div className="max-w-7xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="font-['Playfair_Display'] text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">{today}</p>
         </div>
         <button
           onClick={() => onNavigate('add-property')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-[#C9922A] text-white rounded-xl font-semibold hover:bg-[#b07d20] transition-colors"
         >
           <Plus size={20} />
           Add Property
@@ -90,17 +90,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm mb-1">Total Properties</p>
+              <p className="text-sm text-gray-500 mt-1">Total Properties</p>
               <p className="text-3xl font-bold text-gray-900">
                 {loading ? '-' : properties.length}
               </p>
             </div>
-            <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Building2 size={24} className="text-blue-600" />
+            <div className="w-12 h-12 bg-[#C9922A]/10 rounded-xl flex items-center justify-center text-[#C9922A]">
+              <Building2 size={24} />
             </div>
           </div>
         </motion.div>
@@ -110,17 +110,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm mb-1">For Sale</p>
-              <p className="text-3xl font-bold text-green-600">
+              <p className="text-sm text-gray-500 mt-1">Active Listings</p>
+              <p className="text-3xl font-bold text-gray-900">
                 {loading ? '-' : forSaleCount}
               </p>
             </div>
-            <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-              <Tag size={24} className="text-green-600" />
+            <div className="w-12 h-12 bg-[#C9922A]/10 rounded-xl flex items-center justify-center text-[#C9922A]">
+              <Tag size={24} />
             </div>
           </div>
         </motion.div>
@@ -130,17 +130,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm mb-1">For Rent</p>
-              <p className="text-3xl font-bold text-purple-600">
+              <p className="text-sm text-gray-500 mt-1">Rental Listings</p>
+              <p className="text-3xl font-bold text-gray-900">
                 {loading ? '-' : forRentCount}
               </p>
             </div>
-            <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Key size={24} className="text-purple-600" />
+            <div className="w-12 h-12 bg-[#C9922A]/10 rounded-xl flex items-center justify-center text-[#C9922A]">
+              <Key size={24} />
             </div>
           </div>
         </motion.div>
@@ -150,17 +150,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm mb-1">Total Leads</p>
-              <p className="text-3xl font-bold text-orange-600">
+              <p className="text-sm text-gray-500 mt-1">Total Leads</p>
+              <p className="text-3xl font-bold text-gray-900">
                 {loading ? '-' : leads.length}
               </p>
             </div>
-            <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
-              <Users size={24} className="text-orange-600" />
+            <div className="w-12 h-12 bg-[#C9922A]/10 rounded-xl flex items-center justify-center text-[#C9922A]">
+              <Users size={24} />
             </div>
           </div>
         </motion.div>
@@ -169,12 +169,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Properties */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Recent Properties</h2>
+              <h2 className="text-lg font-bold text-gray-900">Recent Listings</h2>
               <button
                 onClick={() => onNavigate('manage-properties')}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                className="text-[#C9922A] hover:text-[#b07d20] text-sm font-medium"
               >
                 View All
               </button>
@@ -191,7 +191,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             ) : (
               <div className="space-y-3">
                 {recentProperties.map((prop) => (
-                  <div key={prop.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50">
+                  <div key={prop.id} className="flex items-center gap-4 p-3 rounded-lg even:bg-gray-50 hover:bg-[#FBF3E3]">
                     {prop.images.length > 0 && (
                       <img src={prop.images[0]} alt={prop.title} className="w-16 h-16 rounded-lg object-cover" />
                     )}
@@ -214,12 +214,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
         {/* Recent Leads */}
         <div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">Recent Leads</h2>
               <button
                 onClick={() => onNavigate('leads')}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                className="text-[#C9922A] hover:text-[#b07d20] text-sm font-medium"
               >
                 View All
               </button>
@@ -240,7 +240,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     <p className="font-medium text-gray-900 text-sm">{lead.name}</p>
                     <p className="text-xs text-gray-600">{lead.email}</p>
                     <div className="flex items-center justify-between mt-2">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded capitalize ${lead.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : lead.status === 'contacted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${lead.status === 'pending' ? 'bg-amber-100 text-amber-800' : lead.status === 'contacted' ? 'bg-[#FBF3E3] text-[#C9922A]' : 'bg-green-100 text-green-800'}`}>
                         {lead.status}
                       </span>
                       <span className="text-xs text-gray-500">{new Date(lead.createdAt).toLocaleDateString()}</span>

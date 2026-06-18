@@ -110,17 +110,17 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = ({
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Leads & Inquiries</h1>
         <div className="flex flex-wrap gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
-            <span className="text-sm text-blue-900">Total:</span>
-            <span className="font-bold text-blue-900">{stats.total}</span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#FBF3E3] rounded-lg border border-[#C9922A]/20">
+            <span className="text-sm text-[#C9922A]">Total:</span>
+            <span className="font-bold text-[#C9922A]">{stats.total}</span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 rounded-lg border border-yellow-200">
             <span className="text-sm text-yellow-900">Pending:</span>
             <span className="font-bold text-yellow-900">{stats.pending}</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-lg border border-purple-200">
-            <span className="text-sm text-purple-900">Contacted:</span>
-            <span className="font-bold text-purple-900">{stats.contacted}</span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#FBF3E3] rounded-lg border border-[#C9922A]/20">
+            <span className="text-sm text-[#C9922A]">Contacted:</span>
+            <span className="font-bold text-[#C9922A]">{stats.contacted}</span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg border border-green-200">
             <span className="text-sm text-green-900">Closed:</span>
@@ -143,14 +143,14 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = ({
           placeholder="Search by name, email, or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30"
         />
 
         <div className="flex flex-wrap gap-3">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -161,7 +161,7 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = ({
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30"
           >
             <option value="all">All Types</option>
             <option value="contact-owner">Contact Owner</option>
@@ -205,7 +205,7 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = ({
                   <td className="px-6 py-3 text-gray-600">{lead.email}</td>
                   <td className="px-6 py-3 text-gray-600">{lead.phone}</td>
                   <td className="px-6 py-3">
-                    <span className="text-xs font-medium capitalize px-2.5 py-1 bg-blue-100 text-blue-800 rounded">
+                    <span className="text-xs font-medium capitalize px-2.5 py-1 bg-[#FBF3E3] text-[#C9922A] rounded">
                       {lead.type}
                     </span>
                   </td>
@@ -225,7 +225,7 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = ({
                         lead.status === 'pending'
                           ? 'bg-yellow-100 text-yellow-800'
                           : lead.status === 'contacted'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-[#FBF3E3] text-[#C9922A]'
                           : 'bg-green-100 text-green-800'
                       }`}
                     >
