@@ -24,10 +24,10 @@ const amenitiesOptions = ['Pool', 'Gym', 'Parking', 'Garden', 'Security', 'Lift'
 
 const budgetOptions = [
   { label: 'All Budgets', min: undefined, max: undefined },
-  { label: 'Under ₹50L', min: undefined, max: 5000000 },
-  { label: '₹50L - ₹1Cr', min: 5000000, max: 10000000 },
-  { label: '₹1Cr - ₹3Cr', min: 10000000, max: 30000000 },
-  { label: '₹3Cr+', min: 30000000, max: undefined },
+  { label: 'Under Rs 50L', min: undefined, max: 5000000 },
+  { label: 'Rs 50L - Rs 1Cr', min: 5000000, max: 10000000 },
+  { label: 'Rs 1Cr - Rs 3Cr', min: 10000000, max: 30000000 },
+  { label: 'Rs 3Cr+', min: 30000000, max: undefined },
 ];
 
 const typeOptions = [
@@ -40,9 +40,9 @@ const typeOptions = [
 ];
 
 const formatPrice = (price: number): string => {
-  if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
-  if (price >= 100000) return `₹${(price / 100000).toFixed(2)} L`;
-  return `₹${price.toLocaleString()}`;
+  if (price >= 10000000) return `Rs ${(price / 10000000).toFixed(2)} Cr`;
+  if (price >= 100000) return `Rs ${(price / 100000).toFixed(2)} L`;
+  return `Rs ${price.toLocaleString()}`;
 };
 
 export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch }) => {
@@ -121,9 +121,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
 
   return (
     <div className="min-h-screen bg-cream" style={{ fontFamily: "'Inter', sans-serif" }}>
-
-      {/* ── HERO ── */}
-      <section className="relative min-h-[700px] text-white overflow-hidden">
+      <section className="relative min-h-[640px] text-white overflow-hidden sm:min-h-[700px]">
         <img
           src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=85"
           alt="Luxury home"
@@ -131,50 +129,44 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
         />
         <div className="absolute inset-0 bg-[#0F1F3D]/55" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-14 sm:py-24 md:py-32">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="max-w-6xl mx-auto text-center"
           >
-            <span className="inline-flex items-center bg-[#0F1F3D]/85 text-gold border border-gold rounded-sm px-4 py-2 text-xs font-semibold mb-6 tracking-[0.14em] uppercase">
+            <span className="inline-flex max-w-full items-center bg-[#0F1F3D]/85 text-gold border border-gold rounded-sm px-3 py-2 text-[10px] font-semibold mb-5 tracking-[0.12em] uppercase sm:px-4 sm:text-xs">
               Most Trusted Property Platform
             </span>
 
-            <h1 className="font-serif text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-4">
+            <h1 className="font-serif text-4xl sm:text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-4">
               <span className="block text-white">Nova Nest</span>
               <span className="block text-gold">Property in India</span>
             </h1>
-            <p className="text-base md:text-lg text-white/75 mb-10">
+            <p className="text-sm sm:text-base md:text-lg text-white/75 mb-7 sm:mb-10">
               Verified homes, plots, and commercial addresses curated with care.
             </p>
 
-            {/* ── Search Box ── */}
-            <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-[0_8px_48px_rgba(0,0,0,0.22)]">
-
-              {/* Row 1 — Location */}
-              <div className="flex items-center border-b border-black/[0.07] px-5">
+            <div className="w-full max-w-6xl mx-auto bg-white rounded-xl sm:rounded-2xl shadow-[0_8px_48px_rgba(0,0,0,0.22)] overflow-visible">
+              <div className="flex items-center border-b border-black/[0.07] px-3 sm:px-5">
                 <LocationAutocomplete
                   value={filters.location || ''}
                   onChange={handleLocationChange}
                   onSelect={(location) => setFilters({ ...filters, location })}
                   locations={allProperties.map((p) => p.location)}
-                  className="flex-1"
-                  inputClassName="h-14 w-full bg-transparent text-[15px] font-medium text-charcoal placeholder-charcoal/35 focus:outline-none pl-8"
+                  className="flex-1 min-w-0"
+                  inputClassName="h-12 sm:h-14 w-full bg-transparent text-[14px] sm:text-[15px] font-medium text-charcoal placeholder-charcoal/35 focus:outline-none pl-8 pr-2"
                 />
               </div>
 
-              {/* Row 2 — Filters + Search */}
-              <div className="flex items-center px-4 py-3 gap-3">
-
-                {/* Buy / Rent */}
-                <div className="flex items-center bg-[#f5f5f5] rounded-xl p-1 gap-0.5 flex-shrink-0">
+              <div className="grid grid-cols-1 gap-3 px-3 py-4 sm:px-4 lg:flex lg:items-center lg:py-3">
+                <div className="flex h-12 items-center bg-[#f5f5f5] rounded-xl p-1 gap-0.5 lg:h-11 lg:flex-shrink-0">
                   {(['buy', 'rent'] as const).map((s) => (
                     <button
                       key={s}
                       onClick={() => setSelectedStatus(s)}
-                      className={`px-5 py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
+                      className={`flex-1 px-4 py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 lg:flex-none lg:px-5 ${
                         selectedStatus === s ? 'bg-charcoal text-gold shadow-sm' : 'text-charcoal/50 hover:text-charcoal'
                       }`}
                     >
@@ -183,44 +175,41 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
                   ))}
                 </div>
 
-                <div className="w-px h-7 bg-black/10 flex-shrink-0" />
+                <div className="hidden lg:block w-px h-7 bg-black/10 flex-shrink-0" />
 
-                {/* Budget */}
-                <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#f5f5f5] rounded-xl px-3 py-2.5">
+                <label className="flex h-12 w-full items-center gap-2 min-w-0 bg-[#f5f5f5] rounded-xl px-4 py-2.5 lg:h-11 lg:w-auto lg:flex-1 lg:px-3">
                   <IndianRupee size={14} className="text-gold flex-shrink-0" />
                   <select
                     value={selectedBudget}
                     onChange={(e) => setSelectedBudget(e.target.value)}
-                    className="flex-1 min-w-0 appearance-none bg-transparent text-[13px] font-semibold text-charcoal outline-none cursor-pointer"
+                    className="flex-1 min-w-0 appearance-none bg-transparent text-[14px] font-semibold text-charcoal outline-none cursor-pointer lg:text-[13px]"
                   >
                     {budgetOptions.map((o) => (
                       <option key={o.label} value={o.label}>{o.label}</option>
                     ))}
                   </select>
                   <ChevronDown size={13} className="text-charcoal/35 flex-shrink-0 pointer-events-none" />
-                </div>
+                </label>
 
-                <div className="w-px h-7 bg-black/10 flex-shrink-0" />
+                <div className="hidden lg:block w-px h-7 bg-black/10 flex-shrink-0" />
 
-                {/* Type */}
-                <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#f5f5f5] rounded-xl px-3 py-2.5">
+                <label className="flex h-12 w-full items-center gap-2 min-w-0 bg-[#f5f5f5] rounded-xl px-4 py-2.5 lg:h-11 lg:w-auto lg:flex-1 lg:px-3">
                   <Building2 size={14} className="text-gold flex-shrink-0" />
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
-                    className="flex-1 min-w-0 appearance-none bg-transparent text-[13px] font-semibold text-charcoal outline-none cursor-pointer"
+                    className="flex-1 min-w-0 appearance-none bg-transparent text-[14px] font-semibold text-charcoal outline-none cursor-pointer lg:text-[13px]"
                   >
                     {typeOptions.map((o) => (
                       <option key={o.label} value={o.value}>{o.label}</option>
                     ))}
                   </select>
                   <ChevronDown size={13} className="text-charcoal/35 flex-shrink-0 pointer-events-none" />
-                </div>
+                </label>
 
-                {/* Search btn */}
                 <button
                   onClick={search}
-                  className="flex-shrink-0 h-11 px-7 rounded-xl bg-charcoal text-gold text-[13px] font-bold flex items-center gap-2 hover:bg-charcoal/85 active:scale-[0.97] transition-all duration-200"
+                  className="h-12 w-full px-7 rounded-xl bg-charcoal text-gold text-[13px] font-bold flex items-center justify-center gap-2 hover:bg-charcoal/85 active:scale-[0.97] transition-all duration-200 lg:h-11 lg:w-auto lg:flex-shrink-0"
                 >
                   <Search size={15} />
                   Search
@@ -228,14 +217,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
               </div>
             </div>
 
-            {/* Popular locations */}
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3 text-sm">
+            <div className="mt-6 sm:mt-7 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-sm">
               <span className="text-white/60 text-[13px]">Popular:</span>
               {['Whitefield', 'Marathahalli', 'Bellandur', 'Hoodi'].map((place) => (
                 <button
                   key={place}
                   onClick={() => handlePopularLocation(place)}
-                  className="rounded-full border border-white/35 px-4 py-1.5 text-[13px] text-white hover:bg-white/10 transition-all"
+                  className="rounded-full border border-white/35 px-3 py-1.5 text-[12px] text-white hover:bg-white/10 transition-all sm:px-4 sm:text-[13px]"
                 >
                   {place}
                 </button>
@@ -245,11 +233,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
         </div>
       </section>
 
-      {/* ── CATEGORY FILTER BAR ── */}
       <section className="sticky top-16 z-40 bg-white border-b border-black/[0.06] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar">
-            <div className="flex rounded-full bg-[#f5f5f5] p-1 gap-0.5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex max-w-full rounded-full bg-[#f5f5f5] p-1 gap-0.5 overflow-x-auto no-scrollbar">
               {categoryChips.map((chip) => (
                 <button
                   key={chip.value || 'all'}
@@ -263,10 +250,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
               ))}
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="grid grid-cols-[1fr_1fr_40px] items-center gap-2 md:flex md:flex-shrink-0">
               <button
                 onClick={() => setShowFilterDrawer(!showFilterDrawer)}
-                className="h-10 border border-black/10 bg-white text-charcoal/65 px-4 rounded-lg hover:border-gold/50 hover:text-gold transition-all text-[13px] font-semibold flex items-center gap-2"
+                className="h-10 border border-black/10 bg-white text-charcoal/65 px-3 rounded-lg hover:border-gold/50 hover:text-gold transition-all text-[13px] font-semibold flex items-center justify-center gap-2 sm:px-4"
               >
                 <Filter size={15} />
                 Filters
@@ -274,7 +261,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
               <div className="relative">
                 <button
                   onClick={() => setShowSortDropdown(!showSortDropdown)}
-                  className="h-10 border border-black/10 bg-white text-charcoal/65 px-4 rounded-lg hover:border-gold/50 hover:text-gold transition-all text-[13px] font-semibold flex items-center gap-2"
+                  className="h-10 w-full border border-black/10 bg-white text-charcoal/65 px-3 rounded-lg hover:border-gold/50 hover:text-gold transition-all text-[13px] font-semibold flex items-center justify-center gap-2 sm:px-4"
                 >
                   Sort <ChevronDown size={14} />
                 </button>
@@ -295,6 +282,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
               <button
                 onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
                 className="h-10 w-10 border border-black/10 bg-white text-charcoal/65 rounded-lg hover:border-gold/50 hover:text-gold transition-all flex items-center justify-center"
+                aria-label="Toggle listing view"
               >
                 {viewMode === 'grid' ? <List size={16} /> : <Grid3x3 size={16} />}
               </button>
@@ -306,7 +294,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
         </div>
       </section>
 
-      {/* ── FILTER DRAWER ── */}
       {showFilterDrawer && (
         <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setShowFilterDrawer(false)} />
       )}
@@ -314,13 +301,21 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
         initial={{ x: '100%' }}
         animate={{ x: showFilterDrawer ? 0 : '100%' }}
         transition={{ duration: 0.28 }}
-        className="fixed right-0 top-32 bottom-0 w-80 bg-white shadow-2xl overflow-y-auto z-50 lg:hidden"
+        className="fixed right-0 top-0 bottom-0 w-[min(100vw,22rem)] bg-white shadow-2xl overflow-y-auto z-50 lg:hidden"
       >
-        <div className="p-6 space-y-6">
-          <h3 className="text-xl font-bold text-charcoal">Filters</h3>
+        <div className="p-5 pt-20 space-y-6 sm:p-6 sm:pt-24">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xl font-bold text-charcoal">Filters</h3>
+            <button
+              onClick={() => setShowFilterDrawer(false)}
+              className="h-9 px-3 rounded-lg bg-[#f5f5f5] text-[13px] font-semibold text-charcoal"
+            >
+              Close
+            </button>
+          </div>
           <div>
             <label className="block text-[13px] font-semibold text-charcoal mb-2">
-              Budget: {formatPrice(priceRange[0])} – {formatPrice(priceRange[1])}
+              Budget: {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
             </label>
             <input
               type="range" min="0" max="100000000" step="100000"
@@ -331,7 +326,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
           </div>
           <div>
             <label className="block text-[13px] font-semibold text-charcoal mb-2">Bedrooms</label>
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {[0, 1, 2, 3, 4, 5].map((bed) => (
                 <button
                   key={bed}
@@ -372,11 +367,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
         </div>
       </motion.div>
 
-      {/* ── LISTINGS ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <div className="mb-8">
           <p className="text-[11px] uppercase tracking-[0.2em] text-gold font-bold mb-1">Curated Listings</p>
-          <h2 className="text-3xl font-bold text-charcoal">
+          <h2 className="text-2xl sm:text-3xl font-bold text-charcoal">
             {filteredProperties.length} Properties Found
           </h2>
         </div>
