@@ -25,7 +25,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 safe-area-bottom">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-40 safe-area-bottom shadow-[0_-8px_24px_rgba(15,23,42,0.08)]">
       <div className="grid grid-cols-4 gap-1 px-2 py-2">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -38,13 +38,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               whileTap={{ scale: 0.95 }}
               className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all ${
                 isActive
-                  ? 'text-blue-600'
+                  ? 'text-[#C9922A]'
                   : 'text-gray-600'
               }`}
             >
               <Icon
                 size={22}
-                className={`mb-1 ${isActive ? 'fill-blue-100' : ''}`}
+                className={`mb-1 ${isActive ? 'fill-[#FBF3E3]' : ''}`}
               />
               <span className={`text-xs font-medium ${isActive ? 'font-semibold' : ''}`}>
                 {item.label}
@@ -52,7 +52,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               {isActive && (
                 <motion.div
                   layoutId="bottomNavIndicator"
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full"
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#C9922A] rounded-full"
                 />
               )}
             </motion.button>

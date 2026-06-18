@@ -1,7 +1,13 @@
 // Environment configuration utility
+const isProd = import.meta.env.VITE_IS_PRODUCTION === 'true';
+
+const s3FolderName = isProd
+  ? import.meta.env.VITE_S3_FOLDER_PROD
+  : import.meta.env.VITE_S3_FOLDER_DUMMY;
+
 export const config = {
   // Environment mode
-  isProduction: import.meta.env.VITE_PRODUCTION === 'true',
+  isProduction: isProd,
 
   // AWS S3 Configuration
   aws: {
@@ -10,7 +16,7 @@ export const config = {
     region: import.meta.env.VITE_AWS_REGION || 'us-east-1',
     s3: {
       bucketName: import.meta.env.VITE_S3_BUCKET_NAME || '',
-      folderName: import.meta.env.VITE_S3_FOLDER_NAME || 'properties',
+      folderName: s3FolderName || '',
     },
   },
 
@@ -36,6 +42,7 @@ export const validateConfig = () => {
       config.aws.accessKeyId,
       config.aws.secretAccessKey,
       config.aws.s3.bucketName,
+      config.aws.s3.folderName,
     ];
 
     if (required.some((val) => !val)) {

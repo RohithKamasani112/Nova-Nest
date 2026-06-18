@@ -67,7 +67,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       try {
         const urls: string[] = [];
         for (const file of files) {
-          const url = await uploadImage(file);
+          const url = await uploadImage(file, formData.title);
           urls.push(url);
         }
         setUploadedImages([...uploadedImages, ...urls]);

@@ -1,256 +1,153 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Property } from '../../types';
-import {
-  Heart,
-  MapPin,
-  Bed,
-  Bath,
-  Maximize,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  User,
-  Building2,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Bath, BedDouble, Building2, Eye, MapPin, Maximize2 } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface PropertyCardProps {
   property: Property;
   onFavorite?: (id: string) => void;
   isFavorite?: boolean;
   onClick?: () => void;
+  index?: number;
 }
+
+const formatPrice = (property: Property): string => {
+  if (property.status === 'rent') return `\u20B9${property.price.toLocaleString()}/month`;
+  if (property.price >= 10000000) return `\u20B9${(property.price / 10000000).toFixed(2)} Cr`;
+  if (property.price >= 100000) return `\u20B9${(property.price / 100000).toFixed(2)} L`;
+  return `\u20B9${property.price.toLocaleString()}`;
+};
+
+const categoryLabel = (category: Property['category']) => {
+  if (category === 'land') return 'Plot';
+  if (category === 'condo') return 'Commercial';
+  return category.charAt(0).toUpperCase() + category.slice(1);
+};
 
 export const PropertyCard: React.FC<PropertyCardProps> = ({
   property,
-  onFavorite,
-  isFavorite = false,
   onClick,
+  index = 0,
 }) => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-
-  const formatPrice = (price: number) => {
-    if (property.status === 'rent') {
-      return `₹${price.toLocaleString()}/month`;
-    }
-    if (price >= 10000000) {
-      return `₹${(price / 10000000).toFixed(2)} Cr`;
-    }
-    if (price >= 100000) {
-      return `₹${(price / 100000).toFixed(2)} L`;
-    }
-    return `₹${price.toLocaleString()}`;
+  const handleActionClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onClick?.();
   };
-
-  const handleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onFavorite?.(property.id);
-  };
-
-  const handleNextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) =>
-      prev === property.images.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const handlePrevImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? property.images.length - 1 : prev - 1
-    );
-  };
-
-  const currentImage =
-    property.images.length > 0
-      ? property.images[currentImageIndex]
-      : 'https://via.placeholder.com/400x300?text=No+Image';
 
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col"
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick?.();
+        }
+      }}
+      className="group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.07)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_36px_rgba(0,0,0,0.13)]"
+      style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      {/* Image Container - h-220px */}
-      <div className="relative h-56 overflow-hidden bg-gray-100">
-        {property.images.length > 0 ? (
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={currentImageIndex}
-              src={currentImage}
-              alt={property.title}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          </AnimatePresence>
-        ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <Building2 size={48} className="text-gray-400" />
-          </div>
-        )}
-
-        {/* Image Navigation */}
-        {property.images.length > 1 && isHovered && (
-          <>
-            <button
-              onClick={handlePrevImage}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-1.5 rounded-full hover:bg-white transition-all shadow-lg z-10"
-            >
-              <ChevronLeft size={16} className="text-gray-800" />
-            </button>
-            <button
-              onClick={handleNextImage}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm p-1.5 rounded-full hover:bg-white transition-all shadow-lg z-10"
-            >
-              <ChevronRight size={16} className="text-gray-800" />
-            </button>
-
-            {/* Image Dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-              {property.images.map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-1.5 rounded-full transition-all ${
-                    index === currentImageIndex
-                      ? 'w-6 bg-white'
-                      : 'w-1.5 bg-white/60'
-                  }`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Badges */}
-        <div className="absolute top-3 left-3 flex gap-2">
-          {property.featured && (
-            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-2.5 py-1 rounded-md text-xs font-bold shadow-lg">
-              FEATURED
-            </div>
-          )}
-          {property.verified && (
-            <div className="bg-green-500 text-white px-2.5 py-1 rounded-md text-xs font-bold shadow-lg flex items-center gap-1">
-              <Check size={12} />
-              VERIFIED
-            </div>
-          )}
-        </div>
-
-        {/* Favorite Button */}
-        <button
-          onClick={handleFavorite}
-          className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-all duration-200 shadow-lg"
-        >
-          <Heart
-            size={16}
-            className={`${
-              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-700'
-            } transition-colors`}
+      <div className="relative aspect-[4/3] overflow-hidden bg-black/5">
+        {property.images?.[0] ? (
+          <img
+            src={property.images[0]}
+            alt={property.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-        </button>
-
-        {/* Status Badge */}
-        <div className="absolute bottom-3 left-3 bg-white px-2.5 py-1 rounded-md text-xs font-bold shadow-lg capitalize">
-          For {property.status}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        {/* Row 1: Price & Category */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="text-xl font-bold text-gray-900">
-            {formatPrice(property.price)}
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#f5f5f5] to-black/10">
+            <Building2 size={36} className="text-charcoal/20" />
           </div>
-          <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-semibold capitalize whitespace-nowrap">
-            {property.category}
+        )}
+
+        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+          {property.featured && (
+            <span className="rounded-full bg-[#1a2744] px-2.5 py-1 text-[11px] font-bold tracking-wide text-gold">
+              New Launch
+            </span>
+          )}
+          <span className="rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-bold text-[#1a2744]">
+            {categoryLabel(property.category)}
           </span>
         </div>
 
-        {/* Row 2: Title */}
-        <h3 className="font-semibold text-gray-900 mb-1.5 line-clamp-1 text-sm group-hover:text-blue-600 transition-colors">
+        <button
+          onClick={handleActionClick}
+          className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12px] font-bold text-charcoal shadow transition-colors hover:bg-white"
+          aria-label={`View ${property.title}`}
+        >
+          <Eye size={13} />
+          View
+        </button>
+      </div>
+
+      <div className="p-4 pb-5">
+        <h3 className="mb-1 line-clamp-1 text-[15px] font-bold leading-tight tracking-normal text-[#1a1a1a]">
           {property.title}
         </h3>
 
-        {/* Row 3: Location */}
-        <div className="flex items-center text-gray-500 mb-2">
-          <MapPin size={14} className="mr-1 flex-shrink-0" />
-          <span className="text-xs line-clamp-1">{property.location}</span>
+        <div className="mb-3 flex items-center gap-1">
+          <MapPin size={12} className="flex-shrink-0 text-gold" />
+          <span className="truncate text-[12px] font-medium text-[#666]">{property.location}</span>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-100 my-2" />
-
-        {/* Row 4: Stats */}
-        <div className="grid gap-2 mb-2 text-xs">
-          <div className="flex items-center gap-1 text-gray-600">
-            {property.bedrooms > 0 && (
-              <>
-                <Bed size={14} />
-                <span className="font-semibold">{property.bedrooms} Beds</span>
-                <span className="mx-1">•</span>
-              </>
-            )}
-            <Bath size={14} />
-            <span className="font-semibold">{property.bathrooms} Baths</span>
-            <span className="mx-1">•</span>
-            <Maximize size={14} />
-            <span className="font-semibold">{property.areaSqft.toLocaleString()} sqft</span>
-          </div>
-        </div>
-
-        {/* Row 5: Amenities */}
-        {property.amenities.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {property.amenities.slice(0, 3).map((amenity, index) => (
-              <span
-                key={index}
-                className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-medium"
-              >
-                {amenity}
-              </span>
-            ))}
-            {property.amenities.length > 3 && (
-              <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-medium">
-                +{property.amenities.length - 3} more
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Row 6: Description */}
-        <p className="text-xs text-gray-600 line-clamp-2 mb-2">
-          {property.description}
-        </p>
-
-        {/* Divider */}
-        <div className="border-t border-gray-100 my-2 mt-auto" />
-
-        {/* Row 7: Agent & CTA */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-              <User size={13} className="text-white" />
+        <div className="mb-4 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#f0f0f0] pb-4">
+          {property.bedrooms > 0 && (
+            <div className="flex items-center gap-1.5">
+              <BedDouble size={14} className="text-[#888]" />
+              <span className="text-[13px] font-semibold text-[#333]">{property.bedrooms} BHK</span>
             </div>
-            <span className="text-xs font-medium text-gray-700">Contact Agent</span>
+          )}
+          {property.bathrooms > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Bath size={14} className="text-[#888]" />
+              <span className="text-[13px] font-semibold text-[#333]">{property.bathrooms} Bath</span>
+            </div>
+          )}
+          {property.areaSqft > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Maximize2 size={13} className="text-[#888]" />
+              <span className="text-[13px] font-semibold text-[#333]">{property.areaSqft.toLocaleString()} sqft</span>
+            </div>
+          )}
+        </div>
+
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[22px] font-extrabold leading-none tracking-normal text-[#1a1a1a]">
+              {formatPrice(property)}
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium text-[#777]">
+              {property.status === 'rent' ? 'rental price' : 'onwards'}
+            </p>
           </div>
+          {property.bedrooms > 0 && (
+            <span className="flex-shrink-0 rounded-lg bg-gold/10 px-2.5 py-1 text-[12px] font-bold text-gold">
+              {property.bedrooms} BHK
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={onClick}
-            className="px-3 py-1.5 bg-white border border-blue-600 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-50 transition-colors whitespace-nowrap"
+            onClick={handleActionClick}
+            className="rounded-xl bg-[#1a2744] py-2.5 text-[13px] font-bold tracking-wide text-white transition-colors hover:bg-[#0f1b2d]"
           >
-            View Details →
+            BOOK VISIT
+          </button>
+          <button
+            onClick={handleActionClick}
+            className="rounded-xl bg-gold py-2.5 text-[13px] font-bold tracking-wide text-[#1a2744] transition-all hover:brightness-95"
+          >
+            ENQUIRE
           </button>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 };

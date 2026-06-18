@@ -11,14 +11,21 @@ import { AdminPage } from '../pages/AdminPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { ManagePropertiesPage } from '../pages/ManagePropertiesPage';
 import { LeadsManagementPage } from '../pages/LeadsManagementPage';
+import { AboutPage } from '../pages/AboutPage';
+import { ContactPage } from '../pages/ContactPage';
 import { Property, PropertyFilters } from '../types';
 import { Toaster } from 'react-hot-toast';
+import { Phone, MessageCircle } from 'lucide-react';
+import { PageLoader } from '../components/PageLoader';
+import { Footer } from './components/Footer';
 
 type Page =
   | 'home'
   | 'properties'
   | 'property-details'
   | 'admin-login'
+  | 'about'
+  | 'contact'
   | 'dashboard'
   | 'add-property'
   | 'manage-properties'
@@ -29,8 +36,12 @@ function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [propertyFilters, setPropertyFilters] = useState<PropertyFilters>({});
+  const [showPageLoader, setShowPageLoader] = useState(true);
 
   const handleNavigate = (page: string) => {
+    if (page === 'properties') {
+      setPropertyFilters({});
+    }
     setCurrentPage(page as Page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -80,6 +91,12 @@ function App() {
       case 'admin-login':
         return <LoginPage onNavigate={handleNavigate} />;
 
+      case 'about':
+        return <AboutPage onNavigate={handleNavigate} />;
+
+      case 'contact':
+        return <ContactPage />;
+
       default:
         return (
           <HomePage
@@ -125,6 +142,8 @@ function App() {
         showMobileNav={showMobileNav}
         handleNavigate={handleNavigate}
         handleSearch={handleSearch}
+        showPageLoader={showPageLoader}
+        setShowPageLoader={setShowPageLoader}
         renderPage={renderPage}
         renderAdminContent={renderAdminContent}
       />
@@ -140,6 +159,8 @@ const AppContent: React.FC<{
   showMobileNav: boolean;
   handleNavigate: (page: string) => void;
   handleSearch: (filters: PropertyFilters) => void;
+  showPageLoader: boolean;
+  setShowPageLoader: (show: boolean) => void;
   renderPage: () => React.ReactNode;
   renderAdminContent: () => React.ReactNode;
 }> = ({
@@ -149,10 +170,14 @@ const AppContent: React.FC<{
   showMobileNav,
   handleNavigate,
   handleSearch,
+  showPageLoader,
+  setShowPageLoader,
   renderPage,
   renderAdminContent,
 }) => {
   const { logout, isAuthenticated } = useAuth();
+  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
+  const floatingWhatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
 
   // Auth guard for admin pages
   if (isAdminPage && !isAuthenticated) {
@@ -161,7 +186,9 @@ const AppContent: React.FC<{
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {showNavbar && !isAdminPage && (
+      {showPageLoader && <PageLoader onDone={() => setShowPageLoader(false)} />}
+
+      {!isAdminPage && (
         <Navbar
           onNavigate={handleNavigate}
           onSearch={handleSearch}
@@ -170,7 +197,7 @@ const AppContent: React.FC<{
       )}
 
       {isAdminPage ? (
-        <div className="flex h-screen overflow-hidden">
+        <div className="min-h-screen bg-[#F8F6F1]">
           <AdminSidebar
             currentPage={currentPage}
             onNavigate={handleNavigate}
@@ -179,13 +206,20 @@ const AppContent: React.FC<{
               handleNavigate('home');
             }}
           />
-          <div className="flex-1 overflow-y-auto bg-gray-50">
-            {renderAdminContent()}
+          <div className="ml-64 min-h-screen bg-[#F8F6F1] p-8">
+            <div key={currentPage} className="animate-[fadeUp_0.4s_ease-out]">
+              {renderAdminContent()}
+            </div>
           </div>
         </div>
       ) : (
         <>
-          {renderPage()}
+          <div key={currentPage} className="animate-[fadeUp_0.4s_ease-out]">
+            {renderPage()}
+          </div>
+          {showNavbar && currentPage !== 'property-details' && (
+            <Footer onNavigate={handleNavigate} onSearch={handleSearch} />
+          )}
           {showMobileNav && (
             <MobileBottomNav
               currentPage={currentPage}
@@ -194,6 +228,27 @@ const AppContent: React.FC<{
             />
           )}
         </>
+      )}
+
+      {!isAdminPage && currentPage !== 'admin-login' && (
+        <div className="fixed bottom-6 right-5 z-50 flex flex-col items-center gap-3 sm:right-6">
+          <a
+            href="tel:+919845418570"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#C9922A] text-white shadow-lg transition-transform duration-200 hover:scale-110"
+            aria-label="Call us"
+          >
+            <Phone size={22} />
+          </a>
+          <a
+            href={floatingWhatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform duration-200 hover:scale-110"
+            aria-label="Contact on WhatsApp"
+          >
+            <MessageCircle size={23} />
+          </a>
+        </div>
       )}
 
       <Toaster

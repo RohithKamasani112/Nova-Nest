@@ -6,25 +6,29 @@ import {
   deleteFromS3,
 } from '../utils/s3Helper';
 
-const DUMMY_DATA_ENABLED = import.meta.env.VITE_DUMMY_DATA === 'true';
-
 /**
  * Storage Service - Always uses S3
  * All data is persisted directly to AWS S3
- * Filters dummy data based on VITE_DUMMY_DATA flag
+ * Selects the production or dummy folder from VITE_IS_PRODUCTION.
  */
 
-// Get all properties (filtered by dummy data flag)
+const slugify = (value: string): string => {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return slug || 'untitled-property';
+};
+
+const sanitizeFileName = (value: string): string =>
+  value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'image';
+
+// Get all properties
 export const getAllProperties = async (): Promise<Property[]> => {
   try {
-    const properties = await getJsonFromS3<Property[]>('properties.json');
-    
-    // Filter dummy data if disabled
-    if (!DUMMY_DATA_ENABLED) {
-      return properties.filter(p => !p.isDummy);
-    }
-    
-    return properties;
+    return await getJsonFromS3<Property[]>('properties.json');
   } catch (error) {
     console.error('Error fetching properties:', error);
     return [];
@@ -125,9 +129,12 @@ export const deleteProperty = async (id: string): Promise<void> => {
 };
 
 // Upload image
-export const uploadImage = async (file: File): Promise<string> => {
+export const uploadImage = async (
+  file: File,
+  propertyName: string = 'untitled-property'
+): Promise<string> => {
   try {
-    const fileName = `images/${Date.now()}_${file.name}`;
+    const fileName = `assets/${slugify(propertyName)}/${Date.now()}_${sanitizeFileName(file.name)}`;
     return await uploadToS3(file, fileName);
   } catch (error) {
     console.error('Error uploading image:', error);

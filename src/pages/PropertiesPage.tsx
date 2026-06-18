@@ -3,6 +3,7 @@ import { Property, PropertyFilters, SortOption } from '../types';
 import { getAllProperties } from '../services/storageService';
 import { PropertyCard } from '../app/components/PropertyCard';
 import { FilterBar } from '../app/components/FilterBar';
+import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { motion } from 'motion/react';
 import { Search } from 'lucide-react';
 
@@ -21,9 +22,26 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const resultsRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadProperties();
+  }, []);
+
+  useEffect(() => {
+    setFilters(initialFilters);
+    setSearchQuery(initialFilters.location || '');
+  }, [initialFilters]);
+
+  useEffect(() => {
+    const locationParam = new URLSearchParams(window.location.search).get('location');
+    if (locationParam) {
+      setSearchQuery(locationParam);
+      setFilters((current) => ({ ...current, location: locationParam }));
+      window.setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 250);
+    }
   }, []);
 
   useEffect(() => {
@@ -143,28 +161,34 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-cream py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Explore Properties
+        <div className="mb-10">
+          <p className="text-sm uppercase tracking-[0.18em] text-gold font-semibold mb-3">Properties</p>
+          <h1 className="font-serif text-4xl md:text-6xl font-bold text-charcoal mb-3">
+            Browse Properties
           </h1>
+          <p className="text-muted-foreground text-base mb-6">
+            Find verified homes, plots & commercial spaces
+          </p>
 
           {/* Search Bar */}
-          <div className="relative max-w-2xl">
-            <Search
-              size={20}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Search by title, location, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-          </div>
+          <LocationAutocomplete
+            value={searchQuery}
+            onChange={(value) => {
+              setSearchQuery(value);
+              setFilters({ ...filters, location: value || undefined });
+            }}
+            onSelect={(value) => {
+              setSearchQuery(value);
+              setFilters({ ...filters, location: value });
+            }}
+            locations={properties.map((property) => property.location)}
+            placeholder="Search by location..."
+            className="w-full max-w-lg"
+            inputClassName="bg-white border border-black/10 rounded-md pl-12 pr-5 py-4 w-full shadow-subtle focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+          />
         </div>
 
         {/* Filters */}
@@ -176,9 +200,9 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
         />
 
         {/* Results Count */}
-        <div className="mt-8 mb-6">
-          <p className="text-gray-600">
-            <span className="font-semibold text-gray-900">
+        <div ref={resultsRef} className="mt-8 mb-6 scroll-mt-24">
+          <p className="text-sm font-medium text-muted-foreground">
+            <span className="font-semibold text-charcoal">
               {filteredProperties.length}
             </span>{' '}
             {filteredProperties.length === 1 ? 'property' : 'properties'} found
@@ -187,27 +211,28 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
 
         {/* Properties Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(9)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl overflow-hidden animate-pulse"
+                className="bg-white rounded-md overflow-hidden animate-pulse border border-black/5 shadow-subtle"
               >
-                <div className="h-64 bg-gray-200" />
+                <div className="aspect-[4/3] bg-black/10" />
                 <div className="p-5 space-y-3">
-                  <div className="h-6 bg-gray-200 rounded w-2/3" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2" />
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-6 bg-black/10 rounded w-2/3" />
+                  <div className="h-4 bg-black/10 rounded w-1/2" />
+                  <div className="h-4 bg-black/10 rounded w-3/4" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredProperties.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProperties.map((property) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProperties.map((property, index) => (
               <PropertyCard
                 key={property.id}
                 property={property}
+                index={index}
                 onClick={() => onPropertyClick(property)}
               />
             ))}
@@ -218,12 +243,12 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-20"
           >
-            <div className="bg-white rounded-2xl p-12 max-w-md mx-auto">
-              <Search size={64} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <div className="premium-card p-12 max-w-md mx-auto">
+              <Search size={64} className="mx-auto text-gold mb-4" />
+              <h3 className="font-serif text-2xl font-bold text-charcoal mb-2">
                 No properties found
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 Try adjusting your filters or search query
               </p>
               <button
@@ -232,7 +257,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
                   setSearchQuery('');
                   setSortOption('newest');
                 }}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+              className="premium-button px-6 py-3 font-semibold"
               >
                 Clear All Filters
               </button>
