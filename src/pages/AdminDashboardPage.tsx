@@ -70,14 +70,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   return (
     <div className="max-w-7xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-['Playfair_Display'] text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">{today}</p>
+      <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-['Playfair_Display'] text-2xl font-bold text-gray-900 sm:text-3xl">Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-600 sm:text-base">{today}</p>
         </div>
         <button
           onClick={() => onNavigate('add-property')}
-          className="flex items-center gap-2 px-6 py-3 bg-[#C9922A] text-white rounded-xl font-semibold hover:bg-[#b07d20] transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C9922A] px-5 py-3 font-semibold text-white transition-colors hover:bg-[#b07d20] sm:w-auto sm:px-6"
         >
           <Plus size={20} />
           Add Property
@@ -85,12 +85,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-2 sm:gap-4 sm:mb-8 lg:grid-cols-4">
         {/* Total Properties */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 sm:p-6"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -110,7 +110,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 sm:p-6"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -130,7 +130,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 sm:p-6"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -150,7 +150,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 sm:p-6"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -169,7 +169,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Properties */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">Recent Listings</h2>
               <button
@@ -191,9 +191,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             ) : (
               <div className="space-y-3">
                 {recentProperties.map((prop) => (
-                  <div key={prop.id} className="flex items-center gap-4 p-3 rounded-lg even:bg-gray-50 hover:bg-[#FBF3E3]">
+                  <div key={prop.id} className="flex items-center gap-3 p-3 rounded-lg even:bg-gray-50 hover:bg-[#FBF3E3] sm:gap-4">
                     {prop.images.length > 0 && (
-                      <img src={prop.images[0]} alt={prop.title} className="w-16 h-16 rounded-lg object-cover" />
+                      <img src={prop.images[0]} alt={prop.title} className="h-14 w-14 rounded-lg object-cover sm:h-16 sm:w-16" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 line-clamp-1">{prop.title}</div>
@@ -214,7 +214,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
         {/* Recent Leads */}
         <div>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">Recent Leads</h2>
               <button

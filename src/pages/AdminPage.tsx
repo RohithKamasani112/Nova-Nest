@@ -178,7 +178,7 @@ const amenityOptions = [
 ];
 
 const inputClass =
-  'w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-[#C9922A] focus:ring-2 focus:ring-[#C9922A]/20';
+  'w-full min-w-0 border rounded-xl px-4 py-3 text-base focus:outline-none focus:border-[#C9922A] focus:ring-2 focus:ring-[#C9922A]/20 md:text-sm';
 const selectClass = inputClass;
 const labelClass = 'block text-sm font-medium text-gray-700 mb-2';
 
@@ -458,7 +458,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           placeholder={placeholder}
           value={formData[field]}
           onChange={(e) => setField(field, e.target.value)}
-          className={`${fieldClass(field)} pl-9`}
+          className={`${fieldClass(field)} pl-12`}
         />
       </div>
       <ErrorText field={field} />
@@ -512,13 +512,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-8">
-        <h1 className="font-['Playfair_Display'] text-3xl font-bold text-gray-900 mb-8">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="mb-5 font-['Playfair_Display'] text-2xl font-bold text-gray-900 sm:mb-8 sm:text-3xl">
           {editingProperty ? 'Edit Property' : 'Add New Property'}
         </h1>
       </div>
 
-      <div className="flex gap-2 mb-8 overflow-x-auto">
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-1 sm:mb-8">
         {[1, 2, 3, 4, 5, 6].map((s) => (
           <button
             key={s}
@@ -526,7 +526,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             onClick={() => {
               if (s <= step || validateStep()) setStep(s);
             }}
-            className={`h-12 w-12 rounded-full font-bold transition-all flex-shrink-0 ${
+            className={`h-10 w-10 flex-shrink-0 rounded-full text-sm font-bold transition-all sm:h-12 sm:w-12 sm:text-base ${
               step > s
                 ? 'bg-[#C9922A] text-white'
                 : step === s
@@ -685,7 +685,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 ))}
               </select>
             </div>
-            <div className="flex gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <button type="button" onClick={() => setStep(1)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Back
               </button>
@@ -718,7 +718,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <label className={labelClass}>Price Includes</label>
               <CheckboxGroup options={priceIncludesOptions} field="priceIncludes" />
             </div>
-            <div className="flex gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <button type="button" onClick={() => setStep(2)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Back
               </button>
@@ -835,7 +835,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <label className={labelClass}>Additional Rooms</label>
               <CheckboxGroup options={additionalRoomOptions} field="additionalRooms" />
             </div>
-            <div className="flex gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <button type="button" onClick={() => setStep(3)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Back
               </button>
@@ -920,7 +920,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <p className="mt-1 text-sm text-gray-500">Go to Google Maps - search your property - click Share - Copy link</p>
             </div>
 
-            <div className="flex gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <button type="button" onClick={() => setStep(4)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Back
               </button>
@@ -978,7 +978,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <p>Visibility: {formData.isActive ? 'Active' : 'Inactive'}</p>
             </div>
 
-            <div className="flex gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <button type="button" onClick={() => setStep(5)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Back
               </button>

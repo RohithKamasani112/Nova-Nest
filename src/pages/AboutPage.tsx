@@ -56,7 +56,7 @@ const timeline = [
 export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
   return (
     <main className="bg-cream text-charcoal overflow-hidden">
-      <section className="relative min-h-screen flex items-center justify-center">
+      <section className="relative min-h-[680px] flex items-center justify-center md:min-h-screen">
         <img
           src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=2000&q=90"
           className="absolute inset-0 w-full h-full object-cover"
@@ -74,7 +74,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="uppercase tracking-[0.35em] text-gold mb-6"
+            className="uppercase tracking-[0.22em] text-gold mb-6 text-xs sm:text-sm sm:tracking-[0.35em]"
           >
             Nova Nest Property Management
           </motion.p>
@@ -82,13 +82,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-serif text-5xl md:text-7xl font-bold"
+            className="font-serif text-4xl sm:text-5xl md:text-7xl font-bold"
           >
             Your Trusted Path
             <span className="block text-gold">To Home</span>
           </motion.h1>
 
-          <p className="max-w-3xl mx-auto mt-8 text-lg text-white/80">
+          <p className="max-w-3xl mx-auto mt-6 text-base text-white/80 sm:mt-8 sm:text-lg">
             Premium rental and sales advisory in Whitefield, Bengaluru, with
             verified properties, trusted advisors, and responsive support.
           </p>
@@ -118,12 +118,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <section className="max-w-7xl mx-auto px-4 py-14 sm:px-6 sm:py-24">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           <motion.img
             whileHover={{ scale: 1.02 }}
             src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&q=90"
-            className="rounded-3xl shadow-subtle"
+            className="rounded-2xl shadow-subtle sm:rounded-3xl"
           />
 
           <div>
@@ -131,7 +131,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
               Our Story
             </p>
 
-            <h2 className="font-serif text-5xl font-bold mb-8">
+            <h2 className="font-serif text-3xl font-bold mb-6 sm:text-5xl sm:mb-8">
               We Simplify Property Decisions
             </h2>
 
@@ -155,13 +155,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="bg-charcoal text-white py-24">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-6">
+      <section className="bg-charcoal text-white py-14 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           {stats.map((stat) => (
             <motion.div
               key={stat.label}
               whileHover={{ y: -8 }}
-              className="premium-card p-10 text-center"
+              className="premium-card p-6 text-center sm:p-10"
             >
               <div className="text-5xl font-serif font-bold text-gold">
                 {stat.value}
@@ -172,12 +172,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <div className="text-center mb-16">
+      <section className="max-w-7xl mx-auto px-4 py-14 sm:px-6 sm:py-24">
+        <div className="text-center mb-10 sm:mb-16">
           <p className="text-gold uppercase tracking-[0.25em] mb-3">
             Why Choose Us
           </p>
-          <h2 className="font-serif text-5xl font-bold">
+          <h2 className="font-serif text-3xl font-bold sm:text-5xl">
             Trust Designed Into Every Step
           </h2>
         </div>
@@ -207,9 +207,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="bg-white py-24">
+      <section className="bg-white py-14 sm:py-24">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="font-serif text-5xl text-center font-bold mb-16">
+          <h2 className="font-serif text-3xl text-center font-bold mb-10 sm:text-5xl sm:mb-16">
             Our Journey
           </h2>
 
@@ -219,9 +219,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
                 key={item}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
-                className="flex items-center gap-5"
+                className="flex items-center gap-3 sm:gap-5"
               >
-                <div className="w-12 h-12 rounded-full bg-gold text-charcoal font-bold flex items-center justify-center">
+                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gold text-charcoal font-bold flex items-center justify-center sm:h-12 sm:w-12">
                   {index + 1}
                 </div>
                 <div className="premium-card p-5 flex-1">{item}</div>
@@ -231,9 +231,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-24">
+      <section className="max-w-7xl mx-auto px-4 py-14 sm:px-6 sm:py-24">
         <div className="text-center mb-14">
-          <h2 className="font-serif text-5xl font-bold">
+          <h2 className="font-serif text-3xl font-bold sm:text-5xl">
             Client Testimonials
           </h2>
         </div>
@@ -258,11 +258,11 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="bg-emerald text-cream py-24 relative overflow-hidden">
+      <section className="bg-emerald text-cream py-14 relative overflow-hidden sm:py-24">
         <div className="max-w-4xl mx-auto px-6 text-center relative">
           <Award className="mx-auto mb-6 text-gold" size={48} />
 
-          <h2 className="font-serif text-5xl font-bold mb-6">
+          <h2 className="font-serif text-3xl font-bold mb-6 sm:text-5xl">
             Ready To Find Your Next Property?
           </h2>
 

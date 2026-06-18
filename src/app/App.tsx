@@ -216,7 +216,7 @@ const AppContent: React.FC<{
               handleNavigate('home');
             }}
           />
-          <div className="min-h-screen bg-[#F8F6F1] p-4 pb-24 md:ml-64 md:p-8">
+          <div className="min-h-screen bg-[#F8F6F1] px-3 py-5 pb-28 sm:px-5 md:ml-64 md:p-8">
             <div key={currentPage} className="animate-[fadeUp_0.4s_ease-out]">
               {renderAdminContent()}
             </div>

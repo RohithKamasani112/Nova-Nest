@@ -42,7 +42,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      <div className="flex h-screen">
+      <div className="flex min-h-screen">
         {/* Left Panel - Desktop Only */}
         <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white">
           <motion.div
@@ -96,14 +96,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         </div>
 
         {/* Right Panel - Login Form */}
-        <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center items-center p-6 sm:p-12">
+        <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center items-center px-5 py-20 sm:p-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="w-full max-w-md"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Login</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:text-3xl">Admin Login</h2>
             <p className="text-gray-600 mb-8">Enter your secure admin details to continue</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">

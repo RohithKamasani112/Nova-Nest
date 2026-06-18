@@ -109,7 +109,7 @@ export const ContactPage: React.FC = () => {
     <main className="bg-[#F8F6F1] text-[#1a1a1a]" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Hero */}
-      <section className="relative min-h-[420px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[380px] flex items-center justify-center overflow-hidden sm:min-h-[420px]">
         <img
           src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1920&q=85"
           alt="Office"
@@ -143,7 +143,7 @@ export const ContactPage: React.FC = () => {
           >
             We'd love to hear from you
           </motion.p>
-          <h1 className="text-white text-5xl md:text-7xl font-bold tracking-tight leading-none mb-5">
+          <h1 className="text-white text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-none mb-5">
             Contact <span className="text-gold">Us</span>
           </h1>
           <motion.div
@@ -160,7 +160,7 @@ export const ContactPage: React.FC = () => {
 
       {/* Stats bar */}
       <section className="bg-[#0F1F3D] py-10">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-8">
           {stats.map(({ value, suffix, label }, i) => (
             <motion.div
               key={label}
@@ -170,7 +170,7 @@ export const ContactPage: React.FC = () => {
               transition={{ delay: i * 0.1, duration: 0.4 }}
               className="text-center"
             >
-              <p className="text-gold text-3xl font-extrabold tracking-tight">
+              <p className="text-gold text-2xl font-extrabold tracking-tight sm:text-3xl">
                 <Counter to={value} suffix={suffix} />
               </p>
               <p className="text-white/50 text-[12px] font-medium mt-1 uppercase tracking-wider">{label}</p>
@@ -180,7 +180,7 @@ export const ContactPage: React.FC = () => {
       </section>
 
       {/* Main content */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
 
         {/* Info cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
@@ -192,7 +192,7 @@ export const ContactPage: React.FC = () => {
               whileHover={{ y: -6, boxShadow: '0 20px 48px rgba(0,0,0,0.12)' }}
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay }}
-              className="bg-white rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)] cursor-default"
+              className="bg-white rounded-2xl p-5 shadow-[0_2px_16px_rgba(0,0,0,0.06)] cursor-default sm:p-6"
             >
               {/* Icon circle with color */}
               <div
@@ -228,7 +228,7 @@ export const ContactPage: React.FC = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-3xl p-8 shadow-[0_4px_32px_rgba(0,0,0,0.08)]"
+            className="bg-white rounded-3xl p-5 shadow-[0_4px_32px_rgba(0,0,0,0.08)] sm:p-8"
           >
             <p className="text-gold text-[11px] font-bold uppercase tracking-[0.2em] mb-2">Get in Touch</p>
             <h2 className="text-[28px] font-bold text-[#1a1a1a] tracking-tight mb-1">Send a Message</h2>
@@ -315,12 +315,12 @@ export const ContactPage: React.FC = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="rounded-3xl overflow-hidden shadow-[0_4px_32px_rgba(0,0,0,0.08)] min-h-[480px] relative"
+            className="rounded-3xl overflow-hidden shadow-[0_4px_32px_rgba(0,0,0,0.08)] min-h-[340px] relative sm:min-h-[480px]"
           >
             <iframe
               title="Nova Nest Property Management office map"
               src={mapEmbedUrl}
-              className="w-full h-full min-h-[480px] border-0"
+              className="w-full h-full min-h-[340px] border-0 sm:min-h-[480px]"
               loading="lazy"
               allowFullScreen
             />
@@ -353,7 +353,7 @@ export const ContactPage: React.FC = () => {
         />
         <div className="relative">
           <p className="text-gold text-[11px] font-bold uppercase tracking-[0.22em] mb-3">Ready to find your dream home?</p>
-          <h2 className="text-white text-3xl md:text-4xl font-bold mb-6 tracking-tight">
+          <h2 className="text-white text-2xl md:text-4xl font-bold mb-6 tracking-tight">
             Let's Start the Journey Together
           </h2>
           <motion.a
