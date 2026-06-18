@@ -69,8 +69,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch })
   const loadProperties = async () => {
     try {
       const properties = await getAllProperties();
-      setAllProperties(properties);
-      setFilteredProperties(properties.slice(0, 9));
+      const activeProperties = properties.filter((property) => property.isActive !== false);
+      setAllProperties(activeProperties);
+      setFilteredProperties(activeProperties.slice(0, 9));
     } catch (error) {
       console.error('Error loading properties:', error);
     } finally {

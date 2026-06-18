@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Property } from '../types';
-import { getAllProperties, deleteProperty } from '../services/storageService';
+import { getAllProperties, updateProperty } from '../services/storageService';
 import { motion } from 'motion/react';
-import { Edit2, Trash2, Search, Filter } from 'lucide-react';
+import { Edit2, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ManagePropertiesPageProps {
-  onNavigate: (page: string) => void;
+  onEditProperty: (property: Property) => void;
 }
 
 const formatPrice = (price: number, status: 'buy' | 'rent'): string => {
@@ -20,13 +20,14 @@ const formatPrice = (price: number, status: 'buy' | 'rent'): string => {
 };
 
 export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
-  onNavigate,
+  onEditProperty,
 }) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'buy' | 'rent'>('all');
+  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price-asc' | 'price-desc'>('newest');
 
@@ -36,7 +37,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
 
   useEffect(() => {
     filterAndSortProperties();
-  }, [properties, searchTerm, statusFilter, categoryFilter, sortBy]);
+  }, [properties, searchTerm, statusFilter, visibilityFilter, categoryFilter, sortBy]);
 
   const loadProperties = async () => {
     try {
@@ -67,6 +68,12 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
       filtered = filtered.filter((p) => p.status === statusFilter);
     }
 
+    if (visibilityFilter !== 'all') {
+      filtered = filtered.filter((p) =>
+        visibilityFilter === 'active' ? p.isActive !== false : p.isActive === false
+      );
+    }
+
     if (categoryFilter !== 'all') {
       filtered = filtered.filter((p) => p.category === categoryFilter);
     }
@@ -88,24 +95,29 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
     setFilteredProperties(filtered);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this property?')) {
+  const updatePropertyVisibility = async (property: Property, isActive: boolean) => {
+    const action = isActive ? 'activate' : 'deactivate';
+
+    if (!window.confirm(`Are you sure you want to ${action} this property?`)) {
       return;
     }
 
     try {
-      await deleteProperty(id);
-      setProperties(properties.filter((p) => p.id !== id));
-      toast.success('Property deleted successfully');
+      await updateProperty(property.id, { isActive });
+      await loadProperties();
+      toast.success(isActive ? 'Property activated' : 'Property deactivated');
     } catch (error) {
-      toast.error('Failed to delete property');
-      console.error('Error deleting property:', error);
+      toast.error(`Failed to ${action} property`);
+      console.error(`Error trying to ${action} property:`, error);
     }
   };
 
   const handleEdit = (property: Property) => {
-    // TODO: Implement edit functionality by passing property to AdminPage
-    onNavigate('add-property');
+    onEditProperty(property);
+  };
+
+  const handleVisibilityToggle = async (property: Property) => {
+    await updatePropertyVisibility(property, property.isActive === false);
   };
 
   const categories: { value: string; label: string }[] = [
@@ -131,7 +143,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
       {/* Filters & Search */}
       <div className="mb-6 space-y-4">
         <div className="flex gap-3 flex-wrap">
-          <div className="flex-1 min-w-80 relative">
+          <div className="flex-1 min-w-0 sm:min-w-80 relative">
             <Search
               size={20}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -155,6 +167,16 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
             <option value="all">All Status</option>
             <option value="buy">For Sale</option>
             <option value="rent">For Rent</option>
+          </select>
+
+          <select
+            value={visibilityFilter}
+            onChange={(e) => setVisibilityFilter(e.target.value as any)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30"
+          >
+            <option value="all">All Visibility</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
           </select>
 
           <select
@@ -193,7 +215,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
             <p className="text-sm mt-1">Try adjusting your filters or search</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[1040px] text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="px-6 py-3 text-left font-semibold text-gray-700">Title</th>
@@ -201,6 +223,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
                 <th className="px-6 py-3 text-left font-semibold text-gray-700">Price</th>
                 <th className="px-6 py-3 text-left font-semibold text-gray-700">Category</th>
                 <th className="px-6 py-3 text-left font-semibold text-gray-700">Type</th>
+                <th className="px-6 py-3 text-left font-semibold text-gray-700">Visibility</th>
                 <th className="px-6 py-3 text-left font-semibold text-gray-700">Featured</th>
                 <th className="px-6 py-3 text-left font-semibold text-gray-700">Date</th>
                 <th className="px-6 py-3 text-left font-semibold text-gray-700">Actions</th>
@@ -243,6 +266,19 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
                     </span>
                   </td>
                   <td className="px-6 py-3">
+                    <button
+                      onClick={() => handleVisibilityToggle(property)}
+                      className={`text-xs font-medium px-2.5 py-1 rounded transition-colors ${
+                        property.isActive === false
+                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          : 'bg-green-100 text-green-800 hover:bg-green-200'
+                      }`}
+                      title={property.isActive === false ? 'Activate property' : 'Deactivate property'}
+                    >
+                      {property.isActive === false ? 'Inactive' : 'Active'}
+                    </button>
+                  </td>
+                  <td className="px-6 py-3">
                     {property.featured && (
                       <span className="text-xs font-medium px-2.5 py-1 bg-amber-100 text-amber-800 rounded">
                         Yes
@@ -262,11 +298,15 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
                         <Edit2 size={18} />
                       </button>
                       <button
-                        onClick={() => handleDelete(property.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete property"
+                        onClick={() => updatePropertyVisibility(property, property.isActive === false)}
+                        className={`px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
+                          property.isActive === false
+                            ? 'text-green-700 bg-green-50 hover:bg-green-100'
+                            : 'text-red-600 hover:bg-red-50'
+                        }`}
+                        title={property.isActive === false ? 'Activate property' : 'Deactivate property'}
                       >
-                        <Trash2 size={18} />
+                        {property.isActive === false ? 'Activate' : 'Deactivate'}
                       </button>
                     </div>
                   </td>

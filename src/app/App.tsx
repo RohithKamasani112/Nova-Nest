@@ -35,12 +35,16 @@ type Page =
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [propertyFilters, setPropertyFilters] = useState<PropertyFilters>({});
   const [showPageLoader, setShowPageLoader] = useState(true);
 
   const handleNavigate = (page: string) => {
     if (page === 'properties') {
       setPropertyFilters({});
+    }
+    if (page === 'add-property') {
+      setEditingProperty(null);
     }
     setCurrentPage(page as Page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -54,6 +58,12 @@ function App() {
   const handleSearch = (filters: PropertyFilters) => {
     setPropertyFilters(filters);
     setCurrentPage('properties');
+  };
+
+  const handleEditProperty = (property: Property) => {
+    setEditingProperty(property);
+    setCurrentPage('add-property');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const renderPage = () => {
@@ -116,9 +126,9 @@ function App() {
       case 'dashboard':
         return <AdminDashboardPage onNavigate={handleNavigate} />;
       case 'add-property':
-        return <AdminPage onNavigate={handleNavigate} editingProperty={null} />;
+        return <AdminPage onNavigate={handleNavigate} editingProperty={editingProperty} />;
       case 'manage-properties':
-        return <ManagePropertiesPage onNavigate={handleNavigate} />;
+        return <ManagePropertiesPage onEditProperty={handleEditProperty} />;
       case 'leads':
         return <LeadsManagementPage onNavigate={handleNavigate} />;
       case 'settings':
@@ -206,7 +216,7 @@ const AppContent: React.FC<{
               handleNavigate('home');
             }}
           />
-          <div className="ml-64 min-h-screen bg-[#F8F6F1] p-8">
+          <div className="min-h-screen bg-[#F8F6F1] p-4 pb-24 md:ml-64 md:p-8">
             <div key={currentPage} className="animate-[fadeUp_0.4s_ease-out]">
               {renderAdminContent()}
             </div>

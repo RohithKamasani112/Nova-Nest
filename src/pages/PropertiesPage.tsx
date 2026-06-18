@@ -51,7 +51,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
   const loadProperties = async () => {
     try {
       const data = await getAllProperties();
-      setProperties(data);
+      setProperties(data.filter((property) => property.isActive !== false));
     } catch (error) {
       console.error('Error loading properties:', error);
     } finally {

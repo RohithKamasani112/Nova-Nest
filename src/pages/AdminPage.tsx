@@ -76,6 +76,7 @@ type FormData = {
   reraRegistered: boolean;
   bankLoanAvailable: boolean;
   zeroBrokerage: boolean;
+  isActive: boolean;
   reraRegistrationNumber: string;
   contactNumber: string;
   status: Property['status'];
@@ -124,6 +125,7 @@ const initialFormData: FormData = {
   reraRegistered: false,
   bankLoanAvailable: false,
   zeroBrokerage: false,
+  isActive: true,
   reraRegistrationNumber: '',
   contactNumber: '',
   status: 'buy',
@@ -203,6 +205,30 @@ const amenityIcons: Record<string, React.ElementType> = {
   'Maintenance Staff': Users,
 };
 
+const toFormCategory = (category: Property['category']): string => {
+  const categoryMap: Record<Property['category'], string> = {
+    apartment: 'Apartment',
+    villa: 'Villa',
+    house: 'Independent House',
+    land: 'Plot / Land',
+    condo: 'Apartment',
+    townhouse: 'Independent House',
+  };
+
+  return categoryMap[category];
+};
+
+const splitLocation = (location: string) => {
+  const parts = location.split(',').map((part) => part.trim()).filter(Boolean);
+  const pincodeMatch = location.match(/\b\d{6}\b/);
+
+  return {
+    streetAddress: parts[0] || location,
+    city: parts.length > 1 ? parts[parts.length - 2] : '',
+    pincode: pincodeMatch?.[0] || '',
+  };
+};
+
 export const AdminPage: React.FC<AdminPageProps> = ({
   onNavigate,
   editingProperty,
@@ -214,20 +240,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [formData, setFormData] = useState<FormData>(initialFormData);
 
   useEffect(() => {
-    if (!editingProperty) return;
+    if (!editingProperty) {
+      setFormData(initialFormData);
+      setStep(1);
+      return;
+    }
+    const locationParts = splitLocation(editingProperty.location || '');
 
     setFormData((prev) => ({
       ...prev,
       title: editingProperty.title || '',
+      category: toFormCategory(editingProperty.category),
+      listingType: editingProperty.status === 'rent' ? 'For Rent' : 'For Sale',
       price: editingProperty.price ? String(editingProperty.price) : '',
       location: editingProperty.location || '',
-      streetAddress: editingProperty.location || '',
+      streetAddress: locationParts.streetAddress,
+      city: locationParts.city,
+      pincode: locationParts.pincode,
       description: editingProperty.description || '',
       bedrooms: editingProperty.bedrooms ? String(editingProperty.bedrooms) : '',
       bathrooms: editingProperty.bathrooms ? String(editingProperty.bathrooms) : '',
       areaSqft: editingProperty.areaSqft ? String(editingProperty.areaSqft) : '',
       featured: Boolean(editingProperty.featured),
       verified: Boolean(editingProperty.verified),
+      isActive: editingProperty.isActive !== false,
       yearBuilt: editingProperty.yearBuilt ? String(editingProperty.yearBuilt) : '',
       totalFloors: editingProperty.floors ? String(editingProperty.floors) : '',
       images: editingProperty.images || [],
@@ -235,6 +271,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       videoUrl: editingProperty.videoUrl || '',
       status: editingProperty.status,
     }));
+    setStep(2);
   }, [editingProperty]);
 
   const setField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -370,6 +407,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         floors: formData.totalFloors ? parseInt(formData.totalFloors, 10) : undefined,
         furnished: formData.furnishingStatus === 'Fully Furnished',
         videoUrl: formData.videoUrl,
+        isActive: formData.isActive,
       };
 
       if (editingProperty) {
@@ -454,7 +492,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     label,
     description,
   }: {
-    field: 'featured' | 'verified' | 'urgent' | 'reraRegistered' | 'bankLoanAvailable' | 'zeroBrokerage';
+    field: 'featured' | 'verified' | 'urgent' | 'reraRegistered' | 'bankLoanAvailable' | 'zeroBrokerage' | 'isActive';
     label: string;
     description: string;
   }) => (
@@ -896,6 +934,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         {step === 6 && (
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-gray-900">Flags & Publish</h2>
+            <FlagCheckbox field="isActive" label="Active Listing" description="Show this property on the public home and properties pages" />
             <FlagCheckbox field="featured" label="Featured" description="Highlighted at the top of search results and homepage" />
             <FlagCheckbox field="verified" label="Verified" description="Displays a verified badge - only check if you have physically verified this property" />
             <FlagCheckbox field="urgent" label="Urgent Sale / Rent" description="Displays an urgent tag on the listing card to attract faster inquiries" />
@@ -936,6 +975,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <p>Bedrooms: {formData.bedrooms || '-'}</p>
               <p>Bathrooms: {formData.bathrooms || '-'}</p>
               <p>Area: {formData.areaSqft ? `${formData.areaSqft} sqft` : '-'}</p>
+              <p>Visibility: {formData.isActive ? 'Active' : 'Inactive'}</p>
             </div>
 
             <div className="flex gap-4">
@@ -944,7 +984,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               </button>
               <button type="submit" disabled={loading} className="flex-1 px-6 py-3 bg-[#2d7a3a] hover:bg-[#256931] text-white font-semibold rounded-xl transition-colors disabled:bg-gray-400 inline-flex items-center justify-center gap-2">
                 <CheckCircle size={18} />
-                {loading ? 'Publishing...' : 'Publish Property'}
+                {loading ? 'Publishing...' : editingProperty ? 'Update Property' : 'Publish Property'}
               </button>
             </div>
           </div>

@@ -104,7 +104,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             className="w-full max-w-md"
           >
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Login</h2>
-            <p className="text-gray-600 mb-8">Enter your credentials to continue</p>
+            <p className="text-gray-600 mb-8">Enter your secure admin details to continue</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -119,7 +119,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A]"
-                    placeholder="admin@example.com"
+                    placeholder="Email address"
                   />
                 </div>
               </div>
@@ -163,15 +163,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                 )}
               </button>
             </form>
-
-            {/* Demo Credentials Info */}
-            <div className="mt-6 p-4 bg-[#FBF3E3] rounded-lg border border-[#C9922A]/20">
-              <p className="text-xs text-[#C9922A]">
-                <strong>Demo Credentials:</strong><br />
-                Email: demo@realestate.com<br />
-                Password: Demo123!
-              </p>
-            </div>
           </motion.div>
         </div>
       </div>

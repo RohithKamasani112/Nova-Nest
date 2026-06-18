@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Mail, MapPin, Phone, Send, CheckCircle2, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion, useInView, useMotionValue, useTransform, animate } from 'motion/react';
+import { motion, useInView, useMotionValue, animate } from 'motion/react';
+import { createLead } from '../services/storageService';
+import { Inquiry } from '../types';
 
 const address = 'Ground Floor, Site No-29 & 30, Maheshwaramma Temple Road, 1st Main Rd, Maheswari Nagar, Mahadevapura, Bengaluru, Karnataka 560048';
 const mapsUrl = import.meta.env.VITE_GOOGLE_MAPS_URL || 'https://maps.app.goo.gl/V5dSTjfNRgDUWTmEA';
@@ -72,14 +74,29 @@ export const ContactPage: React.FC = () => {
   const [focused, setFocused] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    toast.success('Thanks for reaching out. Our team will contact you shortly.');
-    setTimeout(() => {
-      setSubmitted(false);
-      setForm({ name: '', email: '', phone: '', message: '' });
-    }, 3000);
+    try {
+      const inquiryData: Omit<Inquiry, 'id' | 'createdAt' | 'status'> = {
+        propertyId: 'general',
+        userId: 'guest',
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        message: form.message.trim(),
+        type: 'request-info',
+      };
+
+      await createLead(inquiryData);
+      setSubmitted(true);
+      toast.success('Thanks for reaching out. Our team will contact you shortly.');
+      setTimeout(() => {
+        setSubmitted(false);
+        setForm({ name: '', email: '', phone: '', message: '' });
+      }, 3000);
+    } catch (error) {
+      toast.error('Failed to submit enquiry. Please try again.');
+    }
   };
 
   const fields = [
@@ -243,7 +260,7 @@ export const ContactPage: React.FC = () => {
                     <div className="relative">
                       <input
                         type={type}
-                        required
+                        required={key !== 'email'}
                         placeholder={placeholder}
                         value={form[key as keyof typeof form]}
                         onFocus={() => setFocused(key)}

@@ -53,7 +53,9 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
       try {
         const allProps = await getAllProperties();
         setSimilarProperties(
-          allProps.filter((p) => p.category === property.category && p.id !== property.id).slice(0, 3)
+          allProps
+            .filter((p) => p.isActive !== false && p.category === property.category && p.id !== property.id)
+            .slice(0, 3)
         );
       } catch (error) {
         console.error('Error loading similar properties:', error);
@@ -107,7 +109,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
     'A verified Nova Nest listing with detailed advisory support available for site visits, pricing guidance, and documentation.';
   const descriptionText = expandedDescription ? description : description.substring(0, 220);
   const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
-  const whatsappMessage = `Hi, I am interested in the property "${property.title}" in ${property.location}`;
+  const whatsappMessage = `Hi, I am interested in the property "${property.title}" located at ${property.location}. Please share more details.`;
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
   const goPrev = () => setCurrentImageIndex((prev) => (prev === 0 ? imageCount - 1 : prev - 1));
@@ -115,6 +117,27 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
   const openLead = (type: typeof leadType) => {
     setLeadType(type);
     setShowLeadModal(true);
+  };
+  const saveQuickLead = (source: string, type: Inquiry['type']) => {
+    void createLead({
+      propertyId: property.id,
+      userId: 'guest',
+      name: `${source} Enquiry`,
+      email: '',
+      phone: source === 'Call' ? 'Via Call' : 'Via WhatsApp',
+      message: `${source} enquiry for ${property.title} at ${property.location}`,
+      type,
+    }).catch((error) => {
+      console.error(`Failed to save ${source.toLowerCase()} lead:`, error);
+    });
+  };
+  const handleWhatsApp = () => {
+    saveQuickLead('WhatsApp', 'contact-owner');
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+  const handleCall = () => {
+    saveQuickLead('Call', 'contact-owner');
+    window.location.href = 'tel:+919845418570';
   };
 
   return (
@@ -343,14 +366,14 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                   </div>
                 </div>
 
-                <a href="tel:+919845418570" className="flex h-12 items-center justify-center gap-2 rounded-md border border-[#E5E7EB] bg-white font-semibold text-[#111827] transition-colors hover:bg-[#F9F5EF] hover:text-gold">
+                <button onClick={handleCall} className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[#E5E7EB] bg-white font-semibold text-[#111827] transition-colors hover:bg-[#F9F5EF] hover:text-gold">
                   <Phone size={18} />
                   Call Agent
-                </a>
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-md border border-[#E5E7EB] bg-white font-semibold text-[#111827] transition-colors hover:bg-[#F9F5EF] hover:text-gold">
+                </button>
+                <button onClick={handleWhatsApp} className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[#E5E7EB] bg-white font-semibold text-[#111827] transition-colors hover:bg-[#F9F5EF] hover:text-gold">
                   <MessageCircle size={18} />
                   WhatsApp
-                </a>
+                </button>
                 <button
                   onClick={() => navigator.share?.({ title: property.title, url: window.location.href })}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[#E5E7EB] bg-white font-semibold text-[#111827] transition-colors hover:bg-[#F9F5EF] hover:text-gold"

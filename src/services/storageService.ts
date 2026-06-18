@@ -57,6 +57,7 @@ export const createProperty = async (
 
     const newProperty: Property = {
       ...property,
+      isActive: property.isActive ?? true,
       id: `prop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString(),
     };
@@ -110,18 +111,16 @@ export const deleteProperty = async (id: string): Promise<void> => {
       throw new Error('Property not found');
     }
 
-    // Delete associated images
-    for (const imagePath of property.images) {
+    const filteredProperties = properties.filter((p) => p.id !== id);
+    await uploadJsonToS3(filteredProperties, 'properties.json');
+
+    for (const imagePath of property.images || []) {
       await deleteImage(imagePath);
     }
 
-    // Delete brochure if exists
     if (property.brochure) {
       await deleteImage(property.brochure);
     }
-
-    const filteredProperties = properties.filter((p) => p.id !== id);
-    await uploadJsonToS3(filteredProperties, 'properties.json');
   } catch (error) {
     console.error('Error deleting property:', error);
     throw new Error('Failed to delete property');

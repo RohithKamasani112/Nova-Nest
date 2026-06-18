@@ -27,6 +27,7 @@ export interface Property {
   longitude?: number;
   videoUrl?: string; // YouTube URL
   isDummy?: boolean; // Flag for dummy data visibility control
+  isActive?: boolean; // Admin visibility control for public pages
 }
 
 // User Types

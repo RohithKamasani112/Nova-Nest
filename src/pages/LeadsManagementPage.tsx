@@ -53,7 +53,7 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = ({
       filtered = filtered.filter(
         (l) =>
           l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          l.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (l.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           l.phone.includes(searchTerm)
       );
     }
@@ -77,7 +77,7 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = ({
     const headers = ['Name', 'Email', 'Phone', 'Type', 'Status', 'Date'];
     const rows = filteredLeads.map((lead) => [
       lead.name,
-      lead.email,
+      lead.email || '',
       lead.phone,
       lead.type,
       lead.status,
@@ -202,7 +202,7 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = ({
                   className="border-b border-gray-100 hover:bg-gray-50"
                 >
                   <td className="px-6 py-3 font-medium text-gray-900">{lead.name}</td>
-                  <td className="px-6 py-3 text-gray-600">{lead.email}</td>
+                  <td className="px-6 py-3 text-gray-600">{lead.email || '-'}</td>
                   <td className="px-6 py-3 text-gray-600">{lead.phone}</td>
                   <td className="px-6 py-3">
                     <span className="text-xs font-medium capitalize px-2.5 py-1 bg-[#FBF3E3] text-[#C9922A] rounded">
