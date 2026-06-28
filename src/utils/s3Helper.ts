@@ -22,7 +22,16 @@ const getObjectKey = (path: string): string => {
   const cleanPath = trimSlashes(path);
   const folderName = trimSlashes(config.aws.s3.folderName);
 
-  if (!folderName || cleanPath === folderName || cleanPath.startsWith(`${folderName}/`)) {
+  // Safety: never write/read at the bucket root. An empty folder name means the
+  // environment is misconfigured (VITE_S3_FOLDER_DUMMY / _PROD not loaded) — fail
+  // loudly instead of silently scattering objects into the bucket root.
+  if (!folderName) {
+    throw new Error(
+      'S3 folder name is empty. Set VITE_S3_FOLDER_DUMMY / VITE_S3_FOLDER_PROD in .env and restart the dev server.'
+    );
+  }
+
+  if (cleanPath === folderName || cleanPath.startsWith(`${folderName}/`)) {
     return cleanPath;
   }
 

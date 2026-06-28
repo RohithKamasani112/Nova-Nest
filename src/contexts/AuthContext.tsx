@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(authUser);
       toast.success('Login successful!');
     } catch (error: any) {
-      toast.error(error.message || 'Login failed');
+      toast.error('Login failed. Please check your details and try again.');
       throw error;
     }
   };

@@ -29,7 +29,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const advancedCategories: Property['category'][] = ['apartment', 'house', 'villa', 'condo', 'townhouse', 'land'];
   const amenities = ['Pool', 'Gym', 'Parking', 'Garden', 'Ocean View', 'City View', 'Fireplace', 'Smart Home'];
 
-  const inputClass = 'flex-1 px-4 py-3 border border-black/10 rounded-md focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none bg-white';
+  const inputClass = 'min-w-0 flex-1 px-4 py-3 border border-black/10 rounded-md focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none bg-white';
 
   const toggleCategory = (category: Property['category']) => {
     const current = filters.category || [];
@@ -72,15 +72,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     filters.priceMax;
 
   const pillClass = (active: boolean) =>
-    `h-10 px-4 py-2.5 rounded-full border font-semibold transition-all duration-[250ms] whitespace-nowrap text-sm leading-none ${
+    `min-h-[44px] px-4 py-2.5 rounded-full border font-semibold transition-all duration-[250ms] whitespace-nowrap text-sm leading-none ${
       active
-        ? 'border-[#0F1F3D] bg-[#0F1F3D] text-white shadow-subtle'
-        : 'border-[#E5E7EB] bg-[#F3F4F6] text-[#4B5563] hover:bg-[#F9F5EF] hover:text-gold'
+        ? 'border-charcoal bg-charcoal text-white shadow-subtle'
+        : 'border-border bg-surface text-muted-foreground hover:bg-surface hover:text-gold'
     }`;
 
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-subtle p-4 sticky top-20 z-10">
-      <div className="flex flex-wrap gap-3 items-center">
+    <div className="bg-white border border-border rounded-lg shadow-subtle p-3 sticky top-20 z-10 sm:p-4">
+      <div className="grid grid-cols-1 gap-3 items-center sm:grid-cols-[1fr_auto] lg:flex lg:flex-wrap">
         <div className="flex w-full min-w-0 gap-2 overflow-x-auto no-scrollbar p-1 rounded-full sm:w-auto">
           {categories.map((category) => {
             const active =
@@ -100,12 +100,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           })}
         </div>
 
-        <label className="h-11 inline-flex items-center gap-2 border border-[#E5E7EB] text-[#374151] rounded-lg px-3 bg-white hover:border-gold/50 hover:text-gold transition-all sm:ml-auto">
+        <label className="h-11 w-full min-w-0 inline-flex items-center gap-2 border border-border text-muted-foreground rounded-lg px-3 bg-white hover:border-gold/50 hover:text-gold transition-all sm:w-auto lg:ml-auto">
           <SortAsc size={18} />
           <select
             value={currentSort}
             onChange={(e) => onSortChange(e.target.value as SortOption)}
-            className="bg-transparent outline-none text-sm font-semibold"
+            className="min-w-0 flex-1 bg-transparent outline-none text-sm font-semibold sm:flex-none"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -118,7 +118,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="h-11 px-4 border border-[#E5E7EB] bg-white text-[#374151] hover:border-gold/50 hover:text-gold hover:shadow-subtle rounded-lg font-semibold transition-all duration-[250ms] flex items-center gap-2"
+          className="h-11 px-4 border border-border bg-white text-muted-foreground hover:border-gold/50 hover:text-gold hover:shadow-subtle rounded-lg font-semibold transition-all duration-[250ms] flex items-center justify-center gap-2"
         >
           <SlidersHorizontal size={18} />
           Filters
@@ -127,7 +127,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="h-11 px-4 bg-red-50 text-red-700 hover:bg-red-100 rounded-md font-semibold transition-all duration-[250ms] flex items-center gap-2"
+            className="h-11 px-4 bg-red-50 text-red-700 hover:bg-red-100 rounded-md font-semibold transition-all duration-[250ms] flex items-center justify-center gap-2"
           >
             <X size={18} />
             Clear
@@ -147,7 +147,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <div className="mt-6 pt-6 border-t border-black/10 space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-charcoal mb-3">Price Range</label>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
                     type="number"
                     placeholder="Min"
@@ -204,7 +204,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
               <div>
                 <label className="block text-sm font-semibold text-charcoal mb-3">Area (sqft)</label>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
                     type="number"
                     placeholder="Min sqft"

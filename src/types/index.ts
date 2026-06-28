@@ -27,6 +27,11 @@ export interface Property {
   longitude?: number;
   videoUrl?: string; // YouTube URL
   isDummy?: boolean; // Flag for dummy data visibility control
+  isActive?: boolean; // Admin visibility control for public pages
+  pricePerSqft?: number; // Sell listings: price per square foot
+  commissionType?: 'percentage' | 'fixed'; // Agent commission model
+  commissionValue?: number; // Raw entered value (% or ₹ depending on type)
+  commissionCalculated?: number; // Auto-calculated counterpart (₹ amount or %)
 }
 
 // User Types

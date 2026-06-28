@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Mail, MapPin, Phone, Send, CheckCircle2, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion, useInView, useMotionValue, useTransform, animate } from 'motion/react';
+import { motion, useInView, useMotionValue, animate } from 'motion/react';
+import { createLead } from '../services/storageService';
+import { Inquiry } from '../types';
 
 const address = 'Ground Floor, Site No-29 & 30, Maheshwaramma Temple Road, 1st Main Rd, Maheswari Nagar, Mahadevapura, Bengaluru, Karnataka 560048';
 const mapsUrl = import.meta.env.VITE_GOOGLE_MAPS_URL || 'https://maps.app.goo.gl/V5dSTjfNRgDUWTmEA';
@@ -39,7 +41,7 @@ const infoCards = [
     title: 'Visit Our Office',
     content: address,
     action: { label: 'Get Directions', href: mapsUrl },
-    color: '#C9922A',
+    color: '#2E4636',
     delay: 0,
   },
   {
@@ -47,7 +49,7 @@ const infoCards = [
     title: "Let's Talk",
     content: '+91 98454 18570 / +91 96637 95675',
     action: { label: 'Call Now', href: 'tel:+919845418570' },
-    color: '#C9922A',
+    color: '#2E4636',
     delay: 0.1,
   },
   {
@@ -55,14 +57,14 @@ const infoCards = [
     title: 'Email Us',
     content: email,
     action: { label: 'Send Email', href: `mailto:${email}` },
-    color: '#C9922A',
+    color: '#2E4636',
     delay: 0.2,
   },
   {
     icon: Clock,
     title: 'Working Hours',
     content: 'Mon - Sat\n10:00 AM - 7:00 PM',
-    color: '#C9922A',
+    color: '#2E4636',
     delay: 0.3,
   },
 ];
@@ -72,14 +74,29 @@ export const ContactPage: React.FC = () => {
   const [focused, setFocused] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    toast.success('Thanks for reaching out. Our team will contact you shortly.');
-    setTimeout(() => {
-      setSubmitted(false);
-      setForm({ name: '', email: '', phone: '', message: '' });
-    }, 3000);
+    try {
+      const inquiryData: Omit<Inquiry, 'id' | 'createdAt' | 'status'> = {
+        propertyId: 'general',
+        userId: 'guest',
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        message: form.message.trim(),
+        type: 'request-info',
+      };
+
+      await createLead(inquiryData);
+      setSubmitted(true);
+      toast.success('Thanks for reaching out. Our team will contact you shortly.');
+      setTimeout(() => {
+        setSubmitted(false);
+        setForm({ name: '', email: '', phone: '', message: '' });
+      }, 3000);
+    } catch (error) {
+      toast.error('Failed to submit enquiry. Please try again.');
+    }
   };
 
   const fields = [
@@ -89,16 +106,16 @@ export const ContactPage: React.FC = () => {
   ];
 
   return (
-    <main className="bg-[#F8F6F1] text-[#1a1a1a]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <main className="bg-surface text-text-primary" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Hero */}
-      <section className="relative min-h-[420px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[380px] flex items-center justify-center overflow-hidden sm:min-h-[420px]">
         <img
           src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1920&q=85"
           alt="Office"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0F1F3D]/80 via-[#0F1F3D]/70 to-[#0F1F3D]/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-charcoal/80 via-charcoal/70 to-charcoal/90" />
 
         {/* Floating orbs */}
         <motion.div
@@ -122,18 +139,18 @@ export const ContactPage: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-gold text-[11px] font-bold uppercase tracking-[0.22em] mb-4"
+            className="text-accent text-xs font-bold uppercase tracking-[0.22em] mb-4"
           >
             We'd love to hear from you
           </motion.p>
-          <h1 className="text-white text-5xl md:text-7xl font-bold tracking-tight leading-none mb-5">
-            Contact <span className="text-gold">Us</span>
+          <h1 className="text-white text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-none mb-5">
+            Contact <span className="text-accent">Us</span>
           </h1>
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="w-16 h-0.5 bg-gold mx-auto mb-6"
+            className="w-16 h-0.5 bg-accent mx-auto mb-6"
           />
           <p className="text-white/60 text-[15px] max-w-md mx-auto">
             Our team of property experts is ready to guide you every step of the way.
@@ -142,8 +159,8 @@ export const ContactPage: React.FC = () => {
       </section>
 
       {/* Stats bar */}
-      <section className="bg-[#0F1F3D] py-10">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+      <section className="bg-[#15211A] py-10">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-8">
           {stats.map(({ value, suffix, label }, i) => (
             <motion.div
               key={label}
@@ -153,7 +170,7 @@ export const ContactPage: React.FC = () => {
               transition={{ delay: i * 0.1, duration: 0.4 }}
               className="text-center"
             >
-              <p className="text-gold text-3xl font-extrabold tracking-tight">
+              <p className="text-accent text-2xl font-extrabold tracking-tight sm:text-3xl">
                 <Counter to={value} suffix={suffix} />
               </p>
               <p className="text-white/50 text-[12px] font-medium mt-1 uppercase tracking-wider">{label}</p>
@@ -163,7 +180,7 @@ export const ContactPage: React.FC = () => {
       </section>
 
       {/* Main content */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
 
         {/* Info cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
@@ -175,7 +192,7 @@ export const ContactPage: React.FC = () => {
               whileHover={{ y: -6, boxShadow: '0 20px 48px rgba(0,0,0,0.12)' }}
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay }}
-              className="bg-white rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)] cursor-default"
+              className="bg-white rounded-2xl p-5 shadow-[0_2px_16px_rgba(0,0,0,0.06)] cursor-default sm:p-6"
             >
               {/* Icon circle with color */}
               <div
@@ -211,7 +228,7 @@ export const ContactPage: React.FC = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-3xl p-8 shadow-[0_4px_32px_rgba(0,0,0,0.08)]"
+            className="bg-white rounded-3xl p-5 shadow-[0_4px_32px_rgba(0,0,0,0.08)] sm:p-8"
           >
             <p className="text-gold text-[11px] font-bold uppercase tracking-[0.2em] mb-2">Get in Touch</p>
             <h2 className="text-[28px] font-bold text-[#1a1a1a] tracking-tight mb-1">Send a Message</h2>
@@ -243,7 +260,7 @@ export const ContactPage: React.FC = () => {
                     <div className="relative">
                       <input
                         type={type}
-                        required
+                        required={key !== 'email'}
                         placeholder={placeholder}
                         value={form[key as keyof typeof form]}
                         onFocus={() => setFocused(key)}
@@ -251,7 +268,7 @@ export const ContactPage: React.FC = () => {
                         onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                         className="w-full rounded-xl border-2 bg-[#fafafa] px-4 py-3 text-[14px] text-[#1a1a1a] placeholder-[#ccc] outline-none transition-all duration-200"
                         style={{
-                          borderColor: focused === key ? '#C9922A' : '#ebebeb',
+                          borderColor: focused === key ? '#2E4636' : '#ebebeb',
                           boxShadow: focused === key ? '0 0 0 4px rgba(201,146,42,0.12)' : 'none',
                         }}
                       />
@@ -273,7 +290,7 @@ export const ContactPage: React.FC = () => {
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                     className="w-full rounded-xl border-2 bg-[#fafafa] px-4 py-3 text-[14px] text-[#1a1a1a] placeholder-[#ccc] outline-none resize-none transition-all duration-200"
                     style={{
-                      borderColor: focused === 'message' ? '#C9922A' : '#ebebeb',
+                      borderColor: focused === 'message' ? '#2E4636' : '#ebebeb',
                       boxShadow: focused === 'message' ? '0 0 0 4px rgba(201,146,42,0.12)' : 'none',
                     }}
                   />
@@ -283,7 +300,7 @@ export const ContactPage: React.FC = () => {
                   type="submit"
                   whileHover={{ scale: 1.015 }}
                   whileTap={{ scale: 0.97 }}
-                  className="w-full py-3.5 rounded-xl bg-[#0F1F3D] text-gold text-[14px] font-bold tracking-wide flex items-center justify-center gap-2.5 hover:bg-[#142A52] transition-colors"
+                  className="w-full py-3.5 rounded-xl bg-[#15211A] text-accent text-[14px] font-bold tracking-wide flex items-center justify-center gap-2.5 hover:bg-[#233A2C] transition-colors"
                 >
                   <Send size={16} />
                   Submit Enquiry
@@ -298,12 +315,12 @@ export const ContactPage: React.FC = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="rounded-3xl overflow-hidden shadow-[0_4px_32px_rgba(0,0,0,0.08)] min-h-[480px] relative"
+            className="rounded-3xl overflow-hidden shadow-[0_4px_32px_rgba(0,0,0,0.08)] min-h-[340px] relative sm:min-h-[480px]"
           >
             <iframe
               title="Nova Nest Property Management office map"
               src={mapEmbedUrl}
-              className="w-full h-full min-h-[480px] border-0"
+              className="w-full h-full min-h-[340px] border-0 sm:min-h-[480px]"
               loading="lazy"
               allowFullScreen
             />
@@ -322,7 +339,7 @@ export const ContactPage: React.FC = () => {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="bg-[#0F1F3D] py-16 text-center relative overflow-hidden"
+        className="bg-[#15211A] py-16 text-center relative overflow-hidden"
       >
         <motion.div
           animate={{ rotate: 360 }}
@@ -335,15 +352,15 @@ export const ContactPage: React.FC = () => {
           className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full border border-gold/8 pointer-events-none"
         />
         <div className="relative">
-          <p className="text-gold text-[11px] font-bold uppercase tracking-[0.22em] mb-3">Ready to find your dream home?</p>
-          <h2 className="text-white text-3xl md:text-4xl font-bold mb-6 tracking-tight">
+          <p className="text-accent text-[11px] font-bold uppercase tracking-[0.22em] mb-3">Ready to find your dream home?</p>
+          <h2 className="text-white text-2xl md:text-4xl font-bold mb-6 tracking-tight">
             Let's Start the Journey Together
           </h2>
           <motion.a
             href="tel:+919845418570"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-2 bg-gold text-[#0F1F3D] px-8 py-3.5 rounded-xl text-[14px] font-bold hover:brightness-105 transition-all"
+            className="inline-flex items-center gap-2 bg-accent text-[#15211A] px-8 py-3.5 rounded-xl text-[14px] font-bold hover:brightness-105 transition-all"
           >
             <Phone size={16} />
             Call Us Now

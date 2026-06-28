@@ -35,6 +35,18 @@ export const config = {
   },
 };
 
+// Make the active environment + S3 folder obvious in the console. This is the
+// fastest way to confirm which folder the app is actually reading/writing —
+// remember Vite only reads .env at startup, so restart after changing it.
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line no-console
+  console.info(
+    `[config] VITE_IS_PRODUCTION=${import.meta.env.VITE_IS_PRODUCTION} → mode=${
+      isProd ? 'PRODUCTION' : 'DUMMY'
+    }, S3 folder="${s3FolderName}"`
+  );
+}
+
 // Validate configuration
 export const validateConfig = () => {
   if (config.isProduction) {

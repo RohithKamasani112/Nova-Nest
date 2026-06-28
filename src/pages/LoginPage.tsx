@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
+import companyLogo from '../assets/companyLogo.png';
 
 interface LoginPageProps {
   onNavigate: (page: string) => void;
@@ -30,19 +31,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F1F3D]">
+    <div className="min-h-screen bg-charcoal">
       {/* Back Button */}
       <div className="absolute top-4 left-4 sm:top-8 sm:left-8">
         <button
           onClick={() => onNavigate('home')}
-          className="flex items-center gap-2 text-white hover:text-gray-200 transition-colors"
+          className="flex min-h-[44px] items-center gap-2 text-white hover:text-gray-200 transition-colors"
         >
           <Home size={20} />
           <span className="hidden sm:inline">Back to Home</span>
         </button>
       </div>
 
-      <div className="flex h-screen">
+      <div className="flex min-h-screen">
         {/* Left Panel - Desktop Only */}
         <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white">
           <motion.div
@@ -52,14 +53,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             className="max-w-md"
           >
             <div className="mb-8">
-              <img src="/nova-nest-logo.png" alt="Nova Nest Property Management" className="mb-4 h-16 w-16 rounded-xl object-cover" />
+              <img src={companyLogo} alt="Nova Nest Property Management" className="mb-4 h-16 w-16 rounded-xl object-cover" />
               <h1 className="text-4xl font-bold mb-2">Nova Nest</h1>
               <p className="text-gray-300">Secure Admin Access</p>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#FBF3E3]0 flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center flex-shrink-0 mt-1">
                   <span className="text-sm font-bold">✓</span>
                 </div>
                 <div>
@@ -69,7 +70,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#FBF3E3]0 flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center flex-shrink-0 mt-1">
                   <span className="text-sm font-bold">✓</span>
                 </div>
                 <div>
@@ -79,7 +80,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#FBF3E3]0 flex items-center justify-center flex-shrink-0 mt-1">
+                <div className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center flex-shrink-0 mt-1">
                   <span className="text-sm font-bold">✓</span>
                 </div>
                 <div>
@@ -96,15 +97,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         </div>
 
         {/* Right Panel - Login Form */}
-        <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center items-center p-6 sm:p-12">
+        <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center items-center px-5 py-20 sm:p-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="w-full max-w-md"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Login</h2>
-            <p className="text-gray-600 mb-8">Enter your credentials to continue</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:text-3xl">Admin Login</h2>
+            <p className="text-gray-600 mb-8">Enter your secure admin details to continue</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -118,8 +119,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A]"
-                    placeholder="admin@example.com"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    placeholder="Email address"
                   />
                 </div>
               </div>
@@ -135,7 +136,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A]"
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                     placeholder="••••••••"
                   />
                   <button
@@ -151,7 +152,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 bg-[#C9922A] text-white rounded-lg font-semibold hover:bg-[#b07d20] transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
+                className="w-full min-h-[44px] py-2.5 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -163,15 +164,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                 )}
               </button>
             </form>
-
-            {/* Demo Credentials Info */}
-            <div className="mt-6 p-4 bg-[#FBF3E3] rounded-lg border border-[#C9922A]/20">
-              <p className="text-xs text-[#C9922A]">
-                <strong>Demo Credentials:</strong><br />
-                Email: demo@realestate.com<br />
-                Password: Demo123!
-              </p>
-            </div>
           </motion.div>
         </div>
       </div>
