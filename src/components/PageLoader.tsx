@@ -98,7 +98,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden transition-opacity ${
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden px-6 text-center transition-opacity ${
         leaving ? 'opacity-0' : 'opacity-100'
       }`}
       style={{
@@ -187,11 +187,11 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
       <img
         src={companyLogo}
         alt=""
-        className="relative z-10 h-28 w-28 object-contain opacity-0 [animation:emblemIn_1s_cubic-bezier(0.16,1,0.3,1)_0.3s_forwards,emblemFloat_3.4s_ease-in-out_1.3s_infinite] sm:h-36 sm:w-36"
+        className="relative z-10 mx-auto h-28 w-28 object-contain opacity-0 [animation:emblemIn_1s_cubic-bezier(0.16,1,0.3,1)_0.3s_forwards,emblemFloat_3.4s_ease-in-out_1.3s_infinite] sm:h-36 sm:w-36"
       />
 
       {/* Wordmark — "Nova" silver, "Nest" gold, matching the brand reference */}
-      <div className="relative z-10 mt-4 flex items-baseline font-serif text-[2.4rem] leading-none tracking-tight sm:text-[3.2rem]">
+      <div className="relative z-10 mt-4 flex w-full items-baseline justify-center font-serif text-[2.4rem] leading-none tracking-tight sm:text-[3.2rem]">
         <span
           className="inline-block opacity-0 [animation:slideInLeft_0.7s_cubic-bezier(0.16,1,0.3,1)_1.1s_forwards]"
           style={{
@@ -216,28 +216,46 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
         </span>
       </div>
 
-      <div className="relative z-10 mt-3 h-px w-0 bg-[#E8C879]/50 [animation:drawLine_0.6s_ease-out_1.75s_forwards]" />
+      <div className="relative z-10 mx-auto mt-3 h-px w-0 bg-[#E8C879]/50 [animation:drawLine_0.6s_ease-out_1.75s_forwards]" />
 
-      <p className="relative z-10 mt-3 text-[0.65rem] font-medium uppercase tracking-[0.4em] text-[#D9B96B] opacity-0 [animation:fadeUpText_0.6s_ease-out_1.9s_forwards] sm:text-xs">
+      <p className="relative z-10 mt-3 w-full text-center text-[0.65rem] font-medium uppercase tracking-[0.4em] text-[#D9B96B] opacity-0 [animation:fadeUpText_0.6s_ease-out_1.9s_forwards] sm:text-xs">
         Property Management
       </p>
 
-      <p className="relative z-10 mt-3 text-[0.6rem] uppercase tracking-[0.25em] text-[#A98F58] opacity-0 [animation:fadeUpText_0.6s_ease-out_2.1s_forwards] sm:text-[0.7rem]">
+      <p
+        className="loader-address-line relative z-10 mt-3 opacity-0 [animation:fadeUpText_0.6s_ease-out_2.1s_forwards]"
+      >
         Premium Rental &amp; Sales Advisory · Whitefield, Bangalore
       </p>
 
-      <p className="relative z-10 mt-4 font-serif text-base italic text-[#E8C879] opacity-0 [animation:fadeUpText_0.6s_ease-out_2.3s_forwards] sm:text-lg">
+      <p className="relative z-10 mt-4 w-full text-center font-serif text-base italic text-[#E8C879] opacity-0 [animation:fadeUpText_0.6s_ease-out_2.3s_forwards] sm:text-lg">
         Your trusted path to home
       </p>
 
       {/* Progress bar with shimmer sweep */}
-      <div className="relative z-10 mt-9 h-0.5 w-32 overflow-hidden rounded-full bg-[#E8C879]/15">
+      <div className="relative z-10 mx-auto mt-9 h-0.5 w-32 overflow-hidden rounded-full bg-[#E8C879]/15">
         <div className="relative h-full w-full origin-left scale-x-0 bg-gradient-to-r from-[#E8C879] to-[#9C7A33] [animation:loadBar_3.4s_ease-in-out_0.5s_forwards]">
           <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/80 to-transparent animate-[shimmerSweep_1.2s_ease-in-out_infinite]" />
         </div>
       </div>
 
       <style>{`
+        .loader-address-line {
+          width: 100% !important;
+          max-width: 300px !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+          text-align: center !important;
+          font-size: 0.6rem !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.25em !important;
+          color: #A98F58 !important;
+        }
+        @media (min-width: 640px) {
+          .loader-address-line {
+            font-size: 0.7rem !important;
+          }
+        }
         @keyframes emblemIn {
           0% { opacity: 0; transform: scale(1.5); filter: blur(12px); }
           60% { opacity: 1; transform: scale(0.95); filter: blur(0px); }
