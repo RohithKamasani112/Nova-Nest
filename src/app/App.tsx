@@ -18,6 +18,8 @@ import { Toaster } from 'react-hot-toast';
 import { Phone, MessageCircle } from 'lucide-react';
 import { PageLoader } from '../components/PageLoader';
 import { Footer } from './components/Footer';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'motion/react';
+import { pageTransition } from '../lib/animation';
 
 type Page =
   | 'home'
@@ -35,12 +37,16 @@ type Page =
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [propertyFilters, setPropertyFilters] = useState<PropertyFilters>({});
   const [showPageLoader, setShowPageLoader] = useState(true);
 
   const handleNavigate = (page: string) => {
     if (page === 'properties') {
       setPropertyFilters({});
+    }
+    if (page === 'add-property') {
+      setEditingProperty(null);
     }
     setCurrentPage(page as Page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -56,6 +62,12 @@ function App() {
     setCurrentPage('properties');
   };
 
+  const handleEditProperty = (property: Property) => {
+    setEditingProperty(property);
+    setCurrentPage('add-property');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
@@ -63,6 +75,7 @@ function App() {
           <HomePage
             onPropertyClick={handlePropertyClick}
             onSearch={handleSearch}
+            appReady={!showPageLoader}
           />
         );
 
@@ -116,9 +129,9 @@ function App() {
       case 'dashboard':
         return <AdminDashboardPage onNavigate={handleNavigate} />;
       case 'add-property':
-        return <AdminPage onNavigate={handleNavigate} editingProperty={null} />;
+        return <AdminPage onNavigate={handleNavigate} editingProperty={editingProperty} />;
       case 'manage-properties':
-        return <ManagePropertiesPage onNavigate={handleNavigate} />;
+        return <ManagePropertiesPage onEditProperty={handleEditProperty} />;
       case 'leads':
         return <LeadsManagementPage onNavigate={handleNavigate} />;
       case 'settings':
@@ -176,6 +189,7 @@ const AppContent: React.FC<{
   renderAdminContent,
 }) => {
   const { logout, isAuthenticated } = useAuth();
+  const reduce = useReducedMotion();
   const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
   const floatingWhatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
 
@@ -197,7 +211,7 @@ const AppContent: React.FC<{
       )}
 
       {isAdminPage ? (
-        <div className="min-h-screen bg-[#F8F6F1]">
+        <div className="min-h-screen bg-surface">
           <AdminSidebar
             currentPage={currentPage}
             onNavigate={handleNavigate}
@@ -206,17 +220,35 @@ const AppContent: React.FC<{
               handleNavigate('home');
             }}
           />
-          <div className="ml-64 min-h-screen bg-[#F8F6F1] p-8">
-            <div key={currentPage} className="animate-[fadeUp_0.4s_ease-out]">
-              {renderAdminContent()}
-            </div>
+          <div className="min-h-screen bg-surface px-3 py-5 pb-12 pt-16 sm:px-5 md:ml-64 md:p-8 md:pt-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentPage}
+                variants={pageTransition}
+                initial={reduce ? false : 'hidden'}
+                animate="visible"
+                exit={reduce ? undefined : 'exit'}
+              >
+                {renderAdminContent()}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       ) : (
         <>
-          <div key={currentPage} className="animate-[fadeUp_0.4s_ease-out]">
-            {renderPage()}
-          </div>
+          <LayoutGroup>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.div
+                key={currentPage}
+                variants={pageTransition}
+                initial={reduce ? false : 'hidden'}
+                animate="visible"
+                exit={reduce ? undefined : 'exit'}
+              >
+                {renderPage()}
+              </motion.div>
+            </AnimatePresence>
+          </LayoutGroup>
           {showNavbar && currentPage !== 'property-details' && (
             <Footer onNavigate={handleNavigate} onSearch={handleSearch} />
           )}
@@ -231,23 +263,34 @@ const AppContent: React.FC<{
       )}
 
       {!isAdminPage && currentPage !== 'admin-login' && (
-        <div className="fixed bottom-6 right-5 z-50 flex flex-col items-center gap-3 sm:right-6">
-          <a
+        <div className="fixed bottom-24 right-4 z-50 flex flex-col items-center gap-3 sm:bottom-6 sm:right-6">
+          <motion.a
             href="tel:+919845418570"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#C9922A] text-white shadow-lg transition-transform duration-200 hover:scale-110"
             aria-label="Call us"
+            whileHover={reduce ? undefined : { scale: 1.12 }}
+            whileTap={{ scale: 0.92 }}
+            animate={reduce ? undefined : { y: [0, -4, 0] }}
+            transition={reduce ? undefined : { repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg"
           >
             <Phone size={22} />
-          </a>
-          <a
+          </motion.a>
+          <motion.a
             href={floatingWhatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform duration-200 hover:scale-110"
             aria-label="Contact on WhatsApp"
+            whileHover={reduce ? undefined : { scale: 1.12 }}
+            whileTap={{ scale: 0.92 }}
+            animate={reduce ? undefined : { scale: [1, 1.08, 1] }}
+            transition={reduce ? undefined : { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
           >
-            <MessageCircle size={23} />
-          </a>
+            {!reduce && (
+              <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-60 animate-ping" />
+            )}
+            <MessageCircle size={24} className="relative z-10" />
+          </motion.a>
         </div>
       )}
 

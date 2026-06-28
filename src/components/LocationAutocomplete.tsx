@@ -100,7 +100,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
-      <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9922A] pointer-events-none" />
+      <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none" />
       <input
         type="text"
         placeholder={placeholder}
@@ -125,8 +125,8 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
               onClick={() => selectLocation(location)}
               className={`w-full px-4 py-3 text-sm cursor-pointer flex items-center gap-2 transition-colors text-left ${
                 focusedIndex === index
-                  ? 'bg-[#FBF3E3] text-[#C9922A]'
-                  : 'text-gray-700 hover:bg-[#FBF3E3] hover:text-[#C9922A]'
+                  ? 'bg-primary-light text-primary'
+                  : 'text-gray-700 hover:bg-primary-light hover:text-primary'
               }`}
             >
               <MapPin size={15} />

@@ -1,17 +1,12 @@
 import { AuthUser, LoginCredentials } from '../types';
-import toast from 'react-hot-toast';
-
-// Simple hardcoded admin credentials
 const ADMIN_EMAIL = 'admin@realestate.com';
 const ADMIN_PASSWORD = 'Admin123!';
 
-// Login with hardcoded credentials
 export const login = async (credentials: LoginCredentials): Promise<AuthUser> => {
-  // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 500));
 
   if (credentials.email !== ADMIN_EMAIL || credentials.password !== ADMIN_PASSWORD) {
-    throw new Error('Invalid email or password. Use admin@realestate.com / Admin123!');
+    throw new Error('Invalid email or password.');
   }
 
   const authUser: AuthUser = {
@@ -63,4 +58,3 @@ export const requestPasswordReset = async (): Promise<void> => {
 export const confirmPasswordReset = async (): Promise<void> => {
   throw new Error('Not implemented');
 };
-
