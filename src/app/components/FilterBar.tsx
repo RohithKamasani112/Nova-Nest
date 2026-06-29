@@ -79,7 +79,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     }`;
 
   return (
-    <div className="bg-white border border-border rounded-lg shadow-subtle p-3 sticky top-20 z-10 sm:p-4">
+    <div className="bg-white border border-border rounded-lg shadow-subtle p-3 z-10 sm:p-4 lg:sticky lg:top-20">
       <div className="grid grid-cols-1 gap-3 items-center sm:grid-cols-[1fr_auto] lg:flex lg:flex-wrap">
         <div className="flex w-full min-w-0 gap-2 overflow-x-auto no-scrollbar p-1 rounded-full sm:w-auto">
           {categories.map((category) => {
@@ -144,7 +144,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="mt-6 pt-6 border-t border-black/10 space-y-6">
+            <div className="mt-6 pt-6 border-t border-black/10 space-y-6 max-h-[70vh] overflow-y-auto lg:max-h-none lg:overflow-visible">
               <div>
                 <label className="block text-sm font-semibold text-charcoal mb-3">Price Range</label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

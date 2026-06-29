@@ -75,11 +75,10 @@ const buyBudgetOptions = [
 ];
 
 const rentBudgetOptions = [
-  { label: 'All Budgets', min: undefined, max: undefined },
-  { label: 'Under ₹10,000/mo', min: undefined, max: 10000 },
-  { label: '₹10,000 - ₹25,000/mo', min: 10000, max: 25000 },
-  { label: '₹25,000 - ₹50,000/mo', min: 25000, max: 50000 },
-  { label: '₹50,000+/mo', min: 50000, max: undefined },
+  { label: 'Below ₹30,000/mo', min: undefined, max: 30000 },
+  { label: '₹30,000 - ₹50,000/mo', min: 30000, max: 50000 },
+  { label: '₹50,000 - ₹1 L/mo', min: 50000, max: 100000 },
+  { label: 'Above ₹1 L/mo', min: 100000, max: undefined },
 ];
 
 const typeOptions = [
@@ -307,10 +306,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
       {/* ================================================================= */}
       {/* HERO                                                              */}
       {/* ================================================================= */}
-      <section ref={heroRef} className="relative min-h-[680px] text-white overflow-hidden sm:min-h-[760px]">
-        <motion.div style={reduce ? undefined : { y: heroParallax, opacity: heroFade }} className="absolute inset-0">
-          <HeroVideoBackground staticOnly={staticHero} />
-        </motion.div>
+      <section ref={heroRef} className="relative min-h-[680px] text-white sm:min-h-[760px]">
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div style={reduce ? undefined : { y: heroParallax, opacity: heroFade }} className="absolute inset-0">
+            <HeroVideoBackground staticOnly={staticHero} />
+          </motion.div>
+        </div>
 
         <div className="relative max-w-5xl mx-auto px-4 pt-32 pb-16 sm:px-6 sm:py-28 lg:px-8 md:py-36">
           <div className="text-center">
@@ -471,8 +472,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
                     animate={{ opacity: 1, y: 0, height: 'auto' }}
                     exit={{ opacity: 0, y: -8, height: 0 }}
                     transition={{ duration: 0.25, ease: EASE_ELEGANT }}
-                    className="absolute left-0 right-0 top-[calc(100%+10px)] overflow-hidden rounded-2xl border border-white/15 bg-charcoal/95 p-5 text-left backdrop-blur-xl shadow-2xl z-30"
+                    className="absolute left-0 right-0 top-[calc(100%+10px)] overflow-hidden rounded-2xl border border-white/15 bg-charcoal/95 text-left backdrop-blur-xl shadow-2xl z-50"
                   >
+                    <div className="max-h-[60vh] overflow-y-auto p-5">
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                       <div>
                         <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-accent/80">
@@ -528,6 +530,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
                       >
                         Apply
                       </button>
+                    </div>
                     </div>
                   </motion.div>
                 )}
