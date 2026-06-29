@@ -76,10 +76,10 @@ const buyBudgetOptions = [
 
 const rentBudgetOptions = [
   { label: 'All Budgets', min: undefined, max: undefined },
-  { label: 'Under ₹10,000/mo', min: undefined, max: 10000 },
-  { label: '₹10,000 - ₹25,000/mo', min: 10000, max: 25000 },
-  { label: '₹25,000 - ₹50,000/mo', min: 25000, max: 50000 },
-  { label: '₹50,000+/mo', min: 50000, max: undefined },
+  { label: 'Below ₹30,000/mo', min: undefined, max: 30000 },
+  { label: '₹30,000 - ₹50,000/mo', min: 30000, max: 50000 },
+  { label: '₹50,000 - ₹1 L/mo', min: 50000, max: 100000 },
+  { label: 'Above ₹1 L/mo', min: 100000, max: undefined },
 ];
 
 const typeOptions = [
@@ -466,12 +466,22 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
               {/* Expanding filters panel */}
               <AnimatePresence>
                 {showHeroFilters && (
+                  <>
+                    {/* Mobile backdrop — tap to close */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      onClick={() => setShowHeroFilters(false)}
+                      className="fixed inset-0 z-40 bg-black/50 sm:hidden"
+                    />
                   <motion.div
-                    initial={{ opacity: 0, y: -8, height: 0 }}
-                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                    exit={{ opacity: 0, y: -8, height: 0 }}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.25, ease: EASE_ELEGANT }}
-                    className="absolute left-0 right-0 top-[calc(100%+10px)] overflow-hidden rounded-2xl border border-white/15 bg-charcoal/95 p-5 text-left backdrop-blur-xl shadow-2xl z-30"
+                    className="fixed inset-x-3 bottom-3 z-50 max-h-[75vh] overflow-y-auto overscroll-contain rounded-2xl border border-white/15 bg-charcoal/95 p-5 text-left backdrop-blur-xl shadow-2xl sm:absolute sm:inset-x-auto sm:left-0 sm:right-0 sm:bottom-auto sm:top-[calc(100%+10px)] sm:z-30"
                   >
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                       <div>
@@ -530,6 +540,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
                       </button>
                     </div>
                   </motion.div>
+                  </>
                 )}
               </AnimatePresence>
             </motion.div>

@@ -134,7 +134,7 @@ const initialFormData: FormData = {
   images: [],
   videoUrl: '',
   googleMapsLink: '',
-  featured: false,
+  featured: true,
   verified: false,
   urgent: false,
   reraRegistered: false,
