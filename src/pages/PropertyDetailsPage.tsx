@@ -12,6 +12,15 @@ import {
 } from 'motion/react';
 import { EASE_ELEGANT, imageSlide, scaleIn, staggerFastContainer, staggerContainer } from '../lib/animation';
 import { toTitleCase } from '../utils/format';
+import { Seo } from '../components/Seo';
+import {
+  propertyTitle,
+  propertyDescription,
+  propertyPath,
+  propertyImage,
+  propertyJsonLd,
+  breadcrumbJsonLd,
+} from '../utils/seo';
 
 // Number that counts up from 0 to `value` when it scrolls into view (spec #25),
 // driven by a spring and formatted each frame. Snaps under reduced-motion.
@@ -219,6 +228,21 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
 
   return (
     <div className="min-h-screen bg-surface text-text-primary">
+      <Seo
+        title={propertyTitle(property)}
+        description={propertyDescription(property)}
+        path={propertyPath(property)}
+        image={propertyImage(property)}
+        type="product"
+        jsonLd={[
+          propertyJsonLd(property),
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Properties', path: '/properties' },
+            { name: toTitleCase(property.title), path: propertyPath(property) },
+          ]),
+        ]}
+      />
       <div className="sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <button onClick={onClose} className="group flex min-h-[44px] items-center gap-2 text-sm font-semibold text-charcoal transition-colors hover:text-gold">
@@ -243,7 +267,12 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                       custom={imageDirection}
                       layoutId={currentImageIndex === 0 ? `property-image-${property.id}` : undefined}
                       src={property.images[currentImageIndex]}
-                      alt={toTitleCase(property.title)}
+                      alt={`${toTitleCase(property.title)} — ${
+                        property.status === 'buy' ? 'for sale' : 'for rent'
+                      } in ${toTitleCase(property.location)} (photo ${currentImageIndex + 1} of ${imageCount})`}
+                      loading="eager"
+                      decoding="async"
+                      {...({ fetchpriority: 'high' } as any)}
                       variants={reduce ? undefined : imageSlide}
                       initial={reduce ? false : 'enter'}
                       animate={reduce ? { opacity: 1 } : 'center'}
@@ -282,7 +311,13 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                     onClick={() => goToImage(index)}
                     className="relative h-20 w-24 flex-shrink-0 overflow-hidden rounded-lg"
                   >
-                    <img src={image} alt={`Thumbnail ${index + 1}`} className="h-full w-full object-cover" />
+                    <img
+                      src={image}
+                      alt={`${toTitleCase(property.title)} thumbnail ${index + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
                     <span className="pointer-events-none absolute inset-0 rounded-lg border-2 border-border" />
                     {index === currentImageIndex && (
                       <motion.span

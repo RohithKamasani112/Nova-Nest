@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import { motion, useInView, useMotionValue, animate } from 'motion/react';
 import { createLead } from '../services/storageService';
 import { Inquiry } from '../types';
+import { Seo } from '../components/Seo';
+import { localBusinessJsonLd, breadcrumbJsonLd } from '../utils/seo';
 
 const address = 'Ground Floor, Site No-29 & 30, Maheshwaramma Temple Road, 1st Main Rd, Maheswari Nagar, Mahadevapura, Bengaluru, Karnataka 560048';
 const mapsUrl = import.meta.env.VITE_GOOGLE_MAPS_URL || 'https://maps.app.goo.gl/V5dSTjfNRgDUWTmEA';
@@ -107,12 +109,26 @@ export const ContactPage: React.FC = () => {
 
   return (
     <main className="bg-surface text-text-primary" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <Seo
+        title="Contact Nova Nest | Property Advisors in Bengaluru"
+        description="Talk to Nova Nest Property Management in Mahadevapura, Bengaluru. Call +91 98454 18570 or send a message for buying, renting or selling verified property across the city."
+        path="/contact"
+        jsonLd={[
+          localBusinessJsonLd(),
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Contact', path: '/contact' },
+          ]),
+        ]}
+      />
 
       {/* Hero */}
       <section className="relative min-h-[380px] flex items-center justify-center overflow-hidden sm:min-h-[420px]">
         <img
           src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1920&q=85"
-          alt="Office"
+          alt="Nova Nest Property Management office reception in Mahadevapura, Bengaluru"
+          loading="eager"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-charcoal/80 via-charcoal/70 to-charcoal/90" />

@@ -118,12 +118,86 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       className="card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.07)]"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
+      {/* ── Mobile compact layout (below sm): horizontal thumbnail + tight details ── */}
+      <div className="flex sm:hidden">
+        <div className="relative aspect-square w-24 flex-shrink-0 overflow-hidden bg-black/5">
+          {property.images?.[0] ? (
+            <img
+              src={property.images[0]}
+              alt={`${toTitleCase(property.title)} — ${categoryLabel(property.category)} ${
+                property.status === 'buy' ? 'for sale' : 'for rent'
+              } in ${toTitleCase(property.location)}`}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-surface to-black/10">
+              <Building2 size={24} className="text-muted-foreground" />
+            </div>
+          )}
+          <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-charcoal">
+            {categoryLabel(property.category)}
+          </span>
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-3">
+          <h3 className="line-clamp-1 text-sm font-bold leading-tight text-text-primary">
+            {toTitleCase(property.title)}
+          </h3>
+
+          <div className="flex items-center gap-1">
+            <MapPin size={12} className="flex-shrink-0 text-gold" />
+            <span className="truncate text-[11px] font-medium text-muted-foreground">
+              {toTitleCase(property.location)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-base font-extrabold leading-none text-text-primary">{formatPrice(property)}</p>
+            <div className="flex flex-shrink-0 items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+              {property.bedrooms > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <BedDouble size={12} /> {property.bedrooms}
+                </span>
+              )}
+              {property.bathrooms > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Bath size={12} /> {property.bathrooms}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-0.5 flex items-center gap-1.5">
+            <button
+              onClick={handleActionClick}
+              className="rounded-full bg-charcoal px-3 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-header-dark"
+            >
+              Book Visit
+            </button>
+            <button
+              onClick={handleActionClick}
+              className="rounded-full bg-gold px-3 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-primary-dark"
+            >
+              Enquire
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tablet / desktop layout (sm and up): unchanged vertical card ── */}
+      <div className="hidden sm:block">
       <div className="relative aspect-[4/3] overflow-hidden bg-black/5">
         {property.images?.[0] ? (
           <motion.img
             layoutId={`property-image-${property.id}`}
             src={property.images[0]}
-            alt={property.title}
+            alt={`${toTitleCase(property.title)} — ${categoryLabel(property.category)} ${
+              property.status === 'buy' ? 'for sale' : 'for rent'
+            } in ${toTitleCase(property.location)}`}
+            loading="lazy"
+            decoding="async"
             onLoad={() => setImgLoaded(true)}
             initial={reduce ? false : { opacity: 0 }}
             animate={reduce ? undefined : { opacity: imgLoaded ? 1 : 0 }}
@@ -225,6 +299,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             Enquire
           </RippleButton>
         </div>
+      </div>
       </div>
     </motion.article>
   );

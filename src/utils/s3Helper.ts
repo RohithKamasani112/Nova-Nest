@@ -192,6 +192,29 @@ export const uploadJsonToS3 = async (
   }
 };
 
+// Upload a plain-text/other file (e.g. sitemap.xml) to S3. `contentType`
+// controls how the object is served; `publicRead` requests public readability
+// so files like the sitemap can be fetched by crawlers.
+export const uploadTextToS3 = async (
+  content: string,
+  path: string,
+  contentType: string = 'text/plain'
+): Promise<string> => {
+  const client = getS3Client();
+  const key = getObjectKey(path);
+
+  const command = new PutObjectCommand({
+    Bucket: config.aws.s3.bucketName,
+    Key: key,
+    Body: content,
+    ContentType: contentType,
+    CacheControl: 'public, max-age=300',
+  });
+
+  await client.send(command);
+  return `https://${config.aws.s3.bucketName}.s3.${config.aws.region}.amazonaws.com/${key}`;
+};
+
 // Get JSON data from S3
 export const getJsonFromS3 = async <T>(path: string): Promise<T> => {
   try {

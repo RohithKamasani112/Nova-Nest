@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { EASE_ELEGANT, staggerContainer } from '../lib/animation';
 import { HeroVideoBackground } from '../components/HeroVideoBackground';
+import { Seo } from '../components/Seo';
+import { organizationJsonLd, websiteJsonLd } from '../utils/seo';
 
 const AnimatedHeading: React.FC<{ text: string; reduce: boolean; start?: boolean; className?: string; delayStart?: number; style?: React.CSSProperties }> = ({
   text,
@@ -302,6 +304,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
 
   return (
     <div className="min-h-screen bg-cream" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <Seo
+        title="Nova Nest | Buy, Rent & Sell Property in Bengaluru"
+        description="Nova Nest Property Management — discover verified apartments, villas, plots and commercial spaces for sale and rent in Whitefield, Marathahalli, Bellandur and across Bengaluru."
+        path="/"
+        jsonLd={[organizationJsonLd(), websiteJsonLd()]}
+      />
 
       {/* ================================================================= */}
       {/* HERO                                                              */}

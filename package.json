@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "seed": "node seed.mjs"
+    "seed": "node seed.mjs",
+    "sitemap": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",

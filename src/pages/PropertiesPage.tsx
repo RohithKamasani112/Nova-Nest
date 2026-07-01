@@ -6,6 +6,7 @@ import { FilterBar } from '../app/components/FilterBar';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
 import { motion } from 'motion/react';
 import { Search } from 'lucide-react';
+import { Seo } from '../components/Seo';
 
 interface PropertiesPageProps {
   onPropertyClick: (property: Property) => void;
@@ -160,8 +161,25 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
     setFilteredProperties(filtered);
   };
 
+  // Filtered/search permutations shouldn't be indexed as separate pages — they
+  // point back to the canonical /properties listing instead (requirement #5).
+  const isFiltered = Boolean(
+    searchQuery ||
+      filters.location ||
+      filters.status ||
+      (filters.category && filters.category.length) ||
+      filters.priceMin !== undefined ||
+      filters.priceMax !== undefined
+  );
+
   return (
     <div className="min-h-screen bg-cream py-12">
+      <Seo
+        title="Properties for Sale & Rent in Bengaluru | Nova Nest"
+        description="Browse verified homes, apartments, villas, plots and commercial spaces for sale and rent across Bengaluru. Filter by location, budget, type and more with Nova Nest."
+        path="/properties"
+        noindex={isFiltered}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-10">

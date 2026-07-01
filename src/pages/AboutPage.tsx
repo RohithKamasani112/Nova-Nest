@@ -10,6 +10,8 @@ import {
   Star,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { Seo } from "../components/Seo";
+import { breadcrumbJsonLd } from "../utils/seo";
 
 interface AboutPageProps {
   onNavigate: (page: string) => void;
@@ -56,11 +58,24 @@ const timeline = [
 export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
   return (
     <main className="bg-cream text-charcoal overflow-hidden">
+      <Seo
+        title="About Nova Nest | Trusted Property Advisors in Bengaluru"
+        description="Nova Nest Property Management offers premium rental and sales advisory in Whitefield and across Bengaluru — verified listings, trusted advisors and end-to-end support."
+        path="/about"
+        jsonLd={[
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "About", path: "/about" },
+          ]),
+        ]}
+      />
       <section className="relative min-h-[680px] flex items-center justify-center md:min-h-screen">
         <img
           src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=2000&q=90"
           className="absolute inset-0 w-full h-full object-cover"
-          alt="Luxury Property"
+          alt="Modern residential apartment building representing Nova Nest property listings in Bengaluru"
+          loading="eager"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-black/65" />
 

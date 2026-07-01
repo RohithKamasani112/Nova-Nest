@@ -1,0 +1,15 @@
+# Nova Nest — robots.txt
+# Public pages are open to all crawlers; admin/private routes are blocked.
+
+User-agent: *
+Allow: /
+
+# Private / admin area — never index
+Disallow: /admin
+Disallow: /admin/
+
+# Avoid indexing filtered/search permutations (canonical also handles this)
+Disallow: /*?location=
+Disallow: /*?
+
+Sitemap: https://novanest.co.in/sitemap.xml

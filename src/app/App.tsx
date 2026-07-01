@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { useUrlSync } from '../hooks/useUrlSync';
+import type { AppPage } from '../utils/seo';
 import { Navbar } from './components/Navbar';
-import { MobileBottomNav } from './components/MobileBottomNav';
 import { AdminSidebar } from './components/AdminSidebar';
 import { HomePage } from '../pages/HomePage';
 import { PropertiesPage } from '../pages/PropertiesPage';
@@ -72,6 +73,17 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Keep the URL in sync with the current page/property (real, shareable,
+  // crawlable URLs) without changing how anything renders. See useUrlSync.
+  const applyRoute = useCallback(
+    ({ page, property }: { page: AppPage; property: Property | null }) => {
+      if (property) setSelectedProperty(property);
+      setCurrentPage(page as Page);
+    },
+    []
+  );
+  useUrlSync({ currentPage, selectedProperty, applyRoute });
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
@@ -126,7 +138,6 @@ function App() {
 
   const showNavbar = currentPage !== 'admin-login' && currentPage !== 'property-details';
   const isAdminPage = ['dashboard', 'add-property', 'manage-properties', 'leads', 'settings'].includes(currentPage);
-  const showMobileNav = showNavbar && !isAdminPage;
 
   const renderAdminContent = () => {
     switch (currentPage) {
@@ -156,7 +167,6 @@ function App() {
         currentPage={currentPage}
         showNavbar={showNavbar}
         isAdminPage={isAdminPage}
-        showMobileNav={showMobileNav}
         handleNavigate={handleNavigate}
         handleSearch={handleSearch}
         showPageLoader={showPageLoader}
@@ -173,7 +183,6 @@ const AppContent: React.FC<{
   currentPage: Page;
   showNavbar: boolean;
   isAdminPage: boolean;
-  showMobileNav: boolean;
   handleNavigate: (page: string) => void;
   handleSearch: (filters: PropertyFilters) => void;
   showPageLoader: boolean;
@@ -184,7 +193,6 @@ const AppContent: React.FC<{
   currentPage,
   showNavbar,
   isAdminPage,
-  showMobileNav,
   handleNavigate,
   handleSearch,
   showPageLoader,
@@ -256,18 +264,11 @@ const AppContent: React.FC<{
           {showNavbar && currentPage !== 'property-details' && (
             <Footer onNavigate={handleNavigate} onSearch={handleSearch} />
           )}
-          {showMobileNav && (
-            <MobileBottomNav
-              currentPage={currentPage}
-              onNavigate={handleNavigate}
-              isAuthenticated={isAuthenticated}
-            />
-          )}
         </>
       )}
 
       {!isAdminPage && currentPage !== 'admin-login' && (
-        <div className="fixed bottom-24 right-4 z-50 flex flex-col items-center gap-3 sm:bottom-6 sm:right-6">
+        <div className="fixed bottom-6 right-4 z-50 flex flex-col items-center gap-3 sm:right-6">
           <motion.a
             href="tel:+919845418570"
             aria-label="Call us"

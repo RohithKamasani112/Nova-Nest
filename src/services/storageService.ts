@@ -3,8 +3,25 @@ import {
   uploadToS3,
   getJsonFromS3,
   uploadJsonToS3,
+  uploadTextToS3,
   deleteFromS3,
 } from '../utils/s3Helper';
+import { buildSitemapXml } from '../utils/sitemap';
+
+/**
+ * Regenerate sitemap.xml from the current property set and push it to S3.
+ * Called after every create/update/delete so the sitemap auto-updates as soon
+ * as the client changes listings — no rebuild/redeploy required. Best-effort:
+ * any failure here is logged and swallowed so it never blocks a property save.
+ */
+const regenerateSitemap = async (properties: Property[]): Promise<void> => {
+  try {
+    const xml = buildSitemapXml(properties);
+    await uploadTextToS3(xml, 'sitemap.xml', 'application/xml');
+  } catch (error) {
+    console.warn('Sitemap regeneration skipped:', error);
+  }
+};
 
 /**
  * Storage Service - Always uses S3
@@ -64,6 +81,7 @@ export const createProperty = async (
 
     const updatedProperties = [...properties, newProperty];
     await uploadJsonToS3(updatedProperties, 'properties.json');
+    void regenerateSitemap(updatedProperties);
 
     return newProperty;
   } catch (error) {
@@ -93,6 +111,7 @@ export const updateProperty = async (
 
     properties[index] = updatedProperty;
     await uploadJsonToS3(properties, 'properties.json');
+    void regenerateSitemap(properties);
 
     return updatedProperty;
   } catch (error) {
@@ -113,6 +132,7 @@ export const deleteProperty = async (id: string): Promise<void> => {
 
     const filteredProperties = properties.filter((p) => p.id !== id);
     await uploadJsonToS3(filteredProperties, 'properties.json');
+    void regenerateSitemap(filteredProperties);
 
     for (const imagePath of property.images || []) {
       await deleteImage(imagePath);
