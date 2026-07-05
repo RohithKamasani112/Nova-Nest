@@ -1,5 +1,6 @@
 import React from 'react';
-import { Instagram, Mail, MapPin, MessageCircle, Phone, Youtube } from 'lucide-react';
+import { Instagram, Mail, MapPin, Phone, Youtube } from 'lucide-react';
+import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import companyLogo from '../../assets/companyLogo.png';
 
 interface FooterProps {
@@ -83,7 +84,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSearch }) => {
                 {[
                   { icon: Instagram, href: 'https://www.instagram.com/nova_nest_rentals', label: 'Instagram' },
                   { icon: Youtube, href: 'https://youtube.com/@novanestrentals', label: 'YouTube' },
-                  { icon: MessageCircle, href: 'https://chat.whatsapp.com/IRTKnGNLnck6aHBb0Ps5YR', label: 'WhatsApp Rentals' },
+                  { icon: WhatsAppIcon, href: 'https://chat.whatsapp.com/IRTKnGNLnck6aHBb0Ps5YR', label: 'WhatsApp Rentals' },
                 ].map(({ icon: Icon, href, label }) => (
                   <a
                     key={label}

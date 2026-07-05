@@ -363,9 +363,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   // whether to show "Sale" or "Rent" wording and which fields are relevant.
   const isRent = formData.status === 'rent';
   const priceLabel = isRent ? 'Monthly Rent' : 'Sale Price';
+  // For rentals the possession field is a simple binary: either the unit is
+  // ready now, or the owner wants to pin an available-from date (revealed as a
+  // date picker right under the dropdown). Sales keep the original options.
   const possessionOptionsForType = isRent
-    ? possessionOptions.filter((option) => option !== 'Under Construction')
+    ? ['Ready to Move', 'Select Date']
     : possessionOptions;
+  const showRentDatePicker = isRent && formData.possessionStatus === 'Select Date';
 
   // ----- Commission (Section 1) derived values -----
   const listingPrice = Number(formData.price) || 0;
@@ -415,6 +419,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       status: editingProperty.status,
       commissionType: editingProperty.commissionType || 'percentage',
       commissionValue: editingProperty.commissionValue ? String(editingProperty.commissionValue) : '',
+      contactNumber: editingProperty.agentPhone || '',
     }));
     setStep(2);
   }, [editingProperty]);
@@ -488,13 +493,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const { getRootProps, getInputProps } = useDropzone({
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
     maxSize: 10 * 1024 * 1024,
-    maxFiles: 20,
+    maxFiles: 30,
     onDrop: async (files) => {
-      const availableSlots = 20 - formData.images.length;
+      const availableSlots = 30 - formData.images.length;
       const filesToUpload = files.slice(0, availableSlots);
 
       if (files.length > availableSlots) {
-        toast.error('You can upload up to 20 images');
+        toast.error('You can upload up to 30 images');
       }
 
       setUploadingImages(true);
@@ -521,6 +526,29 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     // This blocks an accidental publish from pressing Enter inside a field on an
     // earlier step (the browser auto-submits the form on Enter otherwise).
     if (step !== 6) return;
+
+    // Mandatory fields — a listing can't be published without at least a title,
+    // a description, and a price. Jump the user back to the step holding the
+    // first missing field, flag it, and stop the publish.
+    const requiredChecks = [
+      { field: 'title', step: 2, ok: !!formData.title.trim(), message: 'Please enter a property title' },
+      { field: 'description', step: 2, ok: !!formData.description.trim(), message: 'Please add a property description' },
+      { field: 'price', step: 3, ok: Number(formData.price) > 0, message: 'Please enter a price' },
+    ];
+    const missing = requiredChecks.find((check) => !check.ok);
+    if (missing) {
+      setStep(missing.step);
+      setError({ field: missing.field, message: missing.message });
+      toast.error(missing.message);
+      return;
+    }
+
+    // The available-from date is required only when the rental owner explicitly
+    // chose "Select Date"; "Ready to Move" needs no date and clears it above.
+    if (isRent && formData.possessionStatus === 'Select Date' && !formData.availableFrom) {
+      toast.error('Please pick the available-from date, or set Possession Status to "Ready to Move".');
+      return;
+    }
 
     const fullLocation = [formData.streetAddress.trim(), 'Bangalore']
       .filter(Boolean)
@@ -557,6 +585,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       commissionType: hasCommission ? formData.commissionType : undefined,
       commissionValue: hasCommission ? commissionInput : undefined,
       commissionCalculated: hasCommission ? commissionCalculated : undefined,
+      agentPhone: formData.contactNumber.trim() || undefined,
     };
 
     setLoading(true);
@@ -982,17 +1011,37 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     </div>
                     <div>
                       <label className={labelClass}>Possession Status</label>
-                      <select value={formData.possessionStatus} onChange={(e) => setField('possessionStatus', e.target.value)} className={plainControlClass}>
+                      <select
+                        value={formData.possessionStatus}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setField('possessionStatus', value);
+                          // "Ready to Move" (or a reset) means no date is needed —
+                          // drop any previously picked date so it isn't submitted.
+                          if (value !== 'Select Date') setField('availableFrom', '');
+                        }}
+                        className={plainControlClass}
+                      >
                         <option value="">Select</option>
                         {possessionOptionsForType.map((option) => <option key={option} value={option}>{option}</option>)}
                       </select>
+                      {showRentDatePicker && (
+                        <input
+                          type="date"
+                          value={formData.availableFrom}
+                          onChange={(e) => setField('availableFrom', e.target.value)}
+                          className={`${plainControlClass} mt-2`}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className={labelClass}>Available From</label>
-                      <input type="date" value={formData.availableFrom} onChange={(e) => setField('availableFrom', e.target.value)} className={plainControlClass} />
-                    </div>
+                    {!isRent && (
+                      <div>
+                        <label className={labelClass}>Available From</label>
+                        <input type="date" value={formData.availableFrom} onChange={(e) => setField('availableFrom', e.target.value)} className={plainControlClass} />
+                      </div>
+                    )}
                     <div>
                       <label className={labelClass}>Ownership Type</label>
                       <select value={formData.ownershipType} onChange={(e) => setField('ownershipType', e.target.value)} className={plainControlClass}>
@@ -1144,7 +1193,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       <input {...getInputProps()} />
                       <Upload size={32} className="mx-auto mb-2 text-gray-400" />
                       <p className="text-gray-600">{uploadingImages ? 'Uploading images...' : 'Drag images here or click to select'}</p>
-                      <p className="mt-2 text-sm text-gray-500">Supported formats: JPG, PNG, WEBP - Max size: 10MB per image - Up to 20 images</p>
+                      <p className="mt-2 text-sm text-gray-500">Supported formats: JPG, PNG, WEBP - Max size: 10MB per image - Up to 30 images</p>
                     </div>
 
                     {formData.images.length > 0 && (
@@ -1208,15 +1257,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     </div>
                   )}
                   <div>
-                    <label className={labelClass}>Contact Number for Leads (optional)</label>
+                    <label className={labelClass}>Agent Mobile Number (optional)</label>
                     <input
                       type="tel"
-                      placeholder="Leave blank to use your profile number"
+                      placeholder="e.g. 9845418570 — leave blank to use the default number"
                       value={formData.contactNumber}
                       onChange={(e) => setField('contactNumber', e.target.value)}
                       className={plainControlClass}
                     />
-                    <p className="mt-1 text-sm text-gray-500">This number will be shown to interested buyers/tenants</p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      WhatsApp chats and calls for this property go to this number. Leave blank to use the default company number.
+                    </p>
                   </div>
 
                   <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">

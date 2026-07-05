@@ -257,10 +257,10 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
           </div>
 
           <div className="hidden overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm md:block">
-            <table className="w-full min-w-[1040px] text-sm">
+            <table className="w-full min-w-[1180px] text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Title</th>
+                  <th className="px-6 py-3 text-left font-semibold text-gray-700 min-w-[260px]">Title</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Location</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Price</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Category</th>
@@ -280,8 +280,8 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
                     transition={{ delay: index * 0.05 }}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
-                    <td className="px-6 py-3">
-                      <div className="line-clamp-1 font-medium text-gray-900">{toTitleCase(property.title)}</div>
+                    <td className="px-6 py-3 min-w-[260px]">
+                      <div className="whitespace-normal break-words font-medium text-gray-900">{toTitleCase(property.title)}</div>
                     </td>
                     <td className="px-6 py-3 text-gray-600">
                       <div className="line-clamp-1">{toTitleCase(property.location)}</div>

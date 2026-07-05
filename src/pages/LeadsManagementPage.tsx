@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { getAllLeads, updateLeadStatus } from '../services/storageService';
-import { Inquiry } from '../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { getAllLeads, getAllProperties, updateLeadStatus } from '../services/storageService';
+import { Inquiry, Property } from '../types';
 import { motion } from 'motion/react';
 import { Download, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { propertyDealSummary, toTitleCase } from '../utils/format';
 
 interface LeadsManagementPageProps {
   onNavigate: (page: string) => void;
@@ -19,6 +20,7 @@ const statusClass = (status: Inquiry['status']) =>
 export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = () => {
   const [leads, setLeads] = useState<Inquiry[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Inquiry[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -34,14 +36,23 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = () => {
 
   const loadLeads = async () => {
     try {
-      const data = await getAllLeads();
-      setLeads(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      const [leadData, propertyData] = await Promise.all([getAllLeads(), getAllProperties()]);
+      setLeads(leadData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      setProperties(propertyData);
     } catch (error) {
       console.error('Error loading leads:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Resolve the property each lead is interested in (leads store the propertyId).
+  const propertyMap = useMemo(
+    () => new Map(properties.map((p) => [p.id, p])),
+    [properties]
+  );
+  const leadProperty = (lead: Inquiry): Property | undefined =>
+    lead.propertyId ? propertyMap.get(lead.propertyId) : undefined;
 
   const filterLeads = () => {
     let filtered = leads;
@@ -72,15 +83,20 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = () => {
   };
 
   const exportCSV = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Type', 'Status', 'Date'];
-    const rows = filteredLeads.map((lead) => [
-      lead.name,
-      lead.email || '',
-      lead.phone,
-      lead.type,
-      lead.status,
-      new Date(lead.createdAt).toLocaleDateString(),
-    ]);
+    const headers = ['Name', 'Email', 'Phone', 'Property', 'Deal', 'Type', 'Status', 'Date'];
+    const rows = filteredLeads.map((lead) => {
+      const property = leadProperty(lead);
+      return [
+        lead.name,
+        lead.email || '',
+        lead.phone,
+        property ? toTitleCase(property.title) : '-',
+        property ? propertyDealSummary(property) : '-',
+        lead.type,
+        lead.status,
+        new Date(lead.createdAt).toLocaleDateString(),
+      ];
+    });
 
     const csv = [headers, ...rows]
       .map((row) => row.map((cell) => `"${cell}"`).join(','))
@@ -197,6 +213,23 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = () => {
                   </span>
                 </div>
 
+                {(() => {
+                  const property = leadProperty(lead);
+                  return (
+                    <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Interested in</p>
+                      {property ? (
+                        <>
+                          <p className="truncate text-sm font-semibold text-gray-900">{toTitleCase(property.title)}</p>
+                          <p className="text-xs font-medium text-primary">{propertyDealSummary(property)}</p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-400">General inquiry</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <span className="rounded bg-primary-light px-2.5 py-1 text-xs font-medium capitalize text-primary">{lead.type}</span>
                   <span className="text-xs text-gray-500">{new Date(lead.createdAt).toLocaleDateString()}</span>
@@ -216,19 +249,22 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = () => {
           </div>
 
           <div className="hidden overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm md:block">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[980px] text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Name</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Email</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Phone</th>
+                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Property</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Type</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Date</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredLeads.map((lead, index) => (
+                {filteredLeads.map((lead, index) => {
+                  const property = leadProperty(lead);
+                  return (
                   <motion.tr
                     key={lead.id}
                     initial={{ opacity: 0 }}
@@ -239,6 +275,16 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = () => {
                     <td className="px-6 py-3 font-medium text-gray-900">{lead.name}</td>
                     <td className="px-6 py-3 text-gray-600">{lead.email || '-'}</td>
                     <td className="px-6 py-3 text-gray-600">{lead.phone}</td>
+                    <td className="px-6 py-3">
+                      {property ? (
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-900">{toTitleCase(property.title)}</div>
+                          <div className="text-xs font-medium text-primary">{propertyDealSummary(property)}</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-3">
                       <span className="rounded bg-primary-light px-2.5 py-1 text-xs font-medium capitalize text-primary">{lead.type}</span>
                     </td>
@@ -255,7 +301,8 @@ export const LeadsManagementPage: React.FC<LeadsManagementPageProps> = () => {
                       </select>
                     </td>
                   </motion.tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

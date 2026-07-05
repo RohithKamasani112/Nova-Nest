@@ -16,7 +16,10 @@ import { AboutPage } from '../pages/AboutPage';
 import { ContactPage } from '../pages/ContactPage';
 import { Property, PropertyFilters } from '../types';
 import { Toaster } from 'react-hot-toast';
-import { Phone, MessageCircle } from 'lucide-react';
+import { Phone } from 'lucide-react';
+import { WhatsAppIcon } from './components/icons/WhatsAppIcon';
+import { WhatsAppContactModal } from './components/WhatsAppContactModal';
+import { createLead } from '../services/storageService';
 import { PageLoader } from '../components/PageLoader';
 import { Footer } from './components/Footer';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'motion/react';
@@ -204,6 +207,23 @@ const AppContent: React.FC<{
   const reduce = useReducedMotion();
   const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
   const floatingWhatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
+  // Capture the visitor's number as a lead before sending them to WhatsApp.
+  const [showWhatsappModal, setShowWhatsappModal] = useState(false);
+  const submitWhatsappLead = (phone: string) => {
+    void createLead({
+      propertyId: 'general',
+      userId: 'guest',
+      name: 'WhatsApp Enquiry',
+      email: '',
+      phone,
+      message: 'WhatsApp enquiry from floating contact button',
+      type: 'contact-owner',
+    }).catch((error) => {
+      console.error('Failed to save WhatsApp lead:', error);
+    });
+    setShowWhatsappModal(false);
+    window.open(floatingWhatsappUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // Auth guard for admin pages
   if (isAdminPage && !isAuthenticated) {
@@ -267,7 +287,7 @@ const AppContent: React.FC<{
         </>
       )}
 
-      {!isAdminPage && currentPage !== 'admin-login' && (
+      {currentPage === 'home' && (
         <div className="fixed bottom-6 right-4 z-50 flex flex-col items-center gap-3 sm:right-6">
           <motion.a
             href="tel:+919845418570"
@@ -280,10 +300,9 @@ const AppContent: React.FC<{
           >
             <Phone size={22} />
           </motion.a>
-          <motion.a
-            href={floatingWhatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <motion.button
+            type="button"
+            onClick={() => setShowWhatsappModal(true)}
             aria-label="Contact on WhatsApp"
             whileHover={reduce ? undefined : { scale: 1.12 }}
             whileTap={{ scale: 0.92 }}
@@ -294,10 +313,16 @@ const AppContent: React.FC<{
             {!reduce && (
               <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-60 animate-ping" />
             )}
-            <MessageCircle size={24} className="relative z-10" />
-          </motion.a>
+            <WhatsAppIcon size={26} className="relative z-10" />
+          </motion.button>
         </div>
       )}
+
+      <WhatsAppContactModal
+        open={showWhatsappModal}
+        onClose={() => setShowWhatsappModal(false)}
+        onSubmit={submitWhatsappLead}
+      />
 
       <Toaster
         position="top-right"

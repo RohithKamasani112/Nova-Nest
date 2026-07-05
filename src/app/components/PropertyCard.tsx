@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { Property } from '../../types';
-import { Bath, BedDouble, Building2, Eye, MapPin, Maximize2 } from 'lucide-react';
+import { Bath, BedDouble, Eye, MapPin, Maximize2 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { cardReveal, EASE_ELEGANT } from '../../lib/animation';
-import { toTitleCase } from '../../utils/format';
+import { toTitleCase, propertyDealSummary } from '../../utils/format';
+import noImage from '../../assets/no-image.png';
 
 interface PropertyCardProps {
   property: Property;
@@ -121,21 +122,15 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       {/* ── Mobile compact layout (below sm): horizontal thumbnail + tight details ── */}
       <div className="flex sm:hidden">
         <div className="relative aspect-square w-24 flex-shrink-0 overflow-hidden bg-black/5">
-          {property.images?.[0] ? (
-            <img
-              src={property.images[0]}
-              alt={`${toTitleCase(property.title)} — ${categoryLabel(property.category)} ${
-                property.status === 'buy' ? 'for sale' : 'for rent'
-              } in ${toTitleCase(property.location)}`}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-surface to-black/10">
-              <Building2 size={24} className="text-muted-foreground" />
-            </div>
-          )}
+          <img
+            src={property.images?.[0] || noImage}
+            alt={`${toTitleCase(property.title)} — ${categoryLabel(property.category)} ${
+              property.status === 'buy' ? 'for sale' : 'for rent'
+            } in ${toTitleCase(property.location)}`}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
           <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-charcoal">
             {categoryLabel(property.category)}
           </span>
@@ -145,6 +140,12 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           <h3 className="line-clamp-1 text-sm font-bold leading-tight text-text-primary">
             {toTitleCase(property.title)}
           </h3>
+
+          <span className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.03em] ${
+            property.status === 'rent' ? 'bg-primary/10 text-primary' : 'bg-gold/15 text-gold'
+          }`}>
+            {propertyDealSummary(property)}
+          </span>
 
           <div className="flex items-center gap-1">
             <MapPin size={12} className="flex-shrink-0 text-gold" />
@@ -189,27 +190,21 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       {/* ── Tablet / desktop layout (sm and up): unchanged vertical card ── */}
       <div className="hidden sm:block">
       <div className="relative aspect-[4/3] overflow-hidden bg-black/5">
-        {property.images?.[0] ? (
-          <motion.img
-            layoutId={`property-image-${property.id}`}
-            src={property.images[0]}
-            alt={`${toTitleCase(property.title)} — ${categoryLabel(property.category)} ${
-              property.status === 'buy' ? 'for sale' : 'for rent'
-            } in ${toTitleCase(property.location)}`}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setImgLoaded(true)}
-            initial={reduce ? false : { opacity: 0 }}
-            animate={reduce ? undefined : { opacity: imgLoaded ? 1 : 0 }}
-            whileHover={reduce ? undefined : { scale: 1.06 }}
-            transition={{ duration: 0.6, ease: EASE_ELEGANT }}
-            className="card-img h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-surface to-black/10">
-            <Building2 size={36} className="text-muted-foreground" />
-          </div>
-        )}
+        <motion.img
+          layoutId={`property-image-${property.id}`}
+          src={property.images?.[0] || noImage}
+          alt={`${toTitleCase(property.title)} — ${categoryLabel(property.category)} ${
+            property.status === 'buy' ? 'for sale' : 'for rent'
+          } in ${toTitleCase(property.location)}`}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setImgLoaded(true)}
+          initial={reduce ? false : { opacity: 0 }}
+          animate={reduce ? undefined : { opacity: imgLoaded ? 1 : 0 }}
+          whileHover={reduce ? undefined : { scale: 1.06 }}
+          transition={{ duration: 0.6, ease: EASE_ELEGANT }}
+          className="card-img h-full w-full object-cover"
+        />
 
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
           {property.featured && (
@@ -232,17 +227,23 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
         </button>
       </div>
 
-      <div className="p-4 pb-5">
+      <div className="p-4 pb-4">
         <h3 className="mb-1 line-clamp-1 text-base font-bold leading-tight tracking-normal text-text-primary">
           {toTitleCase(property.title)}
         </h3>
 
-        <div className="mb-3 flex items-center gap-1">
+        <span className={`mb-1.5 inline-block w-fit rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.04em] ${
+          property.status === 'rent' ? 'bg-primary/10 text-primary' : 'bg-gold/15 text-gold'
+        }`}>
+          {propertyDealSummary(property)}
+        </span>
+
+        <div className="mb-2 flex items-center gap-1">
           <MapPin size={14} className="flex-shrink-0 text-gold" />
           <span className="truncate text-xs font-medium text-muted-foreground">{toTitleCase(property.location)}</span>
         </div>
 
-        <div className="mb-4 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-4">
+        <div className="mb-3 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3">
           {property.bedrooms > 0 && (
             <div className="flex items-center gap-1.5">
               <BedDouble size={16} className="text-muted-foreground" />
@@ -263,7 +264,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           )}
         </div>
 
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xl font-extrabold leading-none tracking-normal text-text-primary">
               {formatPrice(property)}

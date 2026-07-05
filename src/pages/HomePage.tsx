@@ -251,7 +251,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
       const properties = await getAllProperties();
       const activeProperties = properties.filter((property) => property.isActive !== false);
       setAllProperties(activeProperties);
-      setFilteredProperties(activeProperties.slice(0, 9));
+      // Keep the full (filtered) set here so the counts reflect the true total;
+      // the grid below only renders the first 9 via slice().
+      setFilteredProperties(activeProperties);
     } catch (error) {
       console.error('Error loading properties:', error);
     } finally {
@@ -276,7 +278,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
       case 'area-desc': filtered.sort((a, b) => b.areaSqft - a.areaSqft); break;
       default: filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
-    setFilteredProperties(filtered.slice(0, 9));
+    // Store the full filtered set; counts use its length while the grid slices to 9.
+    setFilteredProperties(filtered);
   };
 
   const handleLocationChange = (location: string) => setFilters({ ...filters, location });
@@ -735,6 +738,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
             <h2 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal">
               {filteredProperties.length} Properties Found
             </h2>
+            <p className="mt-1.5 text-sm font-medium text-charcoal/50">
+              {filteredProperties.filter((p) => p.status === 'buy').length} for Sale
+              <span className="mx-2 text-charcoal/25">·</span>
+              {filteredProperties.filter((p) => p.status === 'rent').length} for Rent
+            </p>
           </div>
           <div className="hidden h-px flex-1 bg-charcoal/10 sm:block" />
         </motion.div>
@@ -769,7 +777,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
             viewport={{ once: true, margin: '-60px' }}
             className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}
           >
-            {filteredProperties.map((property, index) => (
+            {filteredProperties.slice(0, 9).map((property, index) => (
               <PropertyCard
                 key={property.id}
                 property={property}

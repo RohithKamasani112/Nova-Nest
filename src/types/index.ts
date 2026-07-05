@@ -32,6 +32,7 @@ export interface Property {
   commissionType?: 'percentage' | 'fixed'; // Agent commission model
   commissionValue?: number; // Raw entered value (% or ₹ depending on type)
   commissionCalculated?: number; // Auto-calculated counterpart (₹ amount or %)
+  agentPhone?: string; // Per-property agent mobile for WhatsApp/calls; falls back to env default
 }
 
 // User Types

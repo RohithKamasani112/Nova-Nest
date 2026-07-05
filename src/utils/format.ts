@@ -50,3 +50,20 @@ export const toTitleCase = (input?: string | null): string => {
     })
     .join(' ');
 };
+
+/** "For Sale" / "For Rent" from a property's status. */
+export const dealLabel = (status: 'buy' | 'rent'): string =>
+  status === 'rent' ? 'For Rent' : 'For Sale';
+
+/**
+ * Short human summary shown beside a property name, e.g. "2 BHK · For Rent" or
+ * (for plots/commercial with no bedrooms) just "For Sale". Used on listing
+ * cards and in the leads table so it's clear at a glance what each listing is.
+ */
+export const propertyDealSummary = (property: {
+  bedrooms: number;
+  status: 'buy' | 'rent';
+}): string => {
+  const bhk = property.bedrooms > 0 ? `${property.bedrooms} BHK · ` : '';
+  return `${bhk}${dealLabel(property.status)}`;
+};

@@ -12,6 +12,7 @@ import {
 } from 'motion/react';
 import { EASE_ELEGANT, imageSlide, scaleIn, staggerFastContainer, staggerContainer } from '../lib/animation';
 import { toTitleCase } from '../utils/format';
+import noImage from '../assets/no-image.png';
 import { Seo } from '../components/Seo';
 import {
   propertyTitle,
@@ -65,13 +66,14 @@ import {
   Home,
   MapPin,
   Maximize,
-  MessageCircle,
   Phone,
   Share2,
   User,
   X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { WhatsAppIcon } from '../app/components/icons/WhatsAppIcon';
+import { WhatsAppContactModal } from '../app/components/WhatsAppContactModal';
 
 interface PropertyDetailsPageProps {
   property: Property;
@@ -100,6 +102,8 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
   const [leadForm, setLeadForm] = useState<LeadFormData>({ name: '', phone: '', email: '' });
   const [loadingLead, setLoadingLead] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
+  // Gate shown before opening WhatsApp — captures the visitor's number as a lead.
+  const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const reduce = useReducedMotion();
   // Sticky mobile CTA (spec #26): the bar appears once the inline price scrolls
   // out of view.
@@ -184,9 +188,19 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
     property.description ||
     'A verified Nova Nest listing with detailed advisory support available for site visits, pricing guidance, and documentation.';
   const descriptionText = expandedDescription ? description : description.substring(0, 220);
-  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
+  // Contact number priority: the per-property agent number set by the admin,
+  // otherwise the default company number from the env file. Normalised to the
+  // digits-with-country-code form wa.me/tel expect (a bare 10-digit Indian
+  // mobile gets the 91 prefix).
+  const normalizePhone = (raw?: string): string => {
+    const digits = (raw || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return digits.length === 10 ? `91${digits}` : digits;
+  };
+  const defaultNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
+  const contactNumber = normalizePhone(property.agentPhone) || defaultNumber;
   const whatsappMessage = `Hi, I am interested in the property "${property.title}" located at ${property.location}. Please share more details.`;
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+  const whatsappUrl = `https://wa.me/${contactNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
   const goPrev = () => {
     setImageDirection(-1);
@@ -217,13 +231,27 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
       console.error(`Failed to save ${source.toLowerCase()} lead:`, error);
     });
   };
-  const handleWhatsApp = () => {
-    saveQuickLead('WhatsApp', 'contact-owner');
+  // Open the number-capture modal first; the actual WhatsApp redirect happens
+  // in submitWhatsappLead once we have the visitor's number.
+  const handleWhatsApp = () => setShowWhatsappModal(true);
+  const submitWhatsappLead = (phone: string) => {
+    void createLead({
+      propertyId: property.id,
+      userId: 'guest',
+      name: 'WhatsApp Enquiry',
+      email: '',
+      phone,
+      message: `WhatsApp enquiry for ${property.title} at ${property.location}`,
+      type: 'contact-owner',
+    }).catch((error) => {
+      console.error('Failed to save WhatsApp lead:', error);
+    });
+    setShowWhatsappModal(false);
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
   const handleCall = () => {
     saveQuickLead('Call', 'contact-owner');
-    window.location.href = 'tel:+919845418570';
+    window.location.href = `tel:+${contactNumber}`;
   };
 
   return (
@@ -256,7 +284,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
       </div>
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,72fr)_minmax(300px,28fr)]">
           <div className="space-y-8">
             <div className="relative h-96 overflow-hidden rounded-2xl border border-white bg-white shadow-[0_18px_50px_rgba(15,31,61,0.16)] sm:h-[520px]">
               {imageCount > 0 ? (
@@ -297,9 +325,11 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                   )}
                 </>
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gold/10">
-                  <Home size={72} className="text-gold" />
-                </div>
+                <img
+                  src={noImage}
+                  alt={`${toTitleCase(property.title)} — no photo available`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
               )}
             </div>
 
@@ -374,7 +404,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                 </div>
               )}
 
-              <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                 {[
                   { icon: Bed, label: 'Bedrooms', value: property.bedrooms > 0 ? `${property.bedrooms} BHK` : 'Studio' },
                   {
@@ -389,21 +419,22 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                   },
                   { icon: Home, label: 'Type', value: propertyTypeLabel },
                 ].map(({ icon: Icon, label, value }) => (
-                  <div key={label} className="flex items-center gap-4 rounded-xl border border-border bg-surface p-4">
-                    <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-gold/10 text-gold">
-                      <Icon size={20} />
+                  <div
+                    key={label}
+                    className="flex flex-col items-center justify-start gap-1.5 rounded-lg border border-border bg-surface px-2 py-3 text-center"
+                  >
+                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-gold/10 text-gold">
+                      <Icon size={18} />
                     </span>
-                    <span>
-                      <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-                      <span className="block font-semibold text-text-primary capitalize">{value}</span>
-                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+                    <span className="text-sm font-semibold leading-tight text-text-primary capitalize break-words">{value}</span>
                   </div>
                 ))}
               </div>
 
               <div className="mt-8 border-t border-border pt-6">
                 <h2 className="mb-3 font-serif text-2xl font-bold text-charcoal sm:text-3xl">Description</h2>
-                <p className="whitespace-pre-line break-words text-[15px] leading-7 text-muted-foreground sm:text-base">
+                <p className="whitespace-pre-line break-words text-base leading-8 text-muted-foreground sm:text-lg">
                   {descriptionText}
                   {!expandedDescription && description.length > 220 ? '…' : ''}
                 </p>
@@ -416,49 +447,49 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
             </section>
 
             {property.amenities.length > 0 && (
-              <section className="rounded-2xl border border-border bg-white p-6 shadow-subtle">
-                <h2 className="mb-4 font-serif text-3xl font-bold text-charcoal">Amenities</h2>
+              <section className="rounded-2xl border border-border bg-white p-5 shadow-subtle sm:p-6">
+                <h2 className="mb-4 font-serif text-xl font-bold text-charcoal sm:text-2xl">Amenities</h2>
                 <motion.div
-                  className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+                  className="flex flex-wrap gap-2"
                   variants={reduce ? undefined : staggerFastContainer}
                   initial={reduce ? undefined : 'hidden'}
                   whileInView={reduce ? undefined : 'visible'}
                   viewport={{ once: true, margin: '-40px' }}
                 >
                   {property.amenities.map((amenity) => (
-                    <motion.div
+                    <motion.span
                       key={amenity}
                       variants={reduce ? undefined : scaleIn}
-                      whileHover={reduce ? undefined : { scale: 1.05, backgroundColor: '#F0E2C0' }}
+                      whileHover={reduce ? undefined : { scale: 1.04 }}
                       transition={{ duration: 0.2, ease: EASE_ELEGANT }}
-                      className="flex items-center gap-2 rounded-md border border-border bg-white p-4 shadow-subtle"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-gold/[0.06] px-3 py-1.5 text-sm font-medium text-text-primary"
                     >
-                      <Check size={18} className="text-gold" />
-                      <span className="text-sm text-text-primary">{amenity}</span>
-                    </motion.div>
+                      <Check size={14} className="flex-shrink-0 text-gold" />
+                      {amenity}
+                    </motion.span>
                   ))}
                 </motion.div>
               </section>
             )}
 
             {(property.parking !== undefined || property.floors !== undefined || property.furnished !== undefined) && (
-              <section className="rounded-2xl border border-border bg-white p-6 shadow-subtle">
-                <h2 className="mb-4 font-serif text-3xl font-bold text-charcoal">Property Details</h2>
-                <div className="overflow-hidden rounded-md border border-border bg-white">
+              <section className="rounded-2xl border border-border bg-white p-5 shadow-subtle sm:p-6">
+                <h2 className="mb-4 font-serif text-xl font-bold text-charcoal sm:text-2xl">Property Details</h2>
+                <div className="overflow-hidden rounded-md border border-border bg-white text-sm">
                   {property.parking !== undefined && (
-                    <div className="flex justify-between border-b border-border p-4">
+                    <div className="flex justify-between border-b border-border px-4 py-3">
                       <span className="text-muted-foreground">Parking</span>
                       <span className="font-semibold text-text-primary">{property.parking} spaces</span>
                     </div>
                   )}
                   {property.floors !== undefined && (
-                    <div className="flex justify-between border-b border-border p-4">
+                    <div className="flex justify-between border-b border-border px-4 py-3">
                       <span className="text-muted-foreground">Total Floors</span>
                       <span className="font-semibold text-text-primary">{property.floors}</span>
                     </div>
                   )}
                   {property.furnished !== undefined && (
-                    <div className="flex justify-between p-4">
+                    <div className="flex justify-between px-4 py-3">
                       <span className="text-muted-foreground">Furnishing</span>
                       <span className="font-semibold text-text-primary">{property.furnished ? 'Furnished' : 'Unfurnished'}</span>
                     </div>
@@ -468,7 +499,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
             )}
 
             <section>
-              <h2 className="mb-4 font-serif text-3xl font-bold text-charcoal">Location</h2>
+              <h2 className="mb-4 font-serif text-xl font-bold text-charcoal sm:text-2xl">Location</h2>
               <div className="relative h-72 w-full overflow-hidden rounded-2xl border border-border shadow-subtle sm:h-96">
                 <iframe
                   title="Property location map"
@@ -491,7 +522,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
 
             {similarProperties.length > 0 && (
               <section>
-                <h2 className="mb-6 font-serif text-3xl font-bold text-charcoal">Similar Properties</h2>
+                <h2 className="mb-6 font-serif text-xl font-bold text-charcoal sm:text-2xl">Similar Properties</h2>
                 <motion.div
                   className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
                   variants={reduce ? undefined : staggerContainer}
@@ -552,8 +583,8 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                   <Phone size={18} />
                   Call Agent
                 </button>
-                <button onClick={handleWhatsApp} className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-border bg-white font-semibold text-text-primary transition-colors hover:bg-surface hover:text-gold">
-                  <MessageCircle size={18} />
+                <button onClick={handleWhatsApp} className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#25D366] font-semibold text-white shadow-subtle transition-colors hover:bg-[#1EBE57]">
+                  <WhatsAppIcon size={20} />
                   WhatsApp
                 </button>
                 <button
@@ -586,12 +617,22 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                 {property.status === 'buy' ? 'For Sale' : 'For Rent'} · {toTitleCase(property.location)}
               </div>
             </div>
-            <button
-              onClick={() => openLead('contact-owner')}
-              className="flex-shrink-0 min-h-[44px] rounded-md bg-charcoal px-5 py-2.5 text-sm font-semibold text-white"
-            >
-              Contact Owner
-            </button>
+            <div className="flex flex-shrink-0 items-center gap-2">
+              <button
+                onClick={handleCall}
+                aria-label="Call agent"
+                className="flex h-11 w-11 items-center justify-center rounded-md border border-border bg-white text-charcoal transition-colors hover:text-gold"
+              >
+                <Phone size={20} />
+              </button>
+              <button
+                onClick={handleWhatsApp}
+                className="flex min-h-[44px] items-center gap-2 rounded-md bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white shadow-subtle transition-colors hover:bg-[#1EBE57]"
+              >
+                <WhatsAppIcon size={18} />
+                WhatsApp
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -649,6 +690,12 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
           </>
         )}
       </AnimatePresence>
+
+      <WhatsAppContactModal
+        open={showWhatsappModal}
+        onClose={() => setShowWhatsappModal(false)}
+        onSubmit={submitWhatsappLead}
+      />
     </div>
   );
 };
