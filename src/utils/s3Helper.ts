@@ -40,6 +40,19 @@ const getObjectKey = (path: string): string => {
 
 const getS3Client = (): S3Client => {
   if (!s3Client) {
+    // SECURITY: these credentials come from VITE_* env vars, which Vite inlines
+    // into the client bundle at build time. A long-lived AWS secret used here is
+    // therefore visible to anyone who loads the site. This is only acceptable for
+    // local/dev use — a production build must NOT ship a real secret. Warn loudly
+    // if that happens so it can't pass silently. See SECURITY.md for the fix
+    // (move S3 writes behind a backend/Cognito so no secret reaches the browser).
+    if (import.meta.env.PROD && config.aws.secretAccessKey) {
+      console.error(
+        '[SECURITY] A real AWS secret key is embedded in this production bundle ' +
+          'and is publicly readable. Remove VITE_AWS_SECRET_ACCESS_KEY from the ' +
+          'build and route S3 writes through a backend. See SECURITY.md.'
+      );
+    }
     s3Client = new S3Client({
       region: config.aws.region,
       credentials: {
