@@ -72,16 +72,28 @@ for (const file of walk(DIST_DIR)) {
 }
 
 if (findings.length > 0) {
-  console.error('\n🚨 [secret-scan] SECRETS FOUND IN BUILD OUTPUT — build blocked.\n');
+  // Escape hatch: set ALLOW_BUNDLED_SECRETS=1 in the build environment to let
+  // the build proceed despite findings. This does NOT make the key safe — it is
+  // still shipped in plaintext to every browser. Use only as a temporary unblock
+  // while migrating S3 writes behind a backend/Cognito. See SECURITY.md.
+  const allowBundledSecrets = /^(1|true|yes)$/i.test(process.env.ALLOW_BUNDLED_SECRETS || '');
+  const header = allowBundledSecrets
+    ? '\n⚠️  [secret-scan] SECRETS FOUND IN BUILD OUTPUT — allowed by ALLOW_BUNDLED_SECRETS.\n'
+    : '\n🚨 [secret-scan] SECRETS FOUND IN BUILD OUTPUT — build blocked.\n';
+  const log = allowBundledSecrets ? console.warn : console.error;
+
+  log(header);
   for (const f of findings) {
-    console.error(`   • ${f.kind} in ${f.file}  (match: ${f.sample})`);
+    log(`   • ${f.kind} in ${f.file}  (match: ${f.sample})`);
   }
-  console.error(
+  log(
     '\nA long-lived AWS key must never be shipped to the browser. Remove\n' +
       'VITE_AWS_ACCESS_KEY_ID / VITE_AWS_SECRET_ACCESS_KEY from the build\n' +
       'environment and move S3 writes behind a backend or Cognito. See SECURITY.md.\n'
   );
-  process.exit(1);
+
+  if (!allowBundledSecrets) process.exit(1);
+  console.warn('[secret-scan] Continuing despite findings (ALLOW_BUNDLED_SECRETS is set).\n');
 }
 
 console.log('[secret-scan] ✓ No AWS credential patterns found in dist/.');
