@@ -524,8 +524,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
     // Only the explicit "Publish/Update" button on the final step may submit.
     // This blocks an accidental publish from pressing Enter inside a field on an
-    // earlier step (the browser auto-submits the form on Enter otherwise).
+    // earlier step (the browser auto-submits the form on Enter otherwise) and
+    // from the Next→Publish button reconciliation on step 5.
     if (step !== 6) return;
+
+    // Require the submit to originate from the actual Publish button, not a
+    // stray form submission triggered while advancing to the final step.
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    if (submitter && submitter.type !== 'submit') return;
 
     // Mandatory fields — a listing can't be published without at least a title,
     // a description, and a price. Jump the user back to the step holding the
@@ -859,6 +865,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       className={`${fieldClass('description')} h-28`}
                     />
                     <p className="mt-1 text-sm text-gray-500">Tip: mention nearby metro, schools, hospitals, or malls to attract more leads</p>
+                  </div>
+                  <div data-field="contactNumber">
+                    <label className={labelClass}>Agent Mobile Number (optional)</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 9845418570 — leave blank to use the default number"
+                      value={formData.contactNumber}
+                      onChange={(e) => setField('contactNumber', e.target.value)}
+                      className={plainControlClass}
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      WhatsApp chats and calls for this property go to this number. Leave blank to use the default company number.
+                    </p>
                   </div>
                   <div>
                     <label className={labelClass}>Property Age</label>
@@ -1256,20 +1275,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       />
                     </div>
                   )}
-                  <div>
-                    <label className={labelClass}>Agent Mobile Number (optional)</label>
-                    <input
-                      type="tel"
-                      placeholder="e.g. 9845418570 — leave blank to use the default number"
-                      value={formData.contactNumber}
-                      onChange={(e) => setField('contactNumber', e.target.value)}
-                      className={plainControlClass}
-                    />
-                    <p className="mt-1 text-sm text-gray-500">
-                      WhatsApp chats and calls for this property go to this number. Leave blank to use the default company number.
-                    </p>
-                  </div>
-
                   <div className="rounded-lg bg-gray-100 p-4 text-sm text-gray-700">
                     <h3 className="mb-2 font-semibold text-text-primary">Review before publishing</h3>
                     <p>Title: {formData.title || '-'}</p>
@@ -1307,6 +1312,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           )}
           {step < 6 ? (
             <button
+              key="wizard-next"
               type="button"
               onClick={goNext}
               className="min-h-[44px] flex-1 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-dark"
@@ -1315,6 +1321,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             </button>
           ) : (
             <button
+              key="wizard-publish"
               type="submit"
               disabled={loading}
               className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-dark disabled:bg-gray-400"
