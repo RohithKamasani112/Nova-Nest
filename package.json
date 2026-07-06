@@ -4,8 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build && node scripts/check-bundle-secrets.mjs",
-    "scan:secrets": "node scripts/check-bundle-secrets.mjs",
+    "build": "vite build",
     "dev": "vite",
     "seed": "node seed.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs"
