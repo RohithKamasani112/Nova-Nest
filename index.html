@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#15211A" />
 
+    <!-- Google Analytics 4 (gtag.js). The measurement ID comes from the single
+         VITE_GA_MEASUREMENT_ID env var — Vite inlines %VITE_GA_MEASUREMENT_ID%
+         at build time, so it is never hardcoded here. Loads on every page since
+         this is the SPA's only HTML entry. Custom events live in src/utils/analytics.ts. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_MEASUREMENT_ID%"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '%VITE_GA_MEASUREMENT_ID%');
+    </script>
+
     <!-- Primary meta (per-page values are set at runtime by the <Seo> component) -->
     <title>Nova Nest | Buy, Rent &amp; Sell Property in Bengaluru</title>
     <meta

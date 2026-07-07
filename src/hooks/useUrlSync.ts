@@ -7,6 +7,7 @@ import {
   pathForState,
   findPropertyForSlug,
 } from '../utils/seo';
+import { trackPageView } from '../utils/analytics';
 
 // Bridges the existing App.tsx state machine to real browser URLs using the
 // History API only — no router library, no provider, no change to how pages
@@ -31,6 +32,22 @@ interface UrlSyncArgs {
 export function useUrlSync({ currentPage, selectedProperty, applyRoute }: UrlSyncArgs): void {
   const suppress = useRef(false);
   const selectedId = selectedProperty?.id;
+  // Skip the initial render: GA's config call in index.html already sends the
+  // first page_view, so we only report subsequent client-side navigations.
+  const firstPageView = useRef(true);
+
+  // Report a GA4 page_view whenever the resolved path changes (covers in-app
+  // navigation and back/forward), regardless of push/replace suppression.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (firstPageView.current) {
+      firstPageView.current = false;
+      return;
+    }
+    const path = pathForState(currentPage, selectedProperty) || window.location.pathname;
+    trackPageView(path);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, selectedId]);
 
   // state -> URL
   useEffect(() => {

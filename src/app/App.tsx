@@ -24,6 +24,7 @@ import { PageLoader } from '../components/PageLoader';
 import { Footer } from './components/Footer';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import { pageTransition } from '../lib/animation';
+import { trackPropertyView, trackWhatsAppClick, trackPhoneClick } from '../utils/analytics';
 
 type Page =
   | 'home'
@@ -57,6 +58,13 @@ function App() {
   };
 
   const handlePropertyClick = (property: Property) => {
+    // Single choke point for every property card click across the app.
+    trackPropertyView({
+      id: property.id,
+      title: property.title,
+      location: property.location,
+      status: property.status,
+    });
     setSelectedProperty(property);
     setCurrentPage('property-details');
     // Always land on the image gallery at the top of the detail page, not wherever
@@ -292,6 +300,7 @@ const AppContent: React.FC<{
           <motion.a
             href="tel:+919845418570"
             aria-label="Call us"
+            onClick={() => trackPhoneClick('floating_button')}
             whileHover={reduce ? undefined : { scale: 1.12 }}
             whileTap={{ scale: 0.92 }}
             animate={reduce ? undefined : { y: [0, -4, 0] }}
@@ -302,7 +311,10 @@ const AppContent: React.FC<{
           </motion.a>
           <motion.button
             type="button"
-            onClick={() => setShowWhatsappModal(true)}
+            onClick={() => {
+              trackWhatsAppClick('floating_button');
+              setShowWhatsappModal(true);
+            }}
             aria-label="Contact on WhatsApp"
             whileHover={reduce ? undefined : { scale: 1.12 }}
             whileTap={{ scale: 0.92 }}

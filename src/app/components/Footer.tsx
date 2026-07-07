@@ -2,6 +2,7 @@ import React from 'react';
 import { Instagram, Mail, MapPin, Phone, Youtube } from 'lucide-react';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import companyLogo from '../../assets/companyLogo.png';
+import { trackWhatsAppClick, trackPhoneClick, trackSocialClick } from '../../utils/analytics';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
@@ -41,8 +42,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSearch }) => {
               Whitefield, Bengaluru, with verified properties and local guidance.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <a href="https://chat.whatsapp.com/IRTKnGNLnck6aHBb0Ps5YR" target="_blank" rel="noopener noreferrer" className="rounded-full border border-accent/30 px-4 py-2 text-sm text-accent hover:bg-accent/10 transition-colors">Rentals Group</a>
-              <a href="https://chat.whatsapp.com/HKrukzrHhz8IMm2gfYAOg0" target="_blank" rel="noopener noreferrer" className="rounded-full border border-accent/30 px-4 py-2 text-sm text-accent hover:bg-accent/10 transition-colors">Sales Group</a>
+              <a href="https://chat.whatsapp.com/IRTKnGNLnck6aHBb0Ps5YR" onClick={() => trackWhatsAppClick('footer_rentals_group')} target="_blank" rel="noopener noreferrer" className="rounded-full border border-accent/30 px-4 py-2 text-sm text-accent hover:bg-accent/10 transition-colors">Rentals Group</a>
+              <a href="https://chat.whatsapp.com/HKrukzrHhz8IMm2gfYAOg0" onClick={() => trackWhatsAppClick('footer_sales_group')} target="_blank" rel="noopener noreferrer" className="rounded-full border border-accent/30 px-4 py-2 text-sm text-accent hover:bg-accent/10 transition-colors">Sales Group</a>
             </div>
           </div>
 
@@ -68,11 +69,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSearch }) => {
                 <MapPin size={18} className="text-accent flex-shrink-0 mt-1" />
                 Ground Floor, Site No-29 & 30, Maheshwaramma Temple Road, 1st Main Rd, Maheswari Nagar, Mahadevapura, Bengaluru, Karnataka 560048
               </a>
-              <a href="tel:+919845418570" className="flex items-center gap-2 hover:text-accent transition-colors">
+              <a href="tel:+919845418570" onClick={() => trackPhoneClick('footer')} className="flex items-center gap-2 hover:text-accent transition-colors">
                 <Phone size={18} className="text-accent" />
                 +91 98454 18570
               </a>
-              <a href="tel:+919663795675" className="flex items-center gap-2 hover:text-accent transition-colors">
+              <a href="tel:+919663795675" onClick={() => trackPhoneClick('footer')} className="flex items-center gap-2 hover:text-accent transition-colors">
                 <Phone size={18} className="text-accent" />
                 +91 96637 95675
               </a>
@@ -90,6 +91,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSearch }) => {
                     key={label}
                     href={href}
                     aria-label={label}
+                    onClick={() => trackSocialClick(label, href)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-9 h-9 rounded-full border border-accent/30 text-accent flex items-center justify-center hover:bg-accent/10 transition-colors"

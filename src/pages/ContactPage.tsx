@@ -6,6 +6,7 @@ import { createLead } from '../services/storageService';
 import { Inquiry } from '../types';
 import { Seo } from '../components/Seo';
 import { localBusinessJsonLd, breadcrumbJsonLd } from '../utils/seo';
+import { trackContactSubmit, trackPhoneClick } from '../utils/analytics';
 
 const address = 'Ground Floor, Site No-29 & 30, Maheshwaramma Temple Road, 1st Main Rd, Maheswari Nagar, Mahadevapura, Bengaluru, Karnataka 560048';
 const mapsUrl = import.meta.env.VITE_GOOGLE_MAPS_URL || 'https://maps.app.goo.gl/V5dSTjfNRgDUWTmEA';
@@ -90,6 +91,7 @@ export const ContactPage: React.FC = () => {
       };
 
       await createLead(inquiryData);
+      trackContactSubmit('contact_page');
       setSubmitted(true);
       toast.success('Thanks for reaching out. Our team will contact you shortly.');
       setTimeout(() => {
@@ -224,6 +226,9 @@ export const ContactPage: React.FC = () => {
                   href={action.href}
                   target={action.href.startsWith('http') ? '_blank' : undefined}
                   rel="noopener noreferrer"
+                  onClick={() => {
+                    if (action.href.startsWith('tel:')) trackPhoneClick('contact_info_card');
+                  }}
                   className="inline-flex items-center gap-1.5 text-[13px] font-semibold transition-all group/link"
                   style={{ color }}
                 >
@@ -374,6 +379,7 @@ export const ContactPage: React.FC = () => {
           </h2>
           <motion.a
             href="tel:+919845418570"
+            onClick={() => trackPhoneClick('contact_cta')}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
             className="inline-flex items-center gap-2 bg-accent text-[#15211A] px-8 py-3.5 rounded-xl text-[14px] font-bold hover:brightness-105 transition-all"

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Property, Inquiry } from '../types';
 import { createLead, getAllProperties } from '../services/storageService';
+import { trackWhatsAppClick, trackPhoneClick } from '../utils/analytics';
 import { PropertyCard } from '../app/components/PropertyCard';
 import {
   AnimatePresence,
@@ -233,7 +234,10 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
   };
   // Open the number-capture modal first; the actual WhatsApp redirect happens
   // in submitWhatsappLead once we have the visitor's number.
-  const handleWhatsApp = () => setShowWhatsappModal(true);
+  const handleWhatsApp = () => {
+    trackWhatsAppClick('property_detail', { property_id: property.id, property_name: property.title });
+    setShowWhatsappModal(true);
+  };
   const submitWhatsappLead = (phone: string) => {
     void createLead({
       propertyId: property.id,
@@ -250,6 +254,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
   const handleCall = () => {
+    trackPhoneClick('property_detail', { property_id: property.id, property_name: property.title });
     saveQuickLead('Call', 'contact-owner');
     window.location.href = `tel:+${contactNumber}`;
   };
