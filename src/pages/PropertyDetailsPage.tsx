@@ -439,7 +439,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
 
               <div className="mt-8 border-t border-border pt-6">
                 <h2 className="mb-3 font-serif text-2xl font-bold text-charcoal sm:text-3xl">Description</h2>
-                <p className="whitespace-pre-line break-words text-base leading-8 text-muted-foreground sm:text-lg">
+                <p className="whitespace-pre-line break-words text-base leading-relaxed text-muted-foreground sm:text-lg">
                   {descriptionText}
                   {!expandedDescription && description.length > 220 ? '…' : ''}
                 </p>
