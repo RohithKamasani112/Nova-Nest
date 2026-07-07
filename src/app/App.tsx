@@ -14,6 +14,9 @@ import { ManagePropertiesPage } from '../pages/ManagePropertiesPage';
 import { LeadsManagementPage } from '../pages/LeadsManagementPage';
 import { AboutPage } from '../pages/AboutPage';
 import { ContactPage } from '../pages/ContactPage';
+import { LocalityPage } from '../pages/LocalityPage';
+import { BlogListPage } from '../pages/BlogListPage';
+import { BlogPostPage } from '../pages/BlogPostPage';
 import { Property, PropertyFilters } from '../types';
 import { Toaster } from 'react-hot-toast';
 import { Phone } from 'lucide-react';
@@ -33,6 +36,9 @@ type Page =
   | 'admin-login'
   | 'about'
   | 'contact'
+  | 'locality'
+  | 'blog'
+  | 'blog-post'
   | 'dashboard'
   | 'add-property'
   | 'manage-properties'
@@ -44,15 +50,20 @@ function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [propertyFilters, setPropertyFilters] = useState<PropertyFilters>({});
+  // Content slug for locality / blog-post pages (null for everything else).
+  const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [showPageLoader, setShowPageLoader] = useState(true);
 
-  const handleNavigate = (page: string) => {
+  // `slug` carries the locality / blog-post identifier for those pages. Every
+  // other navigation clears it so a stale slug can never leak into the URL.
+  const handleNavigate = (page: string, slug?: string | null) => {
     if (page === 'properties') {
       setPropertyFilters({});
     }
     if (page === 'add-property') {
       setEditingProperty(null);
     }
+    setActiveSlug(slug ?? null);
     setCurrentPage(page as Page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -87,13 +98,22 @@ function App() {
   // Keep the URL in sync with the current page/property (real, shareable,
   // crawlable URLs) without changing how anything renders. See useUrlSync.
   const applyRoute = useCallback(
-    ({ page, property }: { page: AppPage; property: Property | null }) => {
+    ({
+      page,
+      property,
+      slug,
+    }: {
+      page: AppPage;
+      property: Property | null;
+      slug?: string | null;
+    }) => {
       if (property) setSelectedProperty(property);
+      setActiveSlug(slug ?? null);
       setCurrentPage(page as Page);
     },
     []
   );
-  useUrlSync({ currentPage, selectedProperty, applyRoute });
+  useUrlSync({ currentPage, selectedProperty, activeSlug, applyRoute });
 
   const renderPage = () => {
     switch (currentPage) {
@@ -102,6 +122,7 @@ function App() {
           <HomePage
             onPropertyClick={handlePropertyClick}
             onSearch={handleSearch}
+            onNavigate={handleNavigate}
             appReady={!showPageLoader}
           />
         );
@@ -125,6 +146,7 @@ function App() {
           <HomePage
             onPropertyClick={handlePropertyClick}
             onSearch={handleSearch}
+            onNavigate={handleNavigate}
           />
         );
 
@@ -137,11 +159,21 @@ function App() {
       case 'contact':
         return <ContactPage />;
 
+      case 'locality':
+        return <LocalityPage slug={activeSlug} onNavigate={handleNavigate} />;
+
+      case 'blog':
+        return <BlogListPage onNavigate={handleNavigate} />;
+
+      case 'blog-post':
+        return <BlogPostPage slug={activeSlug} onNavigate={handleNavigate} />;
+
       default:
         return (
           <HomePage
             onPropertyClick={handlePropertyClick}
             onSearch={handleSearch}
+            onNavigate={handleNavigate}
           />
         );
     }

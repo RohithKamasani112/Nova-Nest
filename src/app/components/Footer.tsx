@@ -17,6 +17,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSearch }) => {
     { label: 'Home', action: () => onNavigate('home') },
     { label: 'Buy', action: () => onSearch({ status: 'buy' }) },
     { label: 'Rent', action: () => onSearch({ status: 'rent' }) },
+    { label: 'Blog', action: () => onNavigate('blog') },
     { label: 'About', action: () => onNavigate('about') },
     { label: 'Contact', action: () => onNavigate('contact') },
   ];

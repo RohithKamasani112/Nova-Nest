@@ -25,11 +25,22 @@ import { trackPageView } from '../utils/analytics';
 interface UrlSyncArgs {
   currentPage: AppPage;
   selectedProperty: Property | null;
+  // Content slug for locality / blog-post pages (null for everything else).
+  activeSlug?: string | null;
   // Apply a route parsed from the URL back into App state.
-  applyRoute: (route: { page: AppPage; property: Property | null }) => void;
+  applyRoute: (route: {
+    page: AppPage;
+    property: Property | null;
+    slug?: string | null;
+  }) => void;
 }
 
-export function useUrlSync({ currentPage, selectedProperty, applyRoute }: UrlSyncArgs): void {
+export function useUrlSync({
+  currentPage,
+  selectedProperty,
+  activeSlug = null,
+  applyRoute,
+}: UrlSyncArgs): void {
   const suppress = useRef(false);
   const selectedId = selectedProperty?.id;
   // Skip the initial render: GA's config call in index.html already sends the
@@ -44,25 +55,25 @@ export function useUrlSync({ currentPage, selectedProperty, applyRoute }: UrlSyn
       firstPageView.current = false;
       return;
     }
-    const path = pathForState(currentPage, selectedProperty) || window.location.pathname;
+    const path = pathForState(currentPage, selectedProperty, activeSlug) || window.location.pathname;
     trackPageView(path);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, selectedId]);
+  }, [currentPage, selectedId, activeSlug]);
 
   // state -> URL
   useEffect(() => {
     if (suppress.current) return;
     if (typeof window === 'undefined') return;
-    const desired = pathForState(currentPage, selectedProperty);
+    const desired = pathForState(currentPage, selectedProperty, activeSlug);
     if (desired && desired !== window.location.pathname) {
       window.history.pushState(
-        { page: currentPage, propId: selectedId },
+        { page: currentPage, propId: selectedId, slug: activeSlug },
         '',
         desired
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, selectedId]);
+  }, [currentPage, selectedId, activeSlug]);
 
   // URL -> state (initial load + back/forward)
   useEffect(() => {
@@ -88,8 +99,12 @@ export function useUrlSync({ currentPage, selectedProperty, applyRoute }: UrlSyn
         } catch {
           if (!cancelled) applyRoute({ page: 'properties', property: null });
         }
+      } else if (route.type === 'locality') {
+        if (!cancelled) applyRoute({ page: 'locality', property: null, slug: route.slug });
+      } else if (route.type === 'blog-post') {
+        if (!cancelled) applyRoute({ page: 'blog-post', property: null, slug: route.slug });
       } else if (!cancelled) {
-        applyRoute({ page: route.page, property: null });
+        applyRoute({ page: route.page, property: null, slug: null });
       }
 
       // Release suppression on the next tick, once the state update above has

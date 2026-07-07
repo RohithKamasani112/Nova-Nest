@@ -18,7 +18,9 @@ import {
 import { EASE_ELEGANT, staggerContainer } from '../lib/animation';
 import { HeroVideoBackground } from '../components/HeroVideoBackground';
 import { Seo } from '../components/Seo';
-import { organizationJsonLd, websiteJsonLd } from '../utils/seo';
+import { organizationJsonLd, brandOrganizationJsonLd, websiteJsonLd, localityPath, blogPath } from '../utils/seo';
+import { ZONES_IN_ORDER, localitiesByZone } from '../data/localities';
+import { postsNewestFirst } from '../data/blog';
 
 const AnimatedHeading: React.FC<{ text: string; reduce: boolean; start?: boolean; className?: string; delayStart?: number; style?: React.CSSProperties }> = ({
   text,
@@ -51,6 +53,8 @@ const AnimatedHeading: React.FC<{ text: string; reduce: boolean; start?: boolean
 interface HomePageProps {
   onPropertyClick: (property: Property) => void;
   onSearch: (filters: PropertyFilters) => void;
+  // Navigate to another page (+ optional content slug for locality/blog).
+  onNavigate?: (page: string, slug?: string | null) => void;
   // True once the initial splash loader has finished. The hero text animations
   // are held until then, otherwise they play (and complete) hidden behind the
   // splash on first load and the user never sees them.
@@ -193,7 +197,7 @@ const LocationField: React.FC<LocationFieldProps> = ({ value, onChange, onSelect
   );
 };
 
-export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, appReady = true }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, onNavigate, appReady = true }) => {
   // Gate the on-mount hero animations until the splash is gone.
   const start = appReady;
   const [allProperties, setAllProperties] = useState<Property[]>([]);
@@ -308,10 +312,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
   return (
     <div className="min-h-screen bg-cream" style={{ fontFamily: "'Inter', sans-serif" }}>
       <Seo
-        title="Nova Nest | Buy, Rent & Sell Property in Bengaluru"
-        description="Nova Nest Property Management — discover verified apartments, villas, plots and commercial spaces for sale and rent in Whitefield, Marathahalli, Bellandur and across Bengaluru."
+        title="Nova Nest Rentals and Property Management | Premium Real Estate in Bengaluru"
+        description="Nova Nest Rentals and Property Management is a Bengaluru real estate agent for premium 2, 3 & 4 BHK gated-community flats — homes for sale and for rent across Whitefield, the ORR and beyond."
         path="/"
-        jsonLd={[organizationJsonLd(), websiteJsonLd()]}
+        jsonLd={[organizationJsonLd(), brandOrganizationJsonLd(), websiteJsonLd()]}
       />
 
       {/* ================================================================= */}
@@ -336,16 +340,22 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
               Est. Whitefield, Bangalore — Curated Since Day One
             </motion.p>
 
-            <h1 className="font-serif t-display tracking-tight mb-5">
+            {/* Exact SEO H1 (brief #2): "Nova Nest Rentals and Property
+                Management — Premium Real Estate Services in Bengaluru". The em
+                dash is kept in the DOM (sr-only) so the heading's text content
+                matches the brief verbatim while the two-line hero treatment is
+                preserved visually. */}
+            <h1 className="font-serif tracking-tight mb-5 text-[2rem] leading-[1.1] sm:text-5xl md:text-6xl">
               <AnimatedHeading
-                text="Nova Nest"
+                text="Nova Nest Property Management"
                 reduce={Boolean(reduce)}
                 start={start}
                 className="block text-white"
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 8px 40px rgba(0,0,0,0.85)' }}
               />
+              <span className="sr-only"> — </span>
               <span
-                className="relative inline-block"
+                className="relative mt-1.5 inline-block"
                 style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.9)) drop-shadow(0 8px 32px rgba(0,0,0,0.8))' }}
               >
                 <motion.span
@@ -367,7 +377,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
                   animate={reduce ? undefined : start ? { backgroundPosition: '-200% center' } : { backgroundPosition: '200% center' }}
                   transition={reduce ? undefined : { duration: 2.4, delay: 0.9, ease: 'easeInOut' }}
                 >
-                  Property in Benguluru
+                  Premium Real Estate Services in Bengaluru
                 </motion.span>
                 {!reduce && (
                   <motion.svg
@@ -804,6 +814,109 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, a
             </button>
           </motion.div>
         )}
+      </section>
+
+      {/* ================================================================= */}
+      {/* EXPLORE BY LOCATION (internal linking to locality landing pages)  */}
+      {/* ================================================================= */}
+      <section className="border-t border-charcoal/[0.07] bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+          <div className="mb-10">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-accent font-bold mb-2">
+              Explore by Location
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal">
+              Premium flats for rent &amp; homes for sale across Bengaluru
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-7 text-charcoal/55">
+              Nova Nest Rentals and Property Management covers premium 2, 3 &amp; 4 BHK
+              gated communities in Bengaluru's top residential corridors. Pick an area to
+              see local rent ranges, connectivity and a tenant onboarding guide.
+            </p>
+          </div>
+
+          <div className="grid gap-8 sm:grid-cols-2">
+            {ZONES_IN_ORDER.map((zone) => (
+              <div key={zone}>
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-charcoal">
+                  <MapPin size={15} className="text-accent" />
+                  {zone}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {localitiesByZone(zone).map((loc) => (
+                    <a
+                      key={loc.slug}
+                      href={localityPath(loc.slug)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onNavigate?.('locality', loc.slug);
+                      }}
+                      className="rounded-full border border-charcoal/12 px-3.5 py-1.5 text-[13px] font-medium text-charcoal/80 transition-colors hover:border-accent hover:text-accent"
+                    >
+                      {loc.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================= */}
+      {/* LATEST FROM OUR BLOG (3 most recent posts)                        */}
+      {/* ================================================================= */}
+      <section className="border-t border-charcoal/[0.07] bg-cream">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+          <div className="mb-10 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.25em] text-accent font-bold mb-2">
+                Latest from our Blog
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal">
+                Real estate guides for Bengaluru renters &amp; buyers
+              </h2>
+            </div>
+            <a
+              href={blogPath('')}
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate?.('blog');
+              }}
+              className="hidden flex-shrink-0 items-center gap-2 rounded-full border border-charcoal/15 px-5 py-2.5 text-[13px] font-semibold text-charcoal transition-colors hover:border-accent hover:text-accent sm:flex"
+            >
+              View all guides
+              <ArrowRight size={15} />
+            </a>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-3">
+            {postsNewestFirst().slice(0, 3).map((post) => (
+              <a
+                key={post.slug}
+                href={blogPath(post.slug)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate?.('blog-post', post.slug);
+                }}
+                className="group flex flex-col rounded-2xl border border-charcoal/10 bg-white p-6 text-left transition-colors hover:border-accent/50"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+                  Guide
+                </span>
+                <h3 className="mt-2 font-serif text-lg font-bold text-charcoal group-hover:text-accent">
+                  {post.title}
+                </h3>
+                <p className="mt-2 flex-1 text-sm leading-6 text-charcoal/60">
+                  {post.excerpt}
+                </p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-accent">
+                  Read guide <ArrowRight size={14} />
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
       </section>
 
       <style>{`

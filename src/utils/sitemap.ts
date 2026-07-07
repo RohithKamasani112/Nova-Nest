@@ -4,7 +4,9 @@
 // active property listing.
 
 import { Property } from '../types';
-import { SITE_URL, propertyPath } from './seo';
+import { SITE_URL, propertyPath, localityPath, blogPath } from './seo';
+import { LOCALITIES } from '../data/localities';
+import { BLOG_POSTS } from '../data/blog';
 
 interface SitemapEntry {
   loc: string;
@@ -16,8 +18,25 @@ interface SitemapEntry {
 const STATIC_ENTRIES: SitemapEntry[] = [
   { loc: `${SITE_URL}/`, changefreq: 'daily', priority: '1.0' },
   { loc: `${SITE_URL}/properties`, changefreq: 'daily', priority: '0.9' },
+  { loc: `${SITE_URL}/blog`, changefreq: 'weekly', priority: '0.7' },
   { loc: `${SITE_URL}/about`, changefreq: 'monthly', priority: '0.6' },
   { loc: `${SITE_URL}/contact`, changefreq: 'monthly', priority: '0.6' },
+];
+
+// Locality landing pages + blog posts. Generated from the same data the pages
+// render, so the sitemap can never drift from what actually exists.
+const CONTENT_ENTRIES: SitemapEntry[] = [
+  ...LOCALITIES.map((l) => ({
+    loc: `${SITE_URL}${localityPath(l.slug)}`,
+    changefreq: 'weekly',
+    priority: '0.8',
+  })),
+  ...BLOG_POSTS.map((p) => ({
+    loc: `${SITE_URL}${blogPath(p.slug)}`,
+    changefreq: 'monthly',
+    priority: '0.6',
+    lastmod: p.date,
+  })),
 ];
 
 const xmlEscape = (value: string): string =>
@@ -48,7 +67,9 @@ export const buildSitemapXml = (properties: Property[]): string => {
       lastmod: (p.updatedAt || p.createdAt || '').slice(0, 10) || undefined,
     }));
 
-  const urls = [...STATIC_ENTRIES, ...listingEntries].map(renderEntry).join('\n');
+  const urls = [...STATIC_ENTRIES, ...CONTENT_ENTRIES, ...listingEntries]
+    .map(renderEntry)
+    .join('\n');
 
   return (
     '<?xml version="1.0" encoding="UTF-8"?>\n' +

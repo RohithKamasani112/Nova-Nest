@@ -44,9 +44,47 @@ const xmlEscape = (v) =>
 const staticEntries = [
   { loc: `${SITE_URL}/`, changefreq: 'daily', priority: '1.0' },
   { loc: `${SITE_URL}/properties`, changefreq: 'daily', priority: '0.9' },
+  { loc: `${SITE_URL}/blog`, changefreq: 'weekly', priority: '0.7' },
   { loc: `${SITE_URL}/about`, changefreq: 'monthly', priority: '0.6' },
   { loc: `${SITE_URL}/contact`, changefreq: 'monthly', priority: '0.6' },
 ];
+
+// Locality landing pages. Keep in sync with src/data/localities.ts (this build
+// script is plain Node and can't import the TS data module). The runtime
+// regenerator (src/utils/sitemap.ts) derives these straight from the data.
+const localitySlugs = [
+  'whitefield', 'sarjapur-road', 'marathahalli', 'electronic-city', 'bellandur',
+  'hsr-layout', 'hebbal', 'mahadevapura', 'koramangala', 'indiranagar',
+  'jp-nagar', 'bannerghatta-road', 'yelahanka', 'hennur', 'thanisandra',
+  'devanahalli', 'btm-layout', 'kanakapura-road', 'jayanagar',
+];
+const localityEntries = localitySlugs.map((slug) => ({
+  loc: `${SITE_URL}/property-for-rent-in/${slug}`,
+  changefreq: 'weekly',
+  priority: '0.8',
+}));
+
+// Blog posts. Keep in sync with src/data/blog.ts.
+const blogPosts = [
+  { slug: 'nova-nest-rentals-property-management-who-we-are', date: '2026-06-01' },
+  { slug: '2-bhk-vs-3-bhk-renting-whitefield', date: '2026-05-20' },
+  { slug: 'rental-agreement-checklist-gated-community-bangalore', date: '2026-05-12' },
+  { slug: 'whitefield-vs-sarjapur-road-where-to-rent-2026', date: '2026-05-04' },
+  { slug: 'security-deposit-premium-apartments-bangalore', date: '2026-04-25' },
+  { slug: 'best-gated-communities-families-electronic-city', date: '2026-04-16' },
+  { slug: 'buying-vs-renting-3-bhk-bangalore-it-corridors-2026', date: '2026-04-08' },
+  { slug: 'how-to-sell-flat-fast-bangalore-gated-communities', date: '2026-03-28' },
+  { slug: 'best-real-estate-agents-near-me-bangalore-it-corridors', date: '2026-03-18' },
+  { slug: 'new-homes-for-sale-bangalore-gated-communities-2026', date: '2026-03-06' },
+];
+const blogEntries = blogPosts.map((p) => ({
+  loc: `${SITE_URL}/blog/${p.slug}`,
+  changefreq: 'monthly',
+  priority: '0.6',
+  lastmod: p.date,
+}));
+
+const contentEntries = [...localityEntries, ...blogEntries];
 
 const renderEntry = (e) => {
   const parts = [`    <loc>${xmlEscape(e.loc)}</loc>`];
@@ -92,10 +130,10 @@ try {
       lastmod: (p.updatedAt || p.createdAt || '').slice(0, 10) || undefined,
     }));
 
-  const xml = buildXml([...staticEntries, ...listingEntries]);
+  const xml = buildXml([...staticEntries, ...contentEntries, ...listingEntries]);
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, xml, 'utf8');
-  console.log(`[sitemap] Wrote ${listingEntries.length} listings + ${staticEntries.length} static URLs to public/sitemap.xml`);
+  console.log(`[sitemap] Wrote ${listingEntries.length} listings + ${contentEntries.length} content URLs + ${staticEntries.length} static URLs to public/sitemap.xml`);
 } catch (err) {
   console.error('[sitemap] Failed:', err?.message || err);
   process.exitCode = 0; // never fail a pipeline over the sitemap

@@ -16,7 +16,14 @@ export const SITE_URL = 'https://novanest.co.in';
 
 export const BRAND = {
   name: 'Nova Nest',
-  legalName: 'Nova Nest Property Management',
+  // Full legal/entity name — used everywhere for brand disambiguation so Google
+  // learns that "Nova Nest" + "Bangalore real estate" maps to this domain (and
+  // not the unrelated furniture / UK-property / AI-voice "Nova Nest" companies).
+  legalName: 'Nova Nest Rentals and Property Management',
+  // Canonical entity URL used in schema.org `url` fields. The brief specifies
+  // the www host for the organisation entity; the site canonicals remain on the
+  // apex SITE_URL, and the two hosts resolve to the same site.
+  entityUrl: 'https://www.novanest.co.in',
   // Default social-share image. Replace public/og-image.jpg with a real
   // 1200x630 branded image for best link previews (see the manual checklist).
   ogImage: `${SITE_URL}/og-image.jpg`,
@@ -72,6 +79,9 @@ export type AppPage =
   | 'property-details'
   | 'about'
   | 'contact'
+  | 'locality'
+  | 'blog'
+  | 'blog-post'
   | 'admin-login'
   | 'dashboard'
   | 'add-property'
@@ -79,8 +89,21 @@ export type AppPage =
   | 'leads'
   | 'settings';
 
-// Map an app page (+ optional selected property) to a real URL path.
-export const pathForState = (page: AppPage, property?: Property | null): string => {
+// URL prefix for locality landing pages, e.g. /property-for-rent-in/whitefield.
+export const LOCALITY_PATH_PREFIX = '/property-for-rent-in';
+
+export const localityPath = (slug: string): string =>
+  `${LOCALITY_PATH_PREFIX}/${slug}`;
+
+export const blogPath = (slug: string): string => `/blog/${slug}`;
+
+// Map an app page (+ optional selected property / content slug) to a real URL
+// path. `slug` carries the locality or blog-post identifier for those pages.
+export const pathForState = (
+  page: AppPage,
+  property?: Property | null,
+  slug?: string | null
+): string => {
   switch (page) {
     case 'home':
       return '/';
@@ -90,6 +113,12 @@ export const pathForState = (page: AppPage, property?: Property | null): string 
       return '/about';
     case 'contact':
       return '/contact';
+    case 'locality':
+      return slug ? localityPath(slug) : '/';
+    case 'blog':
+      return '/blog';
+    case 'blog-post':
+      return slug ? blogPath(slug) : '/blog';
     case 'admin-login':
       return '/admin/login';
     case 'dashboard':
@@ -111,7 +140,9 @@ export const pathForState = (page: AppPage, property?: Property | null): string 
 
 export type ParsedRoute =
   | { type: 'page'; page: AppPage }
-  | { type: 'property'; slug: string };
+  | { type: 'property'; slug: string }
+  | { type: 'locality'; slug: string }
+  | { type: 'blog-post'; slug: string };
 
 // Map a URL path back to an app route. Used for deep-links + back/forward.
 export const parsePath = (pathname: string): ParsedRoute => {
@@ -121,12 +152,19 @@ export const parsePath = (pathname: string): ParsedRoute => {
   if (clean === '/properties') return { type: 'page', page: 'properties' };
   if (clean === '/about') return { type: 'page', page: 'about' };
   if (clean === '/contact') return { type: 'page', page: 'contact' };
+  if (clean === '/blog') return { type: 'page', page: 'blog' };
   if (clean === '/admin' || clean === '/admin/login') return { type: 'page', page: 'admin-login' };
   if (clean === '/admin/dashboard') return { type: 'page', page: 'dashboard' };
   if (clean === '/admin/add-property') return { type: 'page', page: 'add-property' };
   if (clean === '/admin/manage-properties') return { type: 'page', page: 'manage-properties' };
   if (clean === '/admin/leads') return { type: 'page', page: 'leads' };
   if (clean === '/admin/settings') return { type: 'page', page: 'settings' };
+
+  const blogMatch = clean.match(/^\/blog\/(.+)$/);
+  if (blogMatch) return { type: 'blog-post', slug: blogMatch[1] };
+
+  const localityMatch = clean.match(/^\/property-for-rent-in\/(.+)$/);
+  if (localityMatch) return { type: 'locality', slug: localityMatch[1] };
 
   const propMatch = clean.match(/^\/property\/(.+)$/);
   if (propMatch) return { type: 'property', slug: propMatch[1] };
@@ -204,13 +242,29 @@ export const propertyImage = (p: Property): string => {
 // JSON-LD (schema.org) builders — return plain objects; <Seo> stringifies them.
 // ---------------------------------------------------------------------------
 
+// The three services Nova Nest offers, surfaced as a schema.org OfferCatalog so
+// search engines can associate the entity with each service line.
+export const BRAND_SERVICES = ['Property Rental', 'Property Resale', 'Property Management'];
+
+const serviceOfferCatalog = () => ({
+  '@type': 'OfferCatalog',
+  name: `${BRAND.legalName} Services`,
+  itemListElement: BRAND_SERVICES.map((service) => ({
+    '@type': 'Offer',
+    itemOffered: { '@type': 'Service', name: service },
+  })),
+});
+
+// Primary RealEstateAgent entity (brief #3). Name is the full legal brand,
+// area served is Bangalore, services are the three offer lines, url is the
+// canonical entity URL.
 export const organizationJsonLd = () => ({
   '@context': 'https://schema.org',
   '@type': 'RealEstateAgent',
   '@id': `${SITE_URL}/#organization`,
   name: BRAND.legalName,
   alternateName: BRAND.name,
-  url: `${SITE_URL}/`,
+  url: BRAND.entityUrl,
   logo: BRAND.logo,
   image: BRAND.ogImage,
   email: BUSINESS.email,
@@ -223,7 +277,37 @@ export const organizationJsonLd = () => ({
     postalCode: BUSINESS.postalCode,
     addressCountry: BUSINESS.addressCountry,
   },
-  areaServed: BUSINESS.areaServed,
+  areaServed: { '@type': 'City', name: 'Bangalore' },
+  makesOffer: BRAND_SERVICES.map((service) => ({
+    '@type': 'Offer',
+    itemOffered: { '@type': 'Service', name: service },
+  })),
+  hasOfferCatalog: serviceOfferCatalog(),
+  sameAs: [] as string[], // add real social profile URLs when available
+});
+
+// Matching Organization entity (brief #3) — reinforces the same business name
+// for entity recognition / brand disambiguation.
+export const brandOrganizationJsonLd = () => ({
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': `${SITE_URL}/#brand-organization`,
+  name: BRAND.legalName,
+  alternateName: BRAND.name,
+  url: BRAND.entityUrl,
+  logo: BRAND.logo,
+  image: BRAND.ogImage,
+  email: BUSINESS.email,
+  telephone: BUSINESS.phone,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: BUSINESS.streetAddress,
+    addressLocality: BUSINESS.addressLocality,
+    addressRegion: BUSINESS.addressRegion,
+    postalCode: BUSINESS.postalCode,
+    addressCountry: BUSINESS.addressCountry,
+  },
+  areaServed: { '@type': 'City', name: 'Bangalore' },
   sameAs: [] as string[], // add real social profile URLs when available
 });
 
@@ -325,6 +409,33 @@ export const propertyJsonLd = (p: Property) => {
   }
   return node;
 };
+
+// BlogPosting schema for an individual blog post. Author is the brand entity so
+// the post ties back to the organisation for E-E-A-T / disambiguation.
+export const blogPostingJsonLd = (post: {
+  title: string;
+  metaDescription: string;
+  slug: string;
+  author: string;
+  date: string;
+  image?: string;
+}) => ({
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.title,
+  description: post.metaDescription,
+  url: canonical(blogPath(post.slug)),
+  mainEntityOfPage: canonical(blogPath(post.slug)),
+  datePublished: post.date,
+  dateModified: post.date,
+  image: post.image || BRAND.ogImage,
+  author: { '@type': 'Organization', name: BRAND.legalName },
+  publisher: {
+    '@type': 'Organization',
+    name: BRAND.legalName,
+    logo: { '@type': 'ImageObject', url: BRAND.logo },
+  },
+});
 
 // breadcrumbs: array of { name, path }
 export const breadcrumbJsonLd = (items: { name: string; path: string }[]) => ({

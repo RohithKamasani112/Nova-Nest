@@ -131,6 +131,9 @@
 @theme inline {
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Playfair Display', serif;
+  /* Editorial reading serif — used ONLY in the blog section (article body copy),
+     applied via the `font-reading` utility. Does not affect any other section. */
+  --font-reading: 'Lora', Georgia, 'Times New Roman', serif;
 
   /* New palette tokens (usable as bg-header, text-brass-deep, bg-surface, etc.) */
   --color-header: #2E4636;

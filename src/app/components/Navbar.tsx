@@ -86,6 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPag
     { label: 'Home', action: () => navigate('home'), active: currentPage === 'home' },
     { label: 'Buy', action: handleBuyClick, active: false },
     { label: 'Rent', action: handleRentClick, active: false },
+    { label: 'Blog', action: () => navigate('blog'), active: currentPage === 'blog' || currentPage === 'blog-post' },
     { label: 'About Us', action: () => navigate('about'), active: currentPage === 'about' },
     { label: 'Contact Us', action: () => navigate('contact'), active: currentPage === 'contact' },
   ];
