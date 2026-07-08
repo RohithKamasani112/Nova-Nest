@@ -31,7 +31,7 @@ The My-Properties premium real estate platform is now fully functional with:
 
 **Credentials**:
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 
@@ -236,7 +236,7 @@ npm run dev
 ### Login
 ```
 Visit: http://localhost:5173/
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 
@@ -315,7 +315,7 @@ npm run seed
 ## Support & Resources
 
 ### Quick Help
-- **"How do I login?"** → Use admin@realestate.com / Admin123!
+- **"How do I login?"** → Use demo@realestate.com / Admin123!
 - **"Where are dummy properties?"** → Set VITE_DUMMY_DATA=true
 - **"How to add properties?"** → Login → Admin → Add Property
 - **"How to export leads?"** → Admin → Leads → Export CSV

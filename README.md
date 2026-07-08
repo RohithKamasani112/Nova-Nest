@@ -128,7 +128,7 @@ For testing authentication:
 
 OR
 
-- **Email**: admin@realestate.com
+- **Email**: demo@realestate.com
 - **Password**: Admin123!
 
 ## Environment Configuration

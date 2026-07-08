@@ -1,7 +1,7 @@
 [
   {
     "id": "user_1",
-    "email": "admin@realestate.com",
+    "email": "demo@realestate.com",
     "name": "Admin User",
     "phone": "+1-555-0100",
     "role": "admin",

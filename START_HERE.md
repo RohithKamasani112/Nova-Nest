@@ -36,7 +36,7 @@ Visit: `http://localhost:5173/`
 Use these credentials to access the admin panel:
 
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 
@@ -190,7 +190,7 @@ src/
 
 ### Add a Property
 ```
-1. Login (admin@realestate.com / Admin123!)
+1. Login (demo@realestate.com / Admin123!)
 2. Go to Admin → Add Property
 3. Fill 6-step form
 4. Images upload to S3
@@ -236,7 +236,7 @@ src/
 
 | Problem | Solution |
 |---------|----------|
-| Login fails | Check credentials: admin@realestate.com / Admin123! |
+| Login fails | Check credentials: demo@realestate.com / Admin123! |
 | Dummy data missing | Set VITE_DUMMY_DATA=true and restart dev server |
 | S3 errors | Verify AWS credentials in .env file |
 | Images won't upload | Check S3 bucket CORS configuration |

@@ -16,7 +16,7 @@ This premium real estate application is now fully configured with:
 Default admin login (hardcoded for simplicity):
 
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 
@@ -163,7 +163,7 @@ npm run dev
 ### Step 5: Login to Admin Panel
 1. Click "Admin Login" in the navbar
 2. Enter credentials:
-   - Email: `admin@realestate.com`
+   - Email: `demo@realestate.com`
    - Password: `Admin123!`
 3. Access the admin dashboard
 
@@ -302,7 +302,7 @@ Check `.env` for correct:
 
 ### "Login fails"
 Use exact credentials:
-- Email: `admin@realestate.com` (case-sensitive)
+- Email: `demo@realestate.com` (case-sensitive)
 - Password: `Admin123!` (exact match)
 
 ---

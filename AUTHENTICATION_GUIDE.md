@@ -18,7 +18,7 @@ This application uses a simplified authentication system with environment-based 
 ### Admin Credentials
 
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 
@@ -42,7 +42,7 @@ If invalid → shows error toast with helpful message
 - `login()`: Validates credentials
 - `logout()`: Clears localStorage
 - `getCurrentAuthUser()`: Retrieves stored session
-- Hardcoded admin: `admin@realestate.com` / `Admin123!`
+- Hardcoded admin: `demo@realestate.com` / `Admin123!`
 
 **`src/contexts/AuthContext.tsx`** - React context provider
 - Wraps entire app with auth state
@@ -151,7 +151,7 @@ npm run dev
 ### Step 3: Login
 
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 
@@ -169,7 +169,7 @@ npm run seed
 ```typescript
 interface AuthUser {
   id: string;           // 'admin_001'
-  email: string;        // 'admin@realestate.com'
+  email: string;        // 'demo@realestate.com'
   name: string;         // 'Admin User'
   accessToken?: string; // Optional for future use
 }
@@ -238,7 +238,7 @@ No stored user? → Show login page
 
 ### Scenario 2: Adding Real Properties
 ```
-1. Login (admin@realestate.com / Admin123!)
+1. Login (demo@realestate.com / Admin123!)
 2. Go to Admin → Add Property
 3. Fill 6-step form
 4. Upload images (stored in S3)
@@ -281,7 +281,7 @@ No stored user? → Show login page
 
 ### Login fails with "Invalid email or password"
 - Check exact credentials:
-  - Email: `admin@realestate.com` (lowercase)
+  - Email: `demo@realestate.com` (lowercase)
   - Password: `Admin123!` (exact case)
 
 ### Dummy properties don't show

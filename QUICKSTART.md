@@ -30,7 +30,7 @@ The app will open at `http://localhost:5173`
 
 OR
 
-**Email**: admin@realestate.com  
+**Email**: demo@realestate.com  
 **Password**: Admin123!
 
 That's it! 🎉
@@ -45,7 +45,7 @@ That's it! 🎉
 - ✅ Schedule property visits
 - ✅ Save favorites
 
-### As an Admin User (admin@realestate.com):
+### As an Admin User (demo@realestate.com):
 - ✅ All user features
 - ✅ Access to Admin Panel
 - ✅ Add new properties

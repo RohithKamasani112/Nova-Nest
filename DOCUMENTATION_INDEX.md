@@ -57,7 +57,7 @@
 3. Configure: .env file
 4. Run: npm run dev
 5. Visit: http://localhost:5173/
-6. Login: admin@realestate.com / Admin123!
+6. Login: demo@realestate.com / Admin123!
 ```
 
 ### Path 2: I Want to Understand Everything (30 min) 🎓
@@ -148,7 +148,7 @@ npm update             # Update dependencies
 4. See 8 properties on homepage
 
 ### Task: Add a Property
-1. Login with `admin@realestate.com` / `Admin123!`
+1. Login with `demo@realestate.com` / `Admin123!`
 2. Click "Admin" → "Add Property"
 3. Fill the 6-step wizard
 4. Upload images
@@ -175,7 +175,7 @@ npm update             # Update dependencies
 ## Admin Credentials
 
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 
@@ -236,7 +236,7 @@ See `.env.example` for full template.
 
 ### Quick Help
 - **Question**: "How do I login?"
-  - **Answer**: Use `admin@realestate.com` / `Admin123!`
+  - **Answer**: Use `demo@realestate.com` / `Admin123!`
 
 - **Question**: "Where are the 8 dummy properties?"
   - **Answer**: Set `VITE_DUMMY_DATA=true` in `.env`

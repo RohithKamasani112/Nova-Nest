@@ -35,7 +35,7 @@ Visit: `http://localhost:5173/`
 ## 🔐 Login Credentials
 
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 

@@ -1,5 +1,5 @@
 import { AuthUser, LoginCredentials } from '../types';
-const ADMIN_EMAIL = 'admin@realestate.com';
+const ADMIN_EMAIL = 'demo@realestate.com';
 const ADMIN_PASSWORD = 'Admin123!';
 
 export const login = async (credentials: LoginCredentials): Promise<AuthUser> => {

@@ -2,7 +2,7 @@
 
 ## ✅ Authentication
 
-- [x] Hardcoded admin credentials (admin@realestate.com / Admin123!)
+- [x] Hardcoded admin credentials (demo@realestate.com / Admin123!)
 - [x] localStorage session persistence
 - [x] Login/logout functionality
 - [x] Error handling with toast notifications
@@ -163,7 +163,7 @@ npm run dev
 
 ### Login
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 

@@ -11,7 +11,7 @@
 - `src/services/authService.ts` - Completely replaced
   - Removed all AWS Amplify/Cognito code
   - Implemented simple `login()`, `logout()`, `getCurrentAuthUser()`
-  - Hardcoded credentials: `admin@realestate.com` / `Admin123!`
+  - Hardcoded credentials: `demo@realestate.com` / `Admin123!`
   - Uses localStorage for session persistence
 
 **Result**: 
@@ -293,7 +293,7 @@ npm run dev
 
 ### Admin Access
 ```
-Email: admin@realestate.com
+Email: demo@realestate.com
 Password: Admin123!
 ```
 
