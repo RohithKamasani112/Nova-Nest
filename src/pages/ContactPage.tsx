@@ -8,10 +8,10 @@ import { Seo } from '../components/Seo';
 import { localBusinessJsonLd, breadcrumbJsonLd } from '../utils/seo';
 import { trackContactSubmit, trackPhoneClick } from '../utils/analytics';
 
-const address = 'Ground Floor, Site No-29 & 30, Maheshwaramma Temple Road, 1st Main Rd, Maheswari Nagar, Mahadevapura, Bengaluru, Karnataka 560048';
+const address = '2nd Floor, Plot No-14, Renigunta Road, Near Balaji Colony, Tirupati, Andhra Pradesh 517501';
 const mapsUrl = import.meta.env.VITE_GOOGLE_MAPS_URL || 'https://maps.app.goo.gl/V5dSTjfNRgDUWTmEA';
 const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
-const email = import.meta.env.VITE_CONTACT_EMAIL || 'novanestpropertymanagement@gmail.com';
+const email = import.meta.env.VITE_CONTACT_EMAIL || 'contact@kmrrealestates.in';
 
 /* Animated counter */
 function Counter({ to, suffix = '' }: { to: number; suffix?: string }) {
@@ -44,15 +44,15 @@ const infoCards = [
     title: 'Visit Our Office',
     content: address,
     action: { label: 'Get Directions', href: mapsUrl },
-    color: '#2E4636',
+    color: '#0F3B3E',
     delay: 0,
   },
   {
     icon: Phone,
     title: "Let's Talk",
-    content: '+91 98454 18570 / +91 96637 95675',
-    action: { label: 'Call Now', href: 'tel:+919845418570' },
-    color: '#2E4636',
+    content: '+91 90000 00000 / +91 90000 00001',
+    action: { label: 'Call Now', href: 'tel:+919000000000' },
+    color: '#0F3B3E',
     delay: 0.1,
   },
   {
@@ -60,14 +60,14 @@ const infoCards = [
     title: 'Email Us',
     content: email,
     action: { label: 'Send Email', href: `mailto:${email}` },
-    color: '#2E4636',
+    color: '#0F3B3E',
     delay: 0.2,
   },
   {
     icon: Clock,
     title: 'Working Hours',
     content: 'Mon - Sat\n10:00 AM - 7:00 PM',
-    color: '#2E4636',
+    color: '#0F3B3E',
     delay: 0.3,
   },
 ];
@@ -112,8 +112,8 @@ export const ContactPage: React.FC = () => {
   return (
     <main className="bg-surface text-text-primary" style={{ fontFamily: "'Inter', sans-serif" }}>
       <Seo
-        title="Contact Nova Nest | Property Advisors in Bengaluru"
-        description="Talk to Nova Nest Property Management in Mahadevapura, Bengaluru. Call +91 98454 18570 or send a message for buying, renting or selling verified property across the city."
+        title="Contact KMR Real Estates | Property Advisors in Bengaluru"
+        description="Talk to KMR Real Estates in Mahadevapura, Bengaluru. Call +91 90000 00000 or send a message for buying, renting or selling verified property across the city."
         path="/contact"
         jsonLd={[
           localBusinessJsonLd(),
@@ -128,7 +128,7 @@ export const ContactPage: React.FC = () => {
       <section className="relative min-h-[380px] flex items-center justify-center overflow-hidden sm:min-h-[420px]">
         <img
           src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1920&q=85"
-          alt="Nova Nest Property Management office reception in Mahadevapura, Bengaluru"
+          alt="KMR Real Estates office reception in Mahadevapura, Bengaluru"
           loading="eager"
           decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
@@ -177,7 +177,7 @@ export const ContactPage: React.FC = () => {
       </section>
 
       {/* Stats bar */}
-      <section className="bg-[#15211A] py-10">
+      <section className="bg-[#082224] py-10">
         <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-8">
           {stats.map(({ value, suffix, label }, i) => (
             <motion.div
@@ -289,7 +289,7 @@ export const ContactPage: React.FC = () => {
                         onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                         className="w-full rounded-xl border-2 bg-[#fafafa] px-4 py-3 text-[14px] text-[#1a1a1a] placeholder-[#ccc] outline-none transition-all duration-200"
                         style={{
-                          borderColor: focused === key ? '#2E4636' : '#ebebeb',
+                          borderColor: focused === key ? '#0F3B3E' : '#ebebeb',
                           boxShadow: focused === key ? '0 0 0 4px rgba(201,146,42,0.12)' : 'none',
                         }}
                       />
@@ -311,7 +311,7 @@ export const ContactPage: React.FC = () => {
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                     className="w-full rounded-xl border-2 bg-[#fafafa] px-4 py-3 text-[14px] text-[#1a1a1a] placeholder-[#ccc] outline-none resize-none transition-all duration-200"
                     style={{
-                      borderColor: focused === 'message' ? '#2E4636' : '#ebebeb',
+                      borderColor: focused === 'message' ? '#0F3B3E' : '#ebebeb',
                       boxShadow: focused === 'message' ? '0 0 0 4px rgba(201,146,42,0.12)' : 'none',
                     }}
                   />
@@ -321,7 +321,7 @@ export const ContactPage: React.FC = () => {
                   type="submit"
                   whileHover={{ scale: 1.015 }}
                   whileTap={{ scale: 0.97 }}
-                  className="w-full py-3.5 rounded-xl bg-[#15211A] text-accent text-[14px] font-bold tracking-wide flex items-center justify-center gap-2.5 hover:bg-[#233A2C] transition-colors"
+                  className="w-full py-3.5 rounded-xl bg-[#082224] text-accent text-[14px] font-bold tracking-wide flex items-center justify-center gap-2.5 hover:bg-[#0A2E30] transition-colors"
                 >
                   <Send size={16} />
                   Submit Enquiry
@@ -339,7 +339,7 @@ export const ContactPage: React.FC = () => {
             className="rounded-3xl overflow-hidden shadow-[0_4px_32px_rgba(0,0,0,0.08)] min-h-[340px] relative sm:min-h-[480px]"
           >
             <iframe
-              title="Nova Nest Property Management office map"
+              title="KMR Real Estates office map"
               src={mapEmbedUrl}
               className="w-full h-full min-h-[340px] border-0 sm:min-h-[480px]"
               loading="lazy"
@@ -348,7 +348,7 @@ export const ContactPage: React.FC = () => {
             {/* Map */}
             <div className="absolute top-4 left-4 bg-white rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-2">
               <MapPin size={15} className="text-gold" />
-              <span className="text-[12px] font-bold text-[#1a1a1a]">Nova Nest Office</span>
+              <span className="text-[12px] font-bold text-[#1a1a1a]">KMR Real Estates Office</span>
             </div>
           </motion.div>
         </div>
@@ -360,7 +360,7 @@ export const ContactPage: React.FC = () => {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="bg-[#15211A] py-16 text-center relative overflow-hidden"
+        className="bg-[#082224] py-16 text-center relative overflow-hidden"
       >
         <motion.div
           animate={{ rotate: 360 }}
@@ -373,16 +373,16 @@ export const ContactPage: React.FC = () => {
           className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full border border-gold/8 pointer-events-none"
         />
         <div className="relative">
-          <p className="text-accent text-[11px] font-bold uppercase tracking-[0.22em] mb-3">Ready to find your dream home?</p>
+          <p className="text-accent text-[11px] font-bold uppercase tracking-[0.22em] mb-3">Ready when you are</p>
           <h2 className="text-white text-2xl md:text-4xl font-bold mb-6 tracking-tight">
             Let's Start the Journey Together
           </h2>
           <motion.a
-            href="tel:+919845418570"
+            href="tel:+919000000000"
             onClick={() => trackPhoneClick('contact_cta')}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-2 bg-accent text-[#15211A] px-8 py-3.5 rounded-xl text-[14px] font-bold hover:brightness-105 transition-all"
+            className="inline-flex items-center gap-2 bg-accent text-[#082224] px-8 py-3.5 rounded-xl text-[14px] font-bold hover:brightness-105 transition-all"
           >
             <Phone size={16} />
             Call Us Now

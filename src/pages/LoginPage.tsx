@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
-import companyLogo from '../assets/companyLogo.png';
+import companyLogo from '../assets/kmr-logo.svg';
 
 interface LoginPageProps {
   onNavigate: (page: string) => void;
@@ -53,8 +53,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             className="max-w-md"
           >
             <div className="mb-8">
-              <img src={companyLogo} alt="Nova Nest Property Management" className="mb-4 h-16 w-16 rounded-xl object-cover" />
-              <h1 className="text-4xl font-bold mb-2">Nova Nest</h1>
+              <img src={companyLogo} alt="KMR Real Estates" className="mb-4 h-16 w-16 rounded-xl object-cover" />
+              <h1 className="text-4xl font-bold mb-2">KMR Real Estates</h1>
               <p className="text-gray-300">Secure Admin Access</p>
             </div>
 

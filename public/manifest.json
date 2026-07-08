@@ -1,12 +1,12 @@
 {
-  "name": "Nova Nest Property Management",
-  "short_name": "Nova Nest",
-  "description": "Buy, rent and sell verified property across Bengaluru with Nova Nest.",
+  "name": "KMR Real Estates",
+  "short_name": "KMR Real Estates",
+  "description": "Buy, rent and sell verified property across Bengaluru with KMR Real Estates.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#15211A",
+  "background_color": "#F6F0E8",
+  "theme_color": "#082224",
   "lang": "en-IN",
   "icons": [
     {
@@ -16,9 +16,9 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/nova-nest-logo.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/kmr-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ]
 }

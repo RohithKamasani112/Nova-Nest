@@ -51,11 +51,11 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1C1C1C] to-[#C9922A] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1C1C1C] to-[#C99A7A] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/10" />
       <div className="absolute inset-0">
         <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#C9922A]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#C99A7A]/20 rounded-full blur-3xl" />
       </div>
 
       <motion.div
@@ -71,7 +71,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
             onClick={() => onNavigate('home')}
           >
             <div className="bg-white p-3 rounded-2xl shadow-lg">
-              <Home size={32} className="text-[#C9922A]" />
+              <Home size={32} className="text-[#C99A7A]" />
             </div>
             <span className="text-3xl font-bold text-white">PremiumEstate</span>
           </div>
@@ -105,7 +105,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   placeholder="John Doe"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A] outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C99A7A]/30 focus:border-[#C99A7A] outline-none transition-all"
                 />
               </div>
             </div>
@@ -128,7 +128,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                     setFormData({ ...formData, email: e.target.value })
                   }
                   placeholder="you@example.com"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A] outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C99A7A]/30 focus:border-[#C99A7A] outline-none transition-all"
                 />
               </div>
             </div>
@@ -150,7 +150,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                     setFormData({ ...formData, phone: e.target.value })
                   }
                   placeholder="+1 (555) 000-0000"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A] outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C99A7A]/30 focus:border-[#C99A7A] outline-none transition-all"
                 />
               </div>
             </div>
@@ -173,7 +173,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                     setFormData({ ...formData, password: e.target.value })
                   }
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A] outline-none transition-all"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C99A7A]/30 focus:border-[#C99A7A] outline-none transition-all"
                 />
                 <button
                   type="button"
@@ -206,7 +206,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
                     setFormData({ ...formData, confirmPassword: e.target.value })
                   }
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A] outline-none transition-all"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#C99A7A]/30 focus:border-[#C99A7A] outline-none transition-all"
                 />
                 <button
                   type="button"
@@ -222,7 +222,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full px-6 py-3 bg-gradient-to-r from-[#C9922A] to-[#E5A430] text-white rounded-xl font-semibold hover:from-[#b07d20] hover:to-[#C9922A] transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-6 py-3 bg-gradient-to-r from-[#C99A7A] to-[#C99A7A] text-white rounded-xl font-semibold hover:from-[#9C6B4E] hover:to-[#C99A7A] transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
@@ -243,7 +243,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onNavigate }) => {
           {/* Sign In Link */}
           <button
             onClick={() => onNavigate('login')}
-            className="w-full px-6 py-3 border-2 border-[#C9922A] text-[#C9922A] rounded-xl font-semibold hover:bg-[#FBF3E3] transition-all"
+            className="w-full px-6 py-3 border-2 border-[#C99A7A] text-[#C99A7A] rounded-xl font-semibold hover:bg-[#F6F0E8] transition-all"
           >
             Sign In
           </button>

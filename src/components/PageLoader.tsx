@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 // Drop the icon-only / clean company emblem in here once uploaded, e.g.:
 // import companyLogo from '../assets/logo-icon.png';
-import companyLogo from '../assets/companyLogo.png';
+import companyLogo from '../assets/kmr-logo.svg';
 
 interface PageLoaderProps {
   onDone?: () => void;
@@ -10,7 +10,7 @@ interface PageLoaderProps {
 // Branded splash shown once on initial load. Rebuilt to match the client's
 // real reference: a deep navy night skyline with water reflections, the
 // gold/silver emblem glowing centered above the city, and the wordmark
-// ("Nova" in silver, "Nest" in gold) below — exactly as in the brand image.
+// ("KMR" in silver, "Real Estates" in rose gold) below — the brand wordmark.
 // Every layer (sky, stars, skyline, water, emblem, text) is built and
 // animated independently in code rather than baked into one flat image.
 // Purely timer-driven, so it can never hang even if the logo fails to load.
@@ -107,7 +107,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
       }}
       aria-hidden={leaving}
       role="status"
-      aria-label="Loading Nova Nest Property Management"
+      aria-label="Loading KMR Real Estates"
     >
       {/* Twinkling starfield */}
       <div className="pointer-events-none absolute inset-0">
@@ -128,7 +128,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
       </div>
 
       {/* Shooting star streak, echoing the one in the emblem */}
-      <div className="pointer-events-none absolute left-[8%] top-[18%] h-px w-24 origin-left rotate-[18deg] bg-gradient-to-r from-transparent via-[#E8C879] to-transparent opacity-0 [animation:shootingStar_3.5s_ease-out_0.6s_1]" />
+      <div className="pointer-events-none absolute left-[8%] top-[18%] h-px w-24 origin-left rotate-[18deg] bg-gradient-to-r from-transparent via-[#E3C1A3] to-transparent opacity-0 [animation:shootingStar_3.5s_ease-out_0.6s_1]" />
 
       {/* Ambient gold motes rising past the emblem */}
       <div className="pointer-events-none absolute inset-0">
@@ -142,7 +142,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
               width: p.size,
               height: p.size,
               opacity: 0,
-              background: '#E8C879',
+              background: '#E3C1A3',
               animationDuration: `${p.duration}s`,
               animationDelay: `${p.delay}s`,
               '--drift': `${p.drift}px`,
@@ -158,7 +158,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
         className="pointer-events-none absolute left-1/2 top-[30%] h-[90vmax] w-[90vmax] -translate-x-1/2 -translate-y-1/2 animate-[glowPulse_4.2s_ease-in-out_infinite] rounded-full"
         style={{
           background:
-            'radial-gradient(circle, rgba(232,200,121,0.20) 0%, rgba(232,200,121,0.07) 32%, rgba(6,8,20,0) 62%)',
+            'radial-gradient(circle, rgba(227,193,163,0.20) 0%, rgba(227,193,163,0.07) 32%, rgba(6,8,20,0) 62%)',
         }}
       />
 
@@ -178,7 +178,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
           className="absolute inset-0 animate-[shimmerWater_5s_ease-in-out_infinite]"
           style={{
             background:
-              'linear-gradient(180deg, rgba(232,200,121,0.10) 0%, rgba(10,14,30,0.6) 40%, #060814 100%)',
+              'linear-gradient(180deg, rgba(227,193,163,0.10) 0%, rgba(10,14,30,0.6) 40%, #060814 100%)',
           }}
         />
       </div>
@@ -190,7 +190,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
         className="relative z-10 mx-auto h-28 w-28 object-contain opacity-0 [animation:emblemIn_1s_cubic-bezier(0.16,1,0.3,1)_0.3s_forwards,emblemFloat_3.4s_ease-in-out_1.3s_infinite] sm:h-36 sm:w-36"
       />
 
-      {/* Wordmark — "Nova" silver, "Nest" gold, matching the brand reference */}
+      {/* Wordmark — "KMR" silver, "Real Estates" rose gold */}
       <div className="relative z-10 mt-4 flex w-full items-baseline justify-center font-serif text-[2.4rem] leading-none tracking-tight sm:text-[3.2rem]">
         <span
           className="inline-block opacity-0 [animation:slideInLeft_0.7s_cubic-bezier(0.16,1,0.3,1)_1.1s_forwards]"
@@ -201,40 +201,40 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          Nova
+          KMR
         </span>
         <span
           className="ml-3 inline-block opacity-0 [animation:slideInRight_0.7s_cubic-bezier(0.16,1,0.3,1)_1.1s_forwards]"
           style={{
-            backgroundImage: 'linear-gradient(180deg, #E8C879 0%, #B6863A 100%)',
+            backgroundImage: 'linear-gradient(180deg, #E3C1A3 0%, #A56B4A 100%)',
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}
         >
-          Nest
+          Real Estates
         </span>
       </div>
 
-      <div className="relative z-10 mx-auto mt-3 h-px w-0 bg-[#E8C879]/50 [animation:drawLine_0.6s_ease-out_1.75s_forwards]" />
+      <div className="relative z-10 mx-auto mt-3 h-px w-0 bg-[#E3C1A3]/50 [animation:drawLine_0.6s_ease-out_1.75s_forwards]" />
 
-      <p className="relative z-10 mt-3 w-full text-center text-[0.65rem] font-medium uppercase tracking-[0.4em] text-[#D9B96B] opacity-0 [animation:fadeUpText_0.6s_ease-out_1.9s_forwards] sm:text-xs">
-        Property Management
+      <p className="relative z-10 mt-3 w-full text-center text-[0.65rem] font-medium uppercase tracking-[0.4em] text-[#D9B295] opacity-0 [animation:fadeUpText_0.6s_ease-out_1.9s_forwards] sm:text-xs">
+        Real Estate Advisory
       </p>
 
       <p
         className="loader-address-line relative z-10 mt-3 opacity-0 [animation:fadeUpText_0.6s_ease-out_2.1s_forwards]"
       >
-        Premium Rental &amp; Sales Advisory · Whitefield, Bangalore
+        Handpicked Homes for Rent &amp; Sale · Bengaluru
       </p>
 
-      <p className="relative z-10 mt-4 w-full text-center font-serif text-base italic text-[#E8C879] opacity-0 [animation:fadeUpText_0.6s_ease-out_2.3s_forwards] sm:text-lg">
-        Your trusted path to home
+      <p className="relative z-10 mt-4 w-full text-center font-serif text-base italic text-[#E3C1A3] opacity-0 [animation:fadeUpText_0.6s_ease-out_2.3s_forwards] sm:text-lg">
+        Where your next address begins
       </p>
 
       {/* Progress bar with shimmer sweep */}
-      <div className="relative z-10 mx-auto mt-9 h-0.5 w-32 overflow-hidden rounded-full bg-[#E8C879]/15">
-        <div className="relative h-full w-full origin-left scale-x-0 bg-gradient-to-r from-[#E8C879] to-[#9C7A33] [animation:loadBar_3.4s_ease-in-out_0.5s_forwards]">
+      <div className="relative z-10 mx-auto mt-9 h-0.5 w-32 overflow-hidden rounded-full bg-[#E3C1A3]/15">
+        <div className="relative h-full w-full origin-left scale-x-0 bg-gradient-to-r from-[#E3C1A3] to-[#9C6B4E] [animation:loadBar_3.4s_ease-in-out_0.5s_forwards]">
           <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/80 to-transparent animate-[shimmerSweep_1.2s_ease-in-out_infinite]" />
         </div>
       </div>
@@ -249,7 +249,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({ onDone }) => {
           font-size: 0.6rem !important;
           text-transform: uppercase !important;
           letter-spacing: 0.25em !important;
-          color: #A98F58 !important;
+          color: #B08A6E !important;
         }
         @media (min-width: 640px) {
           .loader-address-line {
@@ -374,7 +374,7 @@ const Skyline: React.FC<{ windows: Window[]; color: string; heightScale: number 
           y={29 - (win.bottom / 100) * 22}
           width={0.5}
           height={0.7}
-          fill="#E8C879"
+          fill="#E3C1A3"
           opacity={0}
           style={{
             animation: `windowFlicker ${4 + (win.id % 5)}s ease-in-out ${win.delay}s infinite`,

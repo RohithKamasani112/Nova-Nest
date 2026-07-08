@@ -1,7 +1,7 @@
 import type { Transition, Variants } from 'motion/react';
 
 /**
- * Nova Nest motion system.
+ * KMR Real Estates motion system.
  *
  * A single source of truth for every spring, easing curve and reusable variant
  * used across the app, so interactions feel consistent and intentional.
@@ -121,6 +121,6 @@ export const imageSlide: Variants = {
   }),
 };
 
-// Shared accent used by decorative gold shimmer / glow effects. The Nova Nest
+// Shared accent used by decorative gold shimmer / glow effects. The KMR Real Estates
 // palette maps the legacy "gold" onto amber, so animations reference the accent.
-export const NN_GOLD = '#C9A35F';
+export const NN_GOLD = '#C99A7A';

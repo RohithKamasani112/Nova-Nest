@@ -175,8 +175,8 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
   return (
     <div className="min-h-screen bg-cream py-12">
       <Seo
-        title="Properties for Sale & Rent in Bengaluru | Nova Nest"
-        description="Browse verified homes, apartments, villas, plots and commercial spaces for sale and rent across Bengaluru. Filter by location, budget, type and more with Nova Nest."
+        title="Properties for Sale & Rent in Bengaluru | KMR Real Estates"
+        description="Browse verified homes, apartments, villas, plots and commercial spaces for sale and rent across Bengaluru. Filter by location, budget, type and more with KMR Real Estates."
         path="/properties"
         noindex={isFiltered}
       />

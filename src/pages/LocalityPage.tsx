@@ -130,8 +130,8 @@ export const LocalityPage: React.FC<LocalityPageProps> = ({ slug, onNavigate }) 
             Homes for sale &amp; rent in {locality.name}, Bangalore
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-7 text-charcoal/65">
-            Indicative 2026 ranges for premium gated-community homes in {locality.name}. Nova
-            Nest Rentals and Property Management verifies live pricing for you before every
+            Indicative 2026 ranges for premium gated-community homes in {locality.name}. KMR
+            Real Estates verifies live pricing for you before every
             visit — figures below are guide ranges, not quotes.
           </p>
 
@@ -265,7 +265,7 @@ export const LocalityPage: React.FC<LocalityPageProps> = ({ slug, onNavigate }) 
             Find your home in {locality.name}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-cream/75">
-            Tell us your budget and move-in date. Nova Nest Rentals and Property Management
+            Tell us your budget and move-in date. KMR Real Estates
             will shortlist verified 2, 3 &amp; 4 BHK gated-community flats in {locality.name}
             and arrange your visits.
           </p>

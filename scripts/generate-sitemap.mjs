@@ -15,7 +15,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
-const SITE_URL = process.env.VITE_SITE_URL || 'https://novanest.co.in';
+const SITE_URL = process.env.VITE_SITE_URL || 'https://kmrrealestates.in';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../public/sitemap.xml');
 
@@ -66,7 +66,7 @@ const localityEntries = localitySlugs.map((slug) => ({
 
 // Blog posts. Keep in sync with src/data/blog.ts.
 const blogPosts = [
-  { slug: 'nova-nest-rentals-property-management-who-we-are', date: '2026-06-01' },
+  { slug: 'kmr-real-estates-who-we-are', date: '2026-06-01' },
   { slug: '2-bhk-vs-3-bhk-renting-whitefield', date: '2026-05-20' },
   { slug: 'rental-agreement-checklist-gated-community-bangalore', date: '2026-05-12' },
   { slug: 'whitefield-vs-sarjapur-road-where-to-rent-2026', date: '2026-05-04' },

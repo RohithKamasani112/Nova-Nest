@@ -5,7 +5,7 @@ import { toTitleCase } from '../utils/format';
 import { motion } from 'motion/react';
 import { Edit2, Search, Filter, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import companyLogo from '../assets/companyLogo.png';
+import companyLogo from '../assets/kmr-logo.svg';
 
 interface ManagePropertiesPageProps {
   onEditProperty: (property: Property) => void;

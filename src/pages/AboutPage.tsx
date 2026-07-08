@@ -59,8 +59,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
   return (
     <main className="bg-cream text-charcoal overflow-hidden">
       <Seo
-        title="About Nova Nest | Trusted Property Advisors in Bengaluru"
-        description="Nova Nest Property Management offers premium rental and sales advisory in Whitefield and across Bengaluru — verified listings, trusted advisors and end-to-end support."
+        title="About KMR Real Estates | Trusted Property Advisors in Bengaluru"
+        description="KMR Real Estates offers premium rental and sales advisory in Whitefield and across Bengaluru — verified listings, trusted advisors and end-to-end support."
         path="/about"
         jsonLd={[
           breadcrumbJsonLd([
@@ -73,7 +73,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         <img
           src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=2000&q=90"
           className="absolute inset-0 w-full h-full object-cover"
-          alt="Modern residential apartment building representing Nova Nest property listings in Bengaluru"
+          alt="Modern residential apartment building representing KMR Real Estates property listings in Bengaluru"
           loading="eager"
           decoding="async"
         />
@@ -91,7 +91,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
             animate={{ opacity: 1, y: 0 }}
             className="uppercase tracking-[0.22em] text-accent mb-6 text-xs sm:text-sm sm:tracking-[0.35em]"
           >
-            Nova Nest Property Management
+            KMR Real Estates
           </motion.p>
 
           <motion.h1
@@ -99,13 +99,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
             animate={{ opacity: 1, y: 0 }}
             className="font-serif text-4xl sm:text-5xl md:text-7xl font-bold"
           >
-            Your Trusted Path
-            <span className="block text-accent">To Home</span>
+            Homes,
+            <span className="block text-accent">Handled Properly</span>
           </motion.h1>
 
           <p className="max-w-3xl mx-auto mt-6 text-base text-white/80 sm:mt-8 sm:text-lg">
-            Premium rental and sales advisory in Whitefield, Bengaluru, with
-            verified properties, trusted advisors, and responsive support.
+            Handpicked homes for rent and sale across Bengaluru — verified
+            listings, straight answers, and support from first call to keys.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
@@ -278,7 +278,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
           <Award className="mx-auto mb-6 text-gold" size={48} />
 
           <h2 className="font-serif text-3xl font-bold mb-6 sm:text-5xl">
-            Ready To Find Your Next Property?
+            Looking for Your Next Home?
           </h2>
 
           <p className="text-xl text-cream/80 mb-10">

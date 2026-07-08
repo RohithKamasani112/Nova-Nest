@@ -187,7 +187,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
   const propertyTypeLabel = property.category === 'land' ? 'Plot' : property.category;
   const description =
     property.description ||
-    'A verified Nova Nest listing with detailed advisory support available for site visits, pricing guidance, and documentation.';
+    'A verified KMR Real Estates listing with detailed advisory support available for site visits, pricing guidance, and documentation.';
   const descriptionText = expandedDescription ? description : description.substring(0, 220);
   // Contact number priority: the per-property agent number set by the admin,
   // otherwise the default company number from the env file. Normalised to the
@@ -198,7 +198,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
     if (!digits) return '';
     return digits.length === 10 ? `91${digits}` : digits;
   };
-  const defaultNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
+  const defaultNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919000000000';
   const contactNumber = normalizePhone(property.agentPhone) || defaultNumber;
   const whatsappMessage = `Hi, I am interested in the property "${property.title}" located at ${property.location}. Please share more details.`;
   const whatsappUrl = `https://wa.me/${contactNumber}?text=${encodeURIComponent(whatsappMessage)}`;
@@ -550,7 +550,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
               className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_14px_40px_rgba(15,31,61,0.12)] lg:sticky lg:top-6"
             >
               <div className="bg-charcoal p-6 text-white">
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-accent">Nova Nest Advisory</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-accent">KMR Real Estates Advisory</p>
                 <div className="text-3xl font-bold text-accent">{formatPrice(property.price)}</div>
                 {showPerSqft && <p className="mt-1 text-sm font-semibold text-white/80">{perSqftLabel}</p>}
                 <p className="mt-2 text-sm text-white/70">{property.status === 'buy' ? 'For Sale' : 'For Rent'} in {toTitleCase(property.location)}</p>
@@ -579,7 +579,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                     </div>
                   </div>
                   <div>
-                    <div className="font-serif text-lg font-bold text-charcoal">Nova Nest Advisor</div>
+                    <div className="font-serif text-lg font-bold text-charcoal">KMR Real Estates Advisor</div>
                     <div className="text-xs text-muted-foreground">Verified Property Team</div>
                   </div>
                 </div>

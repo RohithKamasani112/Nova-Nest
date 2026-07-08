@@ -75,8 +75,8 @@ export const BlogListPage: React.FC<BlogListPageProps> = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-cream" style={{ fontFamily: "'Inter', sans-serif" }}>
       <Seo
-        title="Nova Nest Blog | Real Estate Guides for Renting & Buying in Bangalore"
-        description="Guides on renting, buying and selling premium gated-community flats across Bangalore's IT corridors — from Nova Nest Rentals and Property Management."
+        title="KMR Real Estates Blog | Real Estate Guides for Renting & Buying in Bangalore"
+        description="Guides on renting, buying and selling premium gated-community flats across Bangalore's IT corridors — from KMR Real Estates."
         path="/blog"
         jsonLd={[
           organizationJsonLd(),
@@ -91,14 +91,14 @@ export const BlogListPage: React.FC<BlogListPageProps> = ({ onNavigate }) => {
       <section className="bg-header text-cream">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
           <p className="text-[11px] uppercase tracking-[0.22em] text-accent font-bold mb-3">
-            Nova Nest Rentals and Property Management
+            KMR Real Estates
           </p>
           <h1 className="font-serif text-[32px] font-bold leading-[1.12] tracking-tight sm:text-[42px] md:text-5xl">
             Real estate guides for renting &amp; buying in Bangalore
           </h1>
           <p className="mt-5 max-w-2xl font-reading text-[16px] leading-[1.75] text-cream/80 sm:text-[17px]">
             Practical, local advice for renters, buyers and sellers navigating premium
-            gated communities across Bangalore's IT corridors — written by the Nova Nest
+            gated communities across Bangalore's IT corridors — written by the KMR Real Estates
             Rentals and Property Management team.
           </p>
         </div>

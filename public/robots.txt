@@ -1,4 +1,4 @@
-# Nova Nest — robots.txt
+# KMR Real Estates — robots.txt
 # Public pages are open to all crawlers; admin/private routes are blocked.
 
 User-agent: *
@@ -12,4 +12,4 @@ Disallow: /admin/
 Disallow: /*?location=
 Disallow: /*?
 
-Sitemap: https://novanest.co.in/sitemap.xml
+Sitemap: https://kmrrealestates.in/sitemap.xml

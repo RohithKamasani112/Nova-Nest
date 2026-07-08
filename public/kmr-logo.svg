@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="KMR Real Estates">
+  <rect width="512" height="512" rx="112" fill="#0F3B3E"/>
+  <rect x="28" y="28" width="456" height="456" rx="92" fill="none" stroke="#C99A7A" stroke-width="6" stroke-opacity="0.5"/>
+  <text x="256" y="256" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, 'Times New Roman', serif" font-size="176" font-weight="700"
+        letter-spacing="6" fill="#C99A7A">KMR</text>
+</svg>

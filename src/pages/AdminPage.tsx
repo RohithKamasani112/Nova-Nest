@@ -326,11 +326,11 @@ const FloatingInput: React.FC<{
         initial={false}
         animate={
           reduce
-            ? { color: focused ? '#2E4636' : '#5C5C72' }
+            ? { color: focused ? '#0F3B3E' : '#5C5C72' }
             : {
                 y: floated ? -10 : 0,
                 scale: floated ? 0.82 : 1,
-                color: focused ? '#2E4636' : '#5C5C72',
+                color: focused ? '#0F3B3E' : '#5C5C72',
               }
         }
         transition={{ duration: 0.2, ease: EASE_ELEGANT }}
@@ -870,7 +870,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     <label className={labelClass}>Agent Mobile Number (optional)</label>
                     <input
                       type="tel"
-                      placeholder="e.g. 9845418570 — leave blank to use the default number"
+                      placeholder="e.g. 9000000000 — leave blank to use the default number"
                       value={formData.contactNumber}
                       onChange={(e) => setField('contactNumber', e.target.value)}
                       className={plainControlClass}
@@ -1101,7 +1101,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     </div>
 
                     {formData.commissionType === 'percentage' && listingPrice <= 0 && (
-                      <p className="mb-3 rounded-lg bg-accent-light px-4 py-2 text-xs font-medium text-[#92400E]">
+                      <p className="mb-3 rounded-lg bg-accent-light px-4 py-2 text-xs font-medium text-[#7A3B2A]">
                         Enter the price in Step 3 to auto-calculate the ₹ amount — you can still record the % here.
                       </p>
                     )}
@@ -1126,7 +1126,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                 <label className={labelClass}>Commission Amount</label>
                                 <motion.div
                                   key={Math.round(commissionAmount)}
-                                  initial={reduce ? false : { backgroundColor: '#F0E2C0' }}
+                                  initial={reduce ? false : { backgroundColor: '#EFD9C8' }}
                                   animate={{ backgroundColor: '#FFFFFF' }}
                                   transition={{ duration: 0.6 }}
                                   className="flex h-[50px] items-center rounded-xl border border-border px-4 text-base font-bold text-primary md:h-[46px]"
@@ -1154,7 +1154,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                                 <label className={labelClass}>Commission %</label>
                                 <motion.div
                                   key={commissionPercent.toFixed(2)}
-                                  initial={reduce ? false : { backgroundColor: '#F0E2C0' }}
+                                  initial={reduce ? false : { backgroundColor: '#EFD9C8' }}
                                   animate={{ backgroundColor: '#FFFFFF' }}
                                   transition={{ duration: 0.6 }}
                                   className="flex h-[50px] items-center rounded-xl border border-border px-4 text-base font-bold text-primary md:h-[46px]"
@@ -1340,7 +1340,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#15211A]/80 p-6 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#082224]/80 p-6 backdrop-blur-sm"
           >
             <motion.div
               initial={reduce ? { opacity: 0 } : { scale: 0.9, opacity: 0 }}

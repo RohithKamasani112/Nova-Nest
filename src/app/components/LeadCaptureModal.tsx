@@ -40,8 +40,8 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="sm">
       <div className="text-center mb-6">
-        <div className="w-16 h-16 bg-[#C9922A]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Download size={32} className="text-[#C9922A]" />
+        <div className="w-16 h-16 bg-[#C99A7A]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Download size={32} className="text-[#C99A7A]" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           Download Brochure
@@ -71,7 +71,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="Enter your full name"
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A] outline-none"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C99A7A]/30 focus:border-[#C99A7A] outline-none"
             />
           </div>
         </div>
@@ -94,7 +94,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 setFormData({ ...formData, email: e.target.value })
               }
               placeholder="you@example.com"
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A] outline-none"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C99A7A]/30 focus:border-[#C99A7A] outline-none"
             />
           </div>
         </div>
@@ -117,7 +117,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 setFormData({ ...formData, phone: e.target.value })
               }
               placeholder="+91 98765 43210"
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C9922A]/30 focus:border-[#C9922A] outline-none"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C99A7A]/30 focus:border-[#C99A7A] outline-none"
             />
           </div>
         </div>
@@ -131,7 +131,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         {/* Submit */}
         <button
           type="submit"
-          className="w-full px-6 py-3 bg-[#C9922A] text-white rounded-lg font-semibold hover:bg-[#b07d20] transition-all shadow-md hover:shadow-lg"
+          className="w-full px-6 py-3 bg-[#C99A7A] text-white rounded-lg font-semibold hover:bg-[#9C6B4E] transition-all shadow-md hover:shadow-lg"
         >
           Download Brochure
         </button>

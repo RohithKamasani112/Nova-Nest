@@ -94,7 +94,7 @@ export const WhatsAppContactModal: React.FC<WhatsAppContactModalProps> = ({ open
                     setPhone(e.target.value);
                     if (error) setError('');
                   }}
-                  placeholder="e.g. 98454 18570"
+                  placeholder="e.g. 90000 00000"
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:border-[#25D366] focus:outline-none focus:ring-2 focus:ring-[#25D366]/20"
                 />
                 {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}

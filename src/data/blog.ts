@@ -4,7 +4,7 @@
 // by src/pages/BlogListPage.tsx and src/pages/BlogPostPage.tsx.
 //
 // PURPOSE (see project brief): every post reinforces the brand+location entity
-// "Nova Nest Rentals and Property Management" + "Bangalore" for disambiguation,
+// "KMR Real Estates" + "Bangalore" for disambiguation,
 // and targets long-tail informational queries that funnel to the transactional
 // locality pages via the relatedLocalities links.
 //
@@ -50,11 +50,11 @@ export interface BlogPost {
   status: 'complete' | 'scaffold';
 }
 
-const AUTHOR = 'Nova Nest Editorial Team';
+const AUTHOR = 'KMR Real Estates Editorial Team';
 
 /** Short bio for the author box rendered at the foot of every article. */
 export const AUTHOR_BIO =
-  'The Nova Nest Editorial Team writes from the ground up — drawing on daily work helping renters, buyers and sellers across Bangalore’s premium gated communities. Every guide is reviewed by advisors from Nova Nest Rentals and Property Management.';
+  'The KMR Real Estates Editorial Team writes from the ground up — drawing on daily work helping renters, buyers and sellers across Bangalore’s premium gated communities. Every guide is reviewed by advisors from KMR Real Estates.';
 
 /**
  * Per-category presentation theme. Because the project ships no blog image
@@ -66,22 +66,22 @@ export const CATEGORY_THEME: Record<
   { gradient: string; chip: string; label: string }
 > = {
   Renting: {
-    gradient: 'linear-gradient(135deg, #2E4636 0%, #3F5E49 55%, #8C6B2E 100%)',
+    gradient: 'linear-gradient(135deg, #0F3B3E 0%, #1B5C60 55%, #9C6B4E 100%)',
     chip: 'bg-emerald/10 text-emerald',
     label: 'Renting',
   },
   Buying: {
-    gradient: 'linear-gradient(135deg, #233A2C 0%, #2E4636 50%, #C9A35F 100%)',
+    gradient: 'linear-gradient(135deg, #0A2E30 0%, #0F3B3E 50%, #C99A7A 100%)',
     chip: 'bg-gold/10 text-gold',
     label: 'Buying',
   },
   Selling: {
-    gradient: 'linear-gradient(135deg, #15211A 0%, #2E4636 55%, #E0BB76 100%)',
+    gradient: 'linear-gradient(135deg, #082224 0%, #0F3B3E 55%, #D9B295 100%)',
     chip: 'bg-gold-pale text-gold',
     label: 'Selling',
   },
   Guides: {
-    gradient: 'linear-gradient(135deg, #2E4636 0%, #233A2C 50%, #5C6B58 100%)',
+    gradient: 'linear-gradient(135deg, #0F3B3E 0%, #0A2E30 50%, #52605F 100%)',
     chip: 'bg-emerald/10 text-emerald',
     label: 'Guides',
   },
@@ -92,28 +92,28 @@ export const BLOG_POSTS: BlogPost[] = [
   // (h) Cornerstone brand page.
   // ---------------------------------------------------------------------------
   {
-    slug: 'nova-nest-rentals-property-management-who-we-are',
+    slug: 'kmr-real-estates-who-we-are',
     title:
-      'Nova Nest Rentals and Property Management: Who We Are and How We Help Bangalore Renters & Sellers',
+      'KMR Real Estates: Who We Are and How We Help Bangalore Renters & Sellers',
     metaTitle:
-      'Nova Nest Rentals and Property Management | Real Estate Agents in Bangalore',
+      'KMR Real Estates | Real Estate Agents in Bangalore',
     metaDescription:
-      'Nova Nest Rentals and Property Management is a Bangalore real estate agency specialising in premium 2, 3 & 4 BHK gated-community flats for rent and resale across the IT corridors.',
+      'KMR Real Estates is a Bangalore real estate agency specialising in premium 2, 3 & 4 BHK gated-community flats for rent and resale across the IT corridors.',
     author: AUTHOR,
     date: '2026-06-01',
     excerpt:
       'Who we are, the areas we serve, and how our team helps renters, buyers and sellers move through Bangalore’s premium gated communities with confidence.',
     heroAlt:
-      'Nova Nest Rentals and Property Management team helping clients with premium gated-community homes in Bangalore',
+      'KMR Real Estates team helping clients with premium gated-community homes in Bangalore',
     status: 'complete',
     category: 'Guides',
-    tags: ['About Nova Nest', 'Gated Communities', 'Bangalore', 'Property Management'],
+    tags: ['About KMR Real Estates', 'Gated Communities', 'Bangalore', 'Property Management'],
     relatedLocalities: ['mahadevapura', 'whitefield', 'marathahalli'],
     sections: [
       {
-        heading: 'Who is Nova Nest Rentals and Property Management?',
+        heading: 'Who is KMR Real Estates?',
         paragraphs: [
-          'Nova Nest Rentals and Property Management is a Bangalore-based real estate agency focused exclusively on premium 2, 3 and 4 BHK homes in gated communities. We are headquartered in Mahadevapura, at the centre of the East Bangalore IT corridor, and we work with renters, buyers and sellers across the city’s most sought-after neighbourhoods.',
+          'KMR Real Estates is a Bangalore-based real estate agency focused exclusively on premium 2, 3 and 4 BHK homes in gated communities. We are headquartered in Mahadevapura, at the centre of the East Bangalore IT corridor, and we work with renters, buyers and sellers across the city’s most sought-after neighbourhoods.',
           'Unlike a general property portal, we are a hands-on local team. We personally verify listings, accompany clients on site visits, and stay involved from the first enquiry through agreement signing, handover and beyond. Our narrow focus — premium gated-community homes in Bangalore — is deliberate: it lets us know these buildings, their amenities and their price movements far better than a generalist could.',
         ],
       },
@@ -151,7 +151,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Talk to us',
         paragraphs: [
-          'Whether you are renting your first premium flat, upgrading from a 2 BHK to a 3 BHK, or selling a home in a gated community, Nova Nest Rentals and Property Management is here to help you do it well. Reach out through our contact page and a member of our Bangalore team will get back to you quickly.',
+          'Whether you are renting your first premium flat, upgrading from a 2 BHK to a 3 BHK, or selling a home in a gated community, KMR Real Estates is here to help you do it well. Reach out through our contact page and a member of our Bangalore team will get back to you quickly.',
         ],
       },
     ],
@@ -163,9 +163,9 @@ export const BLOG_POSTS: BlogPost[] = [
   {
     slug: '2-bhk-vs-3-bhk-renting-whitefield',
     title: '2 BHK vs 3 BHK: Which Is Better for Renting Near Whitefield?',
-    metaTitle: '2 BHK vs 3 BHK for Rent Near Whitefield, Bangalore | Nova Nest',
+    metaTitle: '2 BHK vs 3 BHK for Rent Near Whitefield, Bangalore | KMR Real Estates',
     metaDescription:
-      'Should you rent a 2 BHK or a 3 BHK near Whitefield? Compare costs, space and resale demand with Nova Nest Rentals and Property Management’s Bangalore renting guide.',
+      'Should you rent a 2 BHK or a 3 BHK near Whitefield? Compare costs, space and resale demand with KMR Real Estates’s Bangalore renting guide.',
     author: AUTHOR,
     date: '2026-05-20',
     excerpt:
@@ -210,7 +210,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Our recommendation',
         paragraphs: [
-          'Choose a 2 BHK if your priority is minimising monthly cost and you don’t need a third room. Choose a 3 BHK if you work from home, have or expect children, or simply want room to grow without moving again. Whichever you lean toward, Nova Nest Rentals and Property Management can show you verified 2 and 3 BHK options side by side in Whitefield’s best gated communities, so you compare the real units rather than just the floor plans.',
+          'Choose a 2 BHK if your priority is minimising monthly cost and you don’t need a third room. Choose a 3 BHK if you work from home, have or expect children, or simply want room to grow without moving again. Whichever you lean toward, KMR Real Estates can show you verified 2 and 3 BHK options side by side in Whitefield’s best gated communities, so you compare the real units rather than just the floor plans.',
         ],
       },
     ],
@@ -223,9 +223,9 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'rental-agreement-checklist-gated-community-bangalore',
     title: 'Rental Agreement Checklist for Gated Community Flats in Bangalore',
     metaTitle:
-      'Rental Agreement Checklist for Gated Community Flats in Bangalore | Nova Nest',
+      'Rental Agreement Checklist for Gated Community Flats in Bangalore | KMR Real Estates',
     metaDescription:
-      'The essential rental agreement checklist for gated-community flats in Bangalore — clauses, deposits and documents. From Nova Nest Rentals and Property Management.',
+      'The essential rental agreement checklist for gated-community flats in Bangalore — clauses, deposits and documents. From KMR Real Estates.',
     author: AUTHOR,
     date: '2026-05-12',
     excerpt:
@@ -270,7 +270,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Move-in checklist',
         paragraphs: [
-          'Before you take handover, photograph the flat’s condition, note existing damage in writing, and record meter readings for electricity, water and gas. Collect the amenity access cards, gate passes and emergency contacts for security and maintenance. Nova Nest Rentals and Property Management walks tenants through each of these steps in Bangalore’s gated communities, so nothing is signed — or paid — before it is verified.',
+          'Before you take handover, photograph the flat’s condition, note existing damage in writing, and record meter readings for electricity, water and gas. Collect the amenity access cards, gate passes and emergency contacts for security and maintenance. KMR Real Estates walks tenants through each of these steps in Bangalore’s gated communities, so nothing is signed — or paid — before it is verified.',
         ],
       },
     ],
@@ -282,9 +282,9 @@ export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'whitefield-vs-sarjapur-road-where-to-rent-2026',
     title: 'Whitefield vs Sarjapur Road: Where Should You Rent in 2026?',
-    metaTitle: 'Whitefield vs Sarjapur Road: Where to Rent in Bangalore (2026) | Nova Nest',
+    metaTitle: 'Whitefield vs Sarjapur Road: Where to Rent in Bangalore (2026) | KMR Real Estates',
     metaDescription:
-      'Whitefield or Sarjapur Road in 2026? Compare rent, commute and communities with Nova Nest Rentals and Property Management’s side-by-side Bangalore rental guide.',
+      'Whitefield or Sarjapur Road in 2026? Compare rent, commute and communities with KMR Real Estates’s side-by-side Bangalore rental guide.',
     author: AUTHOR,
     date: '2026-05-04',
     excerpt:
@@ -322,7 +322,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Which should you choose?',
         paragraphs: [
-          'Pick Whitefield if you value metro access, established infrastructure and walk-to-everything convenience. Pick Sarjapur Road if you want newer, larger homes, greener surroundings and a shorter hop to the ORR tech parks. Nova Nest Rentals and Property Management works across both corridors and can shortlist matching 2, 3 and 4 BHK gated-community flats in each, so you can visit and feel the difference before deciding where to rent in 2026.',
+          'Pick Whitefield if you value metro access, established infrastructure and walk-to-everything convenience. Pick Sarjapur Road if you want newer, larger homes, greener surroundings and a shorter hop to the ORR tech parks. KMR Real Estates works across both corridors and can shortlist matching 2, 3 and 4 BHK gated-community flats in each, so you can visit and feel the difference before deciding where to rent in 2026.',
         ],
       },
     ],
@@ -335,9 +335,9 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'security-deposit-premium-apartments-bangalore',
     title: 'How Much Security Deposit Is Normal for Premium Apartments in Bangalore?',
     metaTitle:
-      'Security Deposit for Premium Apartments in Bangalore: What’s Normal? | Nova Nest',
+      'Security Deposit for Premium Apartments in Bangalore: What’s Normal? | KMR Real Estates',
     metaDescription:
-      'How much security deposit is normal for premium apartments in Bangalore? Nova Nest Rentals and Property Management explains typical deposits, norms and negotiation.',
+      'How much security deposit is normal for premium apartments in Bangalore? KMR Real Estates explains typical deposits, norms and negotiation.',
     author: AUTHOR,
     date: '2026-04-25',
     excerpt:
@@ -378,7 +378,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Getting your deposit back',
         paragraphs: [
-          'Refunds usually take 15–45 days after you vacate, once dues are settled and the flat is inspected. Protect yourself by documenting the flat’s condition with dated photos at move-in, clearing all utility and maintenance bills, and giving proper written notice. Nova Nest Rentals and Property Management helps tenants agree fair, clearly written deposit terms upfront — and helps owners set market-appropriate deposits — so the refund at the end is smooth rather than contested.',
+          'Refunds usually take 15–45 days after you vacate, once dues are settled and the flat is inspected. Protect yourself by documenting the flat’s condition with dated photos at move-in, clearing all utility and maintenance bills, and giving proper written notice. KMR Real Estates helps tenants agree fair, clearly written deposit terms upfront — and helps owners set market-appropriate deposits — so the refund at the end is smooth rather than contested.',
         ],
       },
     ],
@@ -391,9 +391,9 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'best-gated-communities-families-electronic-city',
     title: 'Best Gated Communities for Families in Electronic City',
     metaTitle:
-      'Best Gated Communities for Families in Electronic City, Bangalore | Nova Nest',
+      'Best Gated Communities for Families in Electronic City, Bangalore | KMR Real Estates',
     metaDescription:
-      'Looking for family-friendly gated communities in Electronic City? Nova Nest Rentals and Property Management rounds up what to look for in Bangalore’s southern IT hub.',
+      'Looking for family-friendly gated communities in Electronic City? KMR Real Estates rounds up what to look for in Bangalore’s southern IT hub.',
     author: AUTHOR,
     date: '2026-04-16',
     excerpt:
@@ -432,9 +432,9 @@ export const BLOG_POSTS: BlogPost[] = [
         ],
       },
       {
-        heading: 'How Nova Nest can help you shortlist',
+        heading: 'How KMR Real Estates can help you shortlist',
         paragraphs: [
-          'There’s no substitute for seeing several communities side by side with someone who knows them. Nova Nest Rentals and Property Management helps families in Electronic City compare premium 2, 3 and 4 BHK homes on the things that matter — schools, safety, amenities and space — and arranges visits so you can picture your family in each before you commit.',
+          'There’s no substitute for seeing several communities side by side with someone who knows them. KMR Real Estates helps families in Electronic City compare premium 2, 3 and 4 BHK homes on the things that matter — schools, safety, amenities and space — and arranges visits so you can picture your family in each before you commit.',
         ],
       },
     ],
@@ -447,9 +447,9 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'buying-vs-renting-3-bhk-bangalore-it-corridors-2026',
     title: 'Buying vs Renting a 3 BHK in Bangalore’s IT Corridors: A 2026 Guide',
     metaTitle:
-      'Buying vs Renting a 3 BHK in Bangalore’s IT Corridors (2026) | Nova Nest',
+      'Buying vs Renting a 3 BHK in Bangalore’s IT Corridors (2026) | KMR Real Estates',
     metaDescription:
-      'Should you buy or rent a 3 BHK in Bangalore’s IT corridors in 2026? Nova Nest Rentals and Property Management breaks down the real estate maths for Whitefield, ORR and beyond.',
+      'Should you buy or rent a 3 BHK in Bangalore’s IT corridors in 2026? KMR Real Estates breaks down the real estate maths for Whitefield, ORR and beyond.',
     author: AUTHOR,
     date: '2026-04-08',
     excerpt:
@@ -491,7 +491,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Our take for IT-corridor professionals',
         paragraphs: [
-          'If you are early-career or mobile, rent a 3 BHK and stay flexible. If you are settled in Bangalore for the long term and can comfortably fund the down payment and EMIs, buying on a well-connected corridor is a sound long-term move. Nova Nest Rentals and Property Management advises clients on both sides of this decision and can run the comparison for a specific home, so you choose with clarity rather than pressure.',
+          'If you are early-career or mobile, rent a 3 BHK and stay flexible. If you are settled in Bangalore for the long term and can comfortably fund the down payment and EMIs, buying on a well-connected corridor is a sound long-term move. KMR Real Estates advises clients on both sides of this decision and can run the comparison for a specific home, so you choose with clarity rather than pressure.',
         ],
       },
     ],
@@ -504,9 +504,9 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'how-to-sell-flat-fast-bangalore-gated-communities',
     title: 'How to Sell Your Flat Fast in Bangalore’s Premium Gated Communities',
     metaTitle:
-      'How to Sell Your Flat Fast in Bangalore’s Gated Communities | Nova Nest',
+      'How to Sell Your Flat Fast in Bangalore’s Gated Communities | KMR Real Estates',
     metaDescription:
-      'Selling a flat in a Bangalore gated community? Nova Nest Rentals and Property Management shares pricing, staging and marketing tactics to sell faster for a strong price.',
+      'Selling a flat in a Bangalore gated community? KMR Real Estates shares pricing, staging and marketing tactics to sell faster for a strong price.',
     author: AUTHOR,
     date: '2026-03-28',
     excerpt:
@@ -520,7 +520,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'Price it right from day one',
         paragraphs: [
-          'The single biggest factor in how fast a flat sells is the asking price. Overprice it and you lose the crucial first two to three weeks when serious buyers are most attentive; the listing then goes stale and eventually sells for less. Price it against genuine recent transactions in your own gated community — not aspirational listing prices — and you attract competitive interest early. Nova Nest Rentals and Property Management benchmarks your flat against real comparables so it enters the market at the right number.',
+          'The single biggest factor in how fast a flat sells is the asking price. Overprice it and you lose the crucial first two to three weeks when serious buyers are most attentive; the listing then goes stale and eventually sells for less. Price it against genuine recent transactions in your own gated community — not aspirational listing prices — and you attract competitive interest early. KMR Real Estates benchmarks your flat against real comparables so it enters the market at the right number.',
         ],
       },
       {
@@ -547,7 +547,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         heading: 'How an agent speeds up the sale',
         paragraphs: [
-          'A specialist agent prices accurately, reaches the right buyers, manages viewings and negotiates so you don’t lose momentum. Just as importantly, they filter out unqualified enquiries and keep the transaction moving through paperwork to registration. Nova Nest Rentals and Property Management positions and markets premium gated-community flats across Bangalore to sell faster and at a fair price, handling the process end to end.',
+          'A specialist agent prices accurately, reaches the right buyers, manages viewings and negotiates so you don’t lose momentum. Just as importantly, they filter out unqualified enquiries and keep the transaction moving through paperwork to registration. KMR Real Estates positions and markets premium gated-community flats across Bangalore to sell faster and at a fair price, handling the process end to end.',
         ],
       },
     ],
@@ -560,9 +560,9 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'best-real-estate-agents-near-me-bangalore-it-corridors',
     title: 'Best Real Estate Agents Near Me in Bangalore’s IT Corridors: What to Look For',
     metaTitle:
-      'Best Real Estate Agents Near Me in Bangalore’s IT Corridors | Nova Nest',
+      'Best Real Estate Agents Near Me in Bangalore’s IT Corridors | KMR Real Estates',
     metaDescription:
-      'Searching “real estate agents near me” in Bangalore’s IT corridors? Here’s what to look for — and how Nova Nest Rentals and Property Management helps renters and buyers.',
+      'Searching “real estate agents near me” in Bangalore’s IT corridors? Here’s what to look for — and how KMR Real Estates helps renters and buyers.',
     author: AUTHOR,
     date: '2026-03-18',
     excerpt:
@@ -602,9 +602,9 @@ export const BLOG_POSTS: BlogPost[] = [
         ],
       },
       {
-        heading: 'How Nova Nest works',
+        heading: 'How KMR Real Estates works',
         paragraphs: [
-          'Nova Nest Rentals and Property Management is a specialist, not a generalist — we focus only on premium 2, 3 and 4 BHK gated-community homes across Bangalore’s IT corridors and beyond. We personally verify listings, accompany every visit, and support you from first enquiry through agreement, handover and follow-up, so “real estate agents near me” actually means someone who knows your corridor and stays in your corner.',
+          'KMR Real Estates is a specialist, not a generalist — we focus only on premium 2, 3 and 4 BHK gated-community homes across Bangalore’s IT corridors and beyond. We personally verify listings, accompany every visit, and support you from first enquiry through agreement, handover and follow-up, so “real estate agents near me” actually means someone who knows your corridor and stays in your corner.',
         ],
       },
     ],
@@ -617,9 +617,9 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'new-homes-for-sale-bangalore-gated-communities-2026',
     title: 'New Homes for Sale in Bangalore’s Top Gated Communities (2026 Guide)',
     metaTitle:
-      'New Homes for Sale in Bangalore’s Top Gated Communities (2026) | Nova Nest',
+      'New Homes for Sale in Bangalore’s Top Gated Communities (2026) | KMR Real Estates',
     metaDescription:
-      'Exploring new homes for sale in Bangalore’s top gated communities in 2026? Nova Nest Rentals and Property Management guides buyers across the city’s best corridors.',
+      'Exploring new homes for sale in Bangalore’s top gated communities in 2026? KMR Real Estates guides buyers across the city’s best corridors.',
     author: AUTHOR,
     date: '2026-03-06',
     excerpt:
@@ -660,9 +660,9 @@ export const BLOG_POSTS: BlogPost[] = [
         ],
       },
       {
-        heading: 'How Nova Nest helps you buy',
+        heading: 'How KMR Real Estates helps you buy',
         paragraphs: [
-          'Nova Nest Rentals and Property Management guides buyers through Bangalore’s new-launch market across every major corridor — comparing projects on quality, pricing, approvals and long-term value, and arranging site visits so you buy with confidence. Whether you want a ready-to-move flat or a well-chosen under-construction home, we help you find the right new home for sale in a premium gated community.',
+          'KMR Real Estates guides buyers through Bangalore’s new-launch market across every major corridor — comparing projects on quality, pricing, approvals and long-term value, and arranging site visits so you buy with confidence. Whether you want a ready-to-move flat or a well-chosen under-construction home, we help you find the right new home for sale in a premium gated community.',
         ],
       },
     ],

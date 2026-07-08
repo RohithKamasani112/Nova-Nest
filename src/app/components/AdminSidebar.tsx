@@ -10,7 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import companyLogo from '../../assets/companyLogo.png';
+import companyLogo from '../../assets/kmr-logo.svg';
 
 interface AdminSidebarProps {
   currentPage: string;
@@ -45,10 +45,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       <div className="mb-4 border-b border-white/10 p-6 pb-4">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 overflow-hidden rounded-lg">
-            <img src={companyLogo} alt="Nova Nest Property Management" className="h-full w-full object-cover" />
+            <img src={companyLogo} alt="KMR Real Estates" className="h-full w-full object-cover" />
           </div>
           <div>
-            <h2 className="font-bold text-white">Nova Nest</h2>
+            <h2 className="font-bold text-white">KMR Real Estates</h2>
             <p className="text-xs text-sidebar-text">Admin Panel</p>
           </div>
         </div>

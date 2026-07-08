@@ -16,35 +16,40 @@ import {
   X,
 } from 'lucide-react';
 import { EASE_ELEGANT, staggerContainer } from '../lib/animation';
-import { HeroVideoBackground } from '../components/HeroVideoBackground';
+import heroImage from '../assets/first_page_image.png';
 import { Seo } from '../components/Seo';
 import { organizationJsonLd, brandOrganizationJsonLd, websiteJsonLd, localityPath, blogPath } from '../utils/seo';
 import { ZONES_IN_ORDER, localitiesByZone } from '../data/localities';
 import { postsNewestFirst } from '../data/blog';
 
-const AnimatedHeading: React.FC<{ text: string; reduce: boolean; start?: boolean; className?: string; delayStart?: number; style?: React.CSSProperties }> = ({
+// Word-by-word rising reveal used by the split editorial hero. Each word sits in
+// an overflow-clipped line box and slides up from below with a small stagger, so
+// the headline "builds" one word at a time rather than per-letter.
+const WordReveal: React.FC<{ text: string; reduce: boolean; start?: boolean; className?: string; accentFrom?: number; baseDelay?: number }> = ({
   text,
   reduce,
   start = true,
   className,
-  delayStart = 0.15,
-  style,
+  accentFrom,
+  baseDelay = 0,
 }) => {
-  if (reduce) return <span className={className} style={style}>{text}</span>;
+  const words = text.split(' ');
+  if (reduce) return <span className={className}>{text}</span>;
   return (
-    <span className={className} style={style} aria-label={text}>
-      {text.split('').map((char, i) => (
-        <motion.span
-          key={`${char}-${i}`}
-          aria-hidden
-          className="inline-block"
-          style={{ whiteSpace: 'pre' }}
-          initial={{ opacity: 0, y: 22 }}
-          animate={start ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }}
-          transition={{ duration: 0.6, delay: delayStart + i * 0.035, ease: EASE_ELEGANT }}
-        >
-          {char === ' ' ? ' ' : char}
-        </motion.span>
+    <span className={className} aria-label={text}>
+      {words.map((word, i) => (
+        <span key={`${word}-${i}`} aria-hidden className="inline-block overflow-hidden align-bottom" style={{ paddingBottom: '0.08em' }}>
+          <motion.span
+            className={`inline-block ${accentFrom !== undefined && i >= accentFrom ? 'text-accent' : ''}`}
+            style={{ whiteSpace: 'pre' }}
+            initial={{ y: '110%' }}
+            animate={start ? { y: '0%' } : { y: '110%' }}
+            transition={{ duration: 0.7, delay: baseDelay + i * 0.09, ease: EASE_ELEGANT }}
+          >
+            {word}
+          </motion.span>
+          {i < words.length - 1 ? ' ' : ''}
+        </span>
       ))}
     </span>
   );
@@ -197,6 +202,97 @@ const LocationField: React.FC<LocationFieldProps> = ({ value, onChange, onSelect
   );
 };
 
+// Light-themed twin of LocationField used inside the split hero's white search
+// card. Same autocomplete behaviour, but dark ink on white instead of the
+// white-on-teal styling the dark-panel variant uses.
+const LocationFieldLight: React.FC<LocationFieldProps> = ({ value, onChange, onSelect, locations }) => {
+  const [focused, setFocused] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const suggestions = useMemo(() => {
+    const unique = Array.from(new Set(locations.filter(Boolean)));
+    const query = value.trim().toLowerCase();
+    const matches = query ? unique.filter((loc) => loc.toLowerCase().includes(query)) : unique;
+    return matches.slice(0, 8);
+  }, [locations, value]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const open = focused && suggestions.length > 0;
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlight((h) => Math.min(h + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlight((h) => Math.max(h - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const pick = suggestions[highlight];
+      if (pick) {
+        onSelect(pick);
+        setFocused(false);
+      }
+    } else if (e.key === 'Escape') {
+      setFocused(false);
+    }
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative flex-1 min-w-0">
+      <input
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setHighlight(0); }}
+        onFocus={() => setFocused(true)}
+        onKeyDown={handleKeyDown}
+        placeholder="Enter location..."
+        className="h-9 w-full bg-transparent text-sm sm:text-base font-medium text-charcoal placeholder-charcoal/40 focus:outline-none"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 text-charcoal/30 hover:text-charcoal/70"
+          aria-label="Clear location"
+        >
+          <X size={15} />
+        </button>
+      )}
+
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+14px)] z-50 w-[22rem] max-w-[90vw] overflow-hidden rounded-2xl border border-charcoal/10 bg-white py-2 text-left shadow-[0_24px_48px_rgba(0,0,0,0.25)]">
+          {suggestions.map((loc, i) => (
+            <button
+              key={loc}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { onSelect(loc); setFocused(false); }}
+              onMouseEnter={() => setHighlight(i)}
+              className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                highlight === i ? 'bg-accent/10' : 'hover:bg-charcoal/[0.04]'
+              }`}
+            >
+              <MapPin size={15} className="flex-shrink-0 text-accent" />
+              <span className="truncate text-[13px] font-medium text-charcoal sm:text-sm">{loc}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, onNavigate, appReady = true }) => {
   // Gate the on-mount hero animations until the splash is gone.
   const start = appReady;
@@ -229,18 +325,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
   const reduce = useReducedMotion();
 
   const { scrollY } = useScroll();
-  const heroParallax = useTransform(scrollY, [0, 600], [0, reduce ? 0 : 90]);
-  const heroFade = useTransform(scrollY, [0, 420], [1, reduce ? 1 : 0.35]);
-
-  const [smallScreen, setSmallScreen] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 640px)');
-    const update = () => setSmallScreen(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  const staticHero = Boolean(reduce) || smallScreen;
+  // Right-hand image panel drifts up slowly as you scroll past the hero.
+  const heroImageParallax = useTransform(scrollY, [0, 600], [0, reduce ? 0 : -60]);
 
   const fadeUp = (delay: number) =>
     reduce
@@ -312,8 +398,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
   return (
     <div className="min-h-screen bg-cream" style={{ fontFamily: "'Inter', sans-serif" }}>
       <Seo
-        title="Nova Nest Rentals and Property Management | Premium Real Estate in Bengaluru"
-        description="Nova Nest Rentals and Property Management is a Bengaluru real estate agent for premium 2, 3 & 4 BHK gated-community flats — homes for sale and for rent across Whitefield, the ORR and beyond."
+        title="KMR Real Estates | Premium Real Estate in Bengaluru"
+        description="KMR Real Estates is a Bengaluru real estate agent for premium 2, 3 & 4 BHK gated-community flats — homes for sale and for rent across Whitefield, the ORR and beyond."
         path="/"
         jsonLd={[organizationJsonLd(), brandOrganizationJsonLd(), websiteJsonLd()]}
       />
@@ -321,114 +407,48 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
       {/* ================================================================= */}
       {/* HERO                                                              */}
       {/* ================================================================= */}
-      <section ref={heroRef} className="relative min-h-[680px] text-white sm:min-h-[760px]">
-        <div className="absolute inset-0 overflow-hidden">
-          <motion.div style={reduce ? undefined : { y: heroParallax, opacity: heroFade }} className="absolute inset-0">
-            <HeroVideoBackground staticOnly={staticHero} />
-          </motion.div>
-        </div>
+      <section ref={heroRef} className="relative grid grid-cols-1 overflow-hidden bg-header lg:grid-cols-[1.05fr_0.95fr]">
+        {/* ---- LEFT: deep-teal editorial panel ---- */}
+        <div className="relative z-10 flex flex-col justify-center px-5 pt-16 pb-12 sm:px-10 sm:pt-20 sm:pb-16 lg:px-14 lg:py-24 xl:px-20">
+          {/* Soft rose-gold glow bleeding from behind the text */}
+          <div
+            className="pointer-events-none absolute -left-24 top-8 h-72 w-72 rounded-full opacity-40 blur-3xl"
+            style={{ background: 'radial-gradient(circle, rgba(201,154,122,0.55) 0%, transparent 70%)' }}
+          />
 
-        <div className="relative max-w-5xl mx-auto px-4 pt-32 pb-16 sm:px-6 sm:py-28 lg:px-8 md:py-36">
-          <div className="text-center">
-
+          <div className="relative max-w-xl">
             {/* Eyebrow */}
-            <motion.p
+            <motion.div
               {...fadeUp(0)}
-              className="font-serif italic text-sm sm:text-base text-accent/90 mb-5 tracking-wide"
-              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 4px 20px rgba(0,0,0,0.8)' }}
+              className="mb-6 inline-flex items-center gap-2.5"
             >
-              Est. Whitefield, Bangalore — Curated Since Day One
-            </motion.p>
-
-            {/* Exact SEO H1 (brief #2): "Nova Nest Rentals and Property
-                Management — Premium Real Estate Services in Bengaluru". The em
-                dash is kept in the DOM (sr-only) so the heading's text content
-                matches the brief verbatim while the two-line hero treatment is
-                preserved visually. */}
-            <h1 className="font-serif tracking-tight mb-5 text-[2rem] leading-[1.1] sm:text-5xl md:text-6xl">
-              <AnimatedHeading
-                text="Nova Nest Property Management"
-                reduce={Boolean(reduce)}
-                start={start}
-                className="block text-white"
-                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 8px 40px rgba(0,0,0,0.85)' }}
-              />
-              <span className="sr-only"> — </span>
-              <span
-                className="relative mt-1.5 inline-block"
-                style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.9)) drop-shadow(0 8px 32px rgba(0,0,0,0.8))' }}
-              >
-                <motion.span
-                  className="block text-accent"
-                  style={
-                    reduce
-                      ? undefined
-                      : {
-                          backgroundImage:
-                            'linear-gradient(90deg, #8C6B2E 0%, #C9A35F 35%, #E0BB76 50%, #C9A35F 65%, #8C6B2E 100%)',
-                          backgroundSize: '200% auto',
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          color: 'transparent',
-                        }
-                  }
-                  initial={reduce ? undefined : { backgroundPosition: '200% center' }}
-                  animate={reduce ? undefined : start ? { backgroundPosition: '-200% center' } : { backgroundPosition: '200% center' }}
-                  transition={reduce ? undefined : { duration: 2.4, delay: 0.9, ease: 'easeInOut' }}
-                >
-                  Premium Real Estate Services in Bengaluru
-                </motion.span>
-                {!reduce && (
-                  <motion.svg
-                    viewBox="0 0 320 12"
-                    className="absolute left-1/2 -bottom-2 h-3 w-[88%] -translate-x-1/2"
-                    preserveAspectRatio="none"
-                  >
-                    <motion.path
-                      d="M4 7 C 80 2, 240 2, 316 7"
-                      stroke="#C9A35F"
-                      strokeWidth="1.5"
-                      fill="none"
-                      strokeLinecap="round"
-                      initial={{ pathLength: 0, opacity: 0 }}
-                      animate={start ? { pathLength: 1, opacity: 0.85 } : { pathLength: 0, opacity: 0 }}
-                      transition={{ duration: 1, delay: 1.5, ease: EASE_ELEGANT }}
-                    />
-                  </motion.svg>
-                )}
+              <span className="h-px w-8 bg-accent" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.28em] text-accent/90">
+                Handpicked Homes · Bengaluru
               </span>
+            </motion.div>
+
+            {/* Headline — word-by-word rising reveal */}
+            <h1 className="font-serif text-[2.5rem] font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-[4.1rem]">
+              <WordReveal text="Find a home" reduce={Boolean(reduce)} start={start} className="block" baseDelay={0.15} />
+              <WordReveal text="worth coming" reduce={Boolean(reduce)} start={start} className="block" baseDelay={0.4} />
+              <WordReveal text="home to." reduce={Boolean(reduce)} start={start} className="block" accentFrom={0} baseDelay={0.62} />
             </h1>
 
             <motion.p
-              {...fadeUp(0.3)}
-              className="text-sm sm:text-base md:text-lg text-white/90 mb-12 max-w-xl mx-auto"
-              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 4px 20px rgba(0,0,0,0.8)' }}
+              {...fadeUp(0.85)}
+              className="mt-6 max-w-md text-sm leading-7 text-white/70 sm:text-base"
             >
-              Verified homes, plots, and commercial addresses curated with care.
+              KMR Real Estates matches renters, buyers and sellers with verified
+              2, 3 &amp; 4 BHK homes across Bengaluru&apos;s most-loved corridors.
             </motion.p>
 
-            {/* Search bar */}
-            <motion.div {...fadeUp(0.45)} className="w-full max-w-3xl mx-auto relative">
-              {!reduce && (
-                <div
-                  className="pointer-events-none absolute -inset-px rounded-2xl opacity-100 animate-[borderTravel_4s_linear_infinite]"
-                  style={{
-                    background:
-                      'conic-gradient(from 0deg, transparent 0%, transparent 55%, #C9A35F 70%, #E0BB76 80%, #F4DDA0 87%, #FCEDC4 90%, #F4DDA0 93%, #E0BB76 97%, transparent 100%)',
-                    WebkitMask:
-                      'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                    WebkitMaskComposite: 'xor',
-                    maskComposite: 'exclude',
-                    padding: '1px',
-                  }}
-                />
-              )}
-
-              <div className="relative flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/[0.08] p-2 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:flex-row sm:items-center sm:gap-1">
+            {/* Search bar — light card on the teal panel */}
+            <motion.div {...fadeUp(1)} className="relative mt-9 w-full max-w-lg">
+              <div className="relative flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/95 p-2 shadow-[0_24px_60px_rgba(8,34,36,0.45)] backdrop-blur-xl sm:flex-row sm:items-center sm:gap-1">
                 <div className="relative flex flex-1 items-center gap-2 rounded-xl px-3 py-2.5 sm:py-2">
-                  <MapPin size={17} className="text-accent flex-shrink-0" />
-                  <LocationField
+                  <MapPin size={17} className="flex-shrink-0 text-header" />
+                  <LocationFieldLight
                     value={filters.location || ''}
                     onChange={handleLocationChange}
                     onSelect={(location) => setFilters({ ...filters, location })}
@@ -436,22 +456,22 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                   />
                 </div>
 
-                <div className="hidden h-7 w-px bg-white/15 sm:block" />
+                <div className="hidden h-7 w-px bg-charcoal/10 sm:block" />
 
-                <div className="flex h-11 flex-shrink-0 items-center gap-1 rounded-xl bg-white/[0.06] p-1">
+                <div className="flex h-11 flex-shrink-0 items-center gap-1 rounded-xl bg-charcoal/[0.05] p-1">
                   {(['buy', 'rent'] as const).map((s) => (
                     <button
                       key={s}
                       onClick={() => handleStatusToggle(s)}
                       className={`relative min-h-[36px] flex-1 rounded-lg px-4 text-[13px] font-semibold transition-colors duration-200 sm:flex-none ${
-                        selectedStatus === s ? 'text-charcoal' : 'text-white/75 hover:text-white'
+                        selectedStatus === s ? 'text-white' : 'text-charcoal/60 hover:text-charcoal'
                       }`}
                     >
                       {selectedStatus === s && (
                         <motion.span
                           layoutId="buyRentPillHero"
                           transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 140, damping: 20 }}
-                          className="absolute inset-0 rounded-lg bg-accent"
+                          className="absolute inset-0 rounded-lg bg-header"
                         />
                       )}
                       <span className="relative z-10">{s === 'buy' ? 'Buy' : 'Rent'}</span>
@@ -459,33 +479,35 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                   ))}
                 </div>
 
-                <button
-                  onClick={() => setShowHeroFilters((v) => !v)}
-                  className="relative flex h-11 flex-shrink-0 items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-4 text-[13px] font-semibold text-white/85 transition-colors hover:bg-white/[0.12] hover:text-white"
-                >
-                  <SlidersHorizontal size={15} />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-charcoal">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                  <ChevronDown size={13} className={`transition-transform ${showHeroFilters ? 'rotate-180' : ''}`} />
-                </button>
-
                 <motion.button
                   onClick={search}
                   whileHover={reduce ? undefined : { scale: 1.03 }}
                   whileTap={reduce ? undefined : { scale: 0.97 }}
                   transition={{ duration: 0.2, ease: EASE_ELEGANT }}
-                  className="flex h-11 flex-shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-6 text-[13px] font-bold text-charcoal hover:bg-accent/90"
+                  className="flex h-11 flex-shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-6 text-[13px] font-bold text-header hover:brightness-105"
                 >
                   <Search size={15} />
                   Search
                 </motion.button>
               </div>
 
-              {/* Expanding filters panel */}
+              {/* Inline filter toggle + expanding panel */}
+              <div className="mt-2.5 flex items-center gap-3 pl-1">
+                <button
+                  onClick={() => setShowHeroFilters((v) => !v)}
+                  className="flex items-center gap-1.5 text-[12px] font-semibold text-white/75 transition-colors hover:text-accent"
+                >
+                  <SlidersHorizontal size={14} />
+                  More filters
+                  {activeFilterCount > 0 && (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-header">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                  <ChevronDown size={13} className={`transition-transform ${showHeroFilters ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
               <AnimatePresence>
                 {showHeroFilters && (
                   <motion.div
@@ -493,65 +515,65 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                     animate={{ opacity: 1, y: 0, height: 'auto' }}
                     exit={{ opacity: 0, y: -8, height: 0 }}
                     transition={{ duration: 0.25, ease: EASE_ELEGANT }}
-                    className="absolute left-0 right-0 top-[calc(100%+10px)] overflow-hidden rounded-2xl border border-white/15 bg-charcoal/95 text-left backdrop-blur-xl shadow-2xl z-50"
+                    className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-white text-left shadow-2xl"
                   >
-                    <div className="max-h-[60vh] overflow-y-auto p-5">
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                      <div>
-                        <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-accent/80">
-                          <IndianRupee size={13} /> Budget
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {budgetOptions.map((o) => (
-                            <button
-                              key={o.label}
-                              onClick={() => setSelectedBudget(o.label)}
-                              className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                                selectedBudget === o.label
-                                  ? 'border-accent bg-accent text-charcoal'
-                                  : 'border-white/15 text-white/70 hover:border-white/30 hover:text-white'
-                              }`}
-                            >
-                              {o.label}
-                            </button>
-                          ))}
+                    <div className="max-h-[52vh] overflow-y-auto p-5">
+                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-header">
+                            <IndianRupee size={13} /> Budget
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {budgetOptions.map((o) => (
+                              <button
+                                key={o.label}
+                                onClick={() => setSelectedBudget(o.label)}
+                                className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                                  selectedBudget === o.label
+                                    ? 'border-header bg-header text-white'
+                                    : 'border-charcoal/15 text-charcoal/70 hover:border-charcoal/30 hover:text-charcoal'
+                                }`}
+                              >
+                                {o.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-header">
+                            <Building2 size={13} /> Property Type
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {typeOptions.map((o) => (
+                              <button
+                                key={o.label}
+                                onClick={() => setSelectedType(o.value)}
+                                className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                                  selectedType === o.value
+                                    ? 'border-header bg-header text-white'
+                                    : 'border-charcoal/15 text-charcoal/70 hover:border-charcoal/30 hover:text-charcoal'
+                                }`}
+                              >
+                                {o.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-accent/80">
-                          <Building2 size={13} /> Property Type
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {typeOptions.map((o) => (
-                            <button
-                              key={o.label}
-                              onClick={() => setSelectedType(o.value)}
-                              className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                                selectedType === o.value
-                                  ? 'border-accent bg-accent text-charcoal'
-                                  : 'border-white/15 text-white/70 hover:border-white/30 hover:text-white'
-                              }`}
-                            >
-                              {o.label}
-                            </button>
-                          ))}
-                        </div>
+                      <div className="mt-5 flex justify-end gap-2 border-t border-charcoal/10 pt-4">
+                        <button
+                          onClick={() => { setSelectedBudget('All Budgets'); setSelectedType(''); }}
+                          className="px-3 py-2 text-[12px] font-semibold text-charcoal/60 hover:text-charcoal"
+                        >
+                          Reset
+                        </button>
+                        <button
+                          onClick={search}
+                          className="rounded-lg bg-header px-4 py-2 text-[12px] font-bold text-white hover:brightness-110"
+                        >
+                          Apply
+                        </button>
                       </div>
-                    </div>
-                    <div className="mt-5 flex justify-end gap-2 border-t border-white/10 pt-4">
-                      <button
-                        onClick={() => { setSelectedBudget('All Budgets'); setSelectedType(''); }}
-                        className="px-3 py-2 text-[12px] font-semibold text-white/60 hover:text-white"
-                      >
-                        Reset
-                      </button>
-                      <button
-                        onClick={search}
-                        className="rounded-lg bg-accent px-4 py-2 text-[12px] font-bold text-charcoal hover:bg-accent/90"
-                      >
-                        Apply
-                      </button>
-                    </div>
                     </div>
                   </motion.div>
                 )}
@@ -559,8 +581,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
             </motion.div>
 
             {/* Popular locations */}
-            <motion.div {...fadeUp(0.6)} className="mt-9 flex flex-wrap items-center justify-center gap-2 text-sm sm:mt-10 sm:gap-3">
-              <span className="text-white/55 text-[13px]">Popular:</span>
+            <motion.div {...fadeUp(1.15)} className="mt-8 flex flex-wrap items-center gap-2 text-sm sm:gap-3">
+              <span className="text-[13px] text-white/45">Popular:</span>
               {['Whitefield', 'Marathahalli', 'Bellandur', 'Hoodi'].map((place, i) => (
                 <motion.button
                   key={place}
@@ -569,21 +591,79 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                     : {
                         initial: { opacity: 0, y: 10 },
                         animate: { opacity: 1, y: 0 },
-                        transition: { duration: 0.4, delay: 0.6 + i * 0.05, ease: EASE_ELEGANT },
+                        transition: { duration: 0.4, delay: 1.2 + i * 0.06, ease: EASE_ELEGANT },
                       })}
-                  whileHover={reduce ? undefined : { scale: 1.05, borderColor: 'rgba(201,163,95,0.6)' }}
+                  whileHover={reduce ? undefined : { scale: 1.05 }}
                   onClick={() => handlePopularLocation(place)}
-                  className="rounded-full border border-white/25 px-3.5 py-1.5 text-[12px] text-white/85 transition-colors hover:text-white sm:px-4 sm:text-[13px]"
+                  className="rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] text-white/80 transition-colors hover:border-accent hover:text-accent sm:px-4 sm:text-[13px]"
                 >
                   {place}
                 </motion.button>
               ))}
             </motion.div>
+
+            {/* Trust stats strip */}
+            <motion.div {...fadeUp(1.35)} className="mt-10 flex gap-8 border-t border-white/10 pt-6">
+              {[
+                { n: '1200+', l: 'Homes listed' },
+                { n: '500+', l: 'Families settled' },
+                { n: '12+', l: 'Years in Bengaluru' },
+              ].map((s) => (
+                <div key={s.l}>
+                  <div className="font-serif text-2xl font-bold text-accent sm:text-3xl">{s.n}</div>
+                  <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-white/50">{s.l}</div>
+                </div>
+              ))}
+            </motion.div>
           </div>
         </div>
 
-        {/* Brass hairline bottom rule */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
+        {/* ---- RIGHT: Ken-Burns image panel ---- */}
+        <div className="relative min-h-[320px] overflow-hidden lg:min-h-full">
+          <motion.div
+            className="absolute -inset-y-16 inset-x-0"
+            style={{ y: heroImageParallax }}
+            initial={reduce ? undefined : { scale: 1.12 }}
+            animate={reduce ? undefined : { scale: 1 }}
+            transition={reduce ? undefined : { duration: 1.4, ease: EASE_ELEGANT }}
+          >
+            <motion.img
+              src={heroImage}
+              alt="Featured KMR Real Estates home in Bengaluru"
+              className="h-full w-full object-cover"
+              animate={reduce ? undefined : { scale: [1, 1.08], x: [0, -14], y: [0, -10] }}
+              transition={reduce ? undefined : { duration: 18, ease: 'easeInOut', repeat: Infinity, repeatType: 'reverse' }}
+            />
+          </motion.div>
+
+          {/* Teal wash blending the image into the left panel on large screens */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: 'linear-gradient(90deg, rgba(15,59,62,0.85) 0%, rgba(15,59,62,0.15) 22%, transparent 45%)' }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 lg:hidden"
+            style={{ background: 'linear-gradient(180deg, rgba(15,59,62,0.35) 0%, transparent 40%)' }}
+          />
+
+          {/* Floating glass caption card */}
+          <motion.div
+            {...(reduce
+              ? {}
+              : { initial: { opacity: 0, y: 24 }, animate: start ? { opacity: 1, y: 0 } : {}, transition: { duration: 0.7, delay: 1.1, ease: EASE_ELEGANT } })}
+            className="absolute bottom-5 right-5 z-10 rounded-2xl border border-white/20 bg-header/40 px-5 py-4 backdrop-blur-md sm:bottom-8 sm:right-8"
+          >
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              Verified listing
+            </div>
+            <div className="mt-1 font-serif text-lg font-bold text-white">Gated-community living</div>
+            <div className="text-[13px] text-white/70">Whitefield · East Bengaluru</div>
+          </motion.div>
+        </div>
+
+        {/* Rose-gold hairline bottom rule */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
       </section>
 
       {/* ================================================================= */}
@@ -829,7 +909,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
               Premium flats for rent &amp; homes for sale across Bengaluru
             </h2>
             <p className="mt-2 max-w-2xl text-sm font-medium leading-7 text-charcoal/55">
-              Nova Nest Rentals and Property Management covers premium 2, 3 &amp; 4 BHK
+              KMR Real Estates covers premium 2, 3 &amp; 4 BHK
               gated communities in Bengaluru's top residential corridors. Pick an area to
               see local rent ranges, connectivity and a tenant onboarding guide.
             </p>
@@ -918,13 +998,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
           </div>
         </div>
       </section>
-
-      <style>{`
-        @keyframes borderTravel {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 };

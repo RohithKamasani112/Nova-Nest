@@ -57,7 +57,7 @@ export const TenantOnboardingChecklist: React.FC<{ localityName?: string }> = ({
         {localityName ? ` for ${localityName}` : ''}
       </h2>
       <p className="mt-2 text-sm leading-7 text-charcoal/60">
-        A step-by-step guide from Nova Nest Rentals and Property Management to help
+        A step-by-step guide from KMR Real Estates to help
         you rent a premium gated-community flat in Bangalore without surprises.
       </p>
 

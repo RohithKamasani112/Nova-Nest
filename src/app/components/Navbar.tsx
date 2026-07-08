@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Menu, Search, X } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
-import companyLogo from '../../assets/companyLogo.png';
+import companyLogo from '../../assets/kmr-logo.svg';
 import toast from 'react-hot-toast';
 import { createLead } from '../../services/storageService';
 
@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPag
   // Navbar background + shadow interpolate with scroll (spec #8): transparent
   // cream at the top, opaque with a soft shadow once scrolled.
   const { scrollY } = useScroll();
-  const navBg = useTransform(scrollY, [0, 80], ['rgba(248,249,252,0.7)', 'rgba(248,249,252,0.98)']);
+  const navBg = useTransform(scrollY, [0, 80], ['rgba(246,240,232,0.82)', 'rgba(246,240,232,0.98)']);
   const navShadow = useTransform(
     scrollY,
     [0, 80],
@@ -113,12 +113,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPag
             <span className="h-9 w-9 overflow-hidden rounded-md shadow-subtle transition-transform duration-[250ms] hover:scale-105">
               <img
                 src={companyLogo}
-                alt="Nova Nest Property Management"
+                alt="KMR Real Estates"
                 className="h-full w-full object-cover"
               />
             </span>
             <span className="font-display text-xl font-bold tracking-[0.015em] text-charcoal hidden sm:inline">
-              Nova Nest
+              KMR Real Estates
             </span>
           </button>
 

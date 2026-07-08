@@ -12,35 +12,35 @@ import { toTitleCase } from './format';
 // ---------------------------------------------------------------------------
 
 // Production origin. No trailing slash. Change here if the domain ever moves.
-export const SITE_URL = 'https://novanest.co.in';
+export const SITE_URL = 'https://kmrrealestates.in';
 
 export const BRAND = {
-  name: 'Nova Nest',
+  name: 'KMR Real Estates',
   // Full legal/entity name — used everywhere for brand disambiguation so Google
-  // learns that "Nova Nest" + "Bangalore real estate" maps to this domain (and
-  // not the unrelated furniture / UK-property / AI-voice "Nova Nest" companies).
-  legalName: 'Nova Nest Rentals and Property Management',
+  // learns that "KMR Real Estates" + "Bangalore real estate" maps to this domain (and
+  // not the unrelated furniture / UK-property / AI-voice "KMR Real Estates" companies).
+  legalName: 'KMR Real Estates',
   // Canonical entity URL used in schema.org `url` fields. The brief specifies
   // the www host for the organisation entity; the site canonicals remain on the
   // apex SITE_URL, and the two hosts resolve to the same site.
-  entityUrl: 'https://www.novanest.co.in',
+  entityUrl: 'https://www.kmrrealestates.in',
   // Default social-share image. Replace public/og-image.jpg with a real
   // 1200x630 branded image for best link previews (see the manual checklist).
   ogImage: `${SITE_URL}/og-image.jpg`,
-  logo: `${SITE_URL}/nova-nest-logo.png`,
-  twitter: '@novanest', // update if a real handle exists
-  themeColor: '#15211A',
+  logo: `${SITE_URL}/kmr-logo.svg`,
+  twitter: '@kmrrealestates', // update if a real handle exists
+  themeColor: '#082224',
 };
 
 export const BUSINESS = {
-  phone: '+91-98454-18570',
-  altPhone: '+91-96637-95675',
-  email: 'novanestpropertymanagement@gmail.com',
+  phone: '+91-90000-00000',
+  altPhone: '+91-90000-00001',
+  email: 'contact@kmrrealestates.in',
   streetAddress:
-    'Ground Floor, Site No-29 & 30, Maheshwaramma Temple Road, 1st Main Rd, Maheswari Nagar, Mahadevapura',
-  addressLocality: 'Bengaluru',
-  addressRegion: 'Karnataka',
-  postalCode: '560048',
+    '2nd Floor, Plot No-14, Renigunta Road, Near Balaji Colony',
+  addressLocality: 'Tirupati',
+  addressRegion: 'Andhra Pradesh',
+  postalCode: '517501',
   addressCountry: 'IN',
   areaServed: ['Whitefield', 'Marathahalli', 'Bellandur', 'Hoodi', 'Mahadevapura', 'Bengaluru'],
   openingHours: 'Mo-Sa 10:00-19:00',
@@ -242,7 +242,7 @@ export const propertyImage = (p: Property): string => {
 // JSON-LD (schema.org) builders — return plain objects; <Seo> stringifies them.
 // ---------------------------------------------------------------------------
 
-// The three services Nova Nest offers, surfaced as a schema.org OfferCatalog so
+// The three services KMR Real Estates offers, surfaced as a schema.org OfferCatalog so
 // search engines can associate the entity with each service line.
 export const BRAND_SERVICES = ['Property Rental', 'Property Resale', 'Property Management'];
 

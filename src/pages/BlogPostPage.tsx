@@ -77,7 +77,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onNavigate }) 
               onClick={() => onNavigate('blog')}
               className="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-cream/70 transition-colors hover:text-accent"
             >
-              ← Nova Nest Blog
+              ← KMR Real Estates Blog
             </button>
             <span className="inline-flex items-center rounded-full bg-cream/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
               {theme.label}
@@ -128,7 +128,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onNavigate }) 
           <div className="mb-11 rounded-2xl border-l-4 border-accent bg-white p-5 sm:p-6">
             <p className="font-reading text-[16px] leading-[1.75] text-charcoal/80">
               <strong className="font-semibold text-charcoal">
-                Nova Nest Rentals and Property Management
+                KMR Real Estates
               </strong>{' '}
               helps buyers, sellers and tenants navigate premium gated communities across
               Bangalore — from Whitefield and the Outer Ring Road to South and North
@@ -194,7 +194,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onNavigate }) 
           {/* ===== Scaffold notice (only while full copy is pending) ===== */}
           {post.status === 'scaffold' && (
             <p className="mt-10 rounded-xl bg-accent/10 p-4 text-[13px] leading-6 text-charcoal/60">
-              This guide's full article is being finalised by the Nova Nest Rentals and
+              This guide's full article is being finalised by the KMR Real Estates Rentals and
               Property Management editorial team. Meanwhile, our advisors can answer your
               questions directly — <button onClick={() => onNavigate('contact')} className="font-semibold text-accent underline">get in touch</button>.
             </p>
@@ -226,7 +226,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onNavigate }) 
           {relatedLocalities.length > 0 && (
             <div className="mt-12 rounded-2xl border border-charcoal/10 bg-white p-6">
               <h2 className="font-serif text-xl font-bold text-charcoal">
-                Explore these areas with Nova Nest
+                Explore these areas with KMR Real Estates
               </h2>
               <p className="mt-1 text-sm text-charcoal/55">
                 Premium 2, 3 &amp; 4 BHK flats for rent and sale in gated communities.
@@ -295,14 +295,14 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onNavigate }) 
               Renting, buying or selling in Bangalore?
             </h2>
             <p className="mx-auto mt-3 max-w-xl font-reading text-[15px] leading-[1.7] text-cream/75">
-              Nova Nest Rentals and Property Management guides you through premium
+              KMR Real Estates guides you through premium
               gated-community homes across the city. Tell us what you're looking for.
             </p>
             <button
               onClick={() => onNavigate('contact')}
               className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-md bg-accent px-7 py-3 text-sm font-bold text-charcoal transition-colors hover:bg-accent/90"
             >
-              Contact Nova Nest <ArrowRight size={16} />
+              Contact KMR Real Estates <ArrowRight size={16} />
             </button>
           </div>
         </div>

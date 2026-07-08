@@ -245,7 +245,7 @@ const AppContent: React.FC<{
 }) => {
   const { logout, isAuthenticated } = useAuth();
   const reduce = useReducedMotion();
-  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
+  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919000000000';
   const floatingWhatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
   // Capture the visitor's number as a lead before sending them to WhatsApp.
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
@@ -330,7 +330,7 @@ const AppContent: React.FC<{
       {currentPage === 'home' && (
         <div className="fixed bottom-6 right-4 z-50 flex flex-col items-center gap-3 sm:right-6">
           <motion.a
-            href="tel:+919845418570"
+            href="tel:+919000000000"
             aria-label="Call us"
             onClick={() => trackPhoneClick('floating_button')}
             whileHover={reduce ? undefined : { scale: 1.12 }}

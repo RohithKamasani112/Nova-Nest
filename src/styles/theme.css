@@ -3,78 +3,78 @@
 :root {
   --font-size: 16px;
 
-  /* Nova Nest design tokens — "Forest & Brass" (light) theme.
-     Forest green is the brand/chrome color (header, nav, footer); brass/gold is
-     the accent for borders, badges and highlights. Page backgrounds stay light
-     (white / warm off-white) — the dark green is reserved for chrome only.
+  /* KMR Real Estates design tokens — "Teal & Rose Gold" (light) theme.
+     Deep teal is the brand/chrome color (header, nav, footer); rose gold is
+     the accent for borders, badges, CTAs and highlights. Page backgrounds stay
+     light (white / ivory off-white) — the deep teal is reserved for chrome.
      Contrast rules baked into the token choices:
-       • brass at small text sizes never sits on plain white — text-safe brass is
-         --color-brass-deep (#8C6B2E, 4.9:1 on white).
-       • the `accent` role maps to brass-LIGHT (#E0BB76) because accent text is
-         used on the dark green chrome (5.6:1 on #2E4636 / 9.1:1 on #15211A). */
+       • rose gold at small text sizes never sits on plain white — text-safe rose
+         is --color-brass-deep (#9C6B4E) for labels on white/ivory.
+       • the `accent` role maps to rose-LIGHT (#D9B295) because accent text is
+         used on the deep teal chrome (on #0F3B3E / #082224). */
 
-  /* New forest & brass palette */
-  --color-header: #2E4636;          /* mid forest green — header, nav, footer */
-  --color-header-dark: #15211A;     /* near-black green — logo chip, deep accents */
-  --color-brass: #C9A35F;           /* brass/gold — borders, badges (large/decorative) */
-  --color-brass-light: #E0BB76;     /* lighter brass — hover, active underline, text-on-green */
-  --color-brass-deep: #8C6B2E;      /* deep brass — text-safe label color on white/cream */
-  --color-hero-bg: #F7F5EF;         /* warm off-white — hero & light section backgrounds */
+  /* Teal & rose gold palette */
+  --color-header: #0F3B3E;          /* deep teal — header, nav, footer */
+  --color-header-dark: #082224;     /* near-black teal — logo chip, deep accents */
+  --color-brass: #C99A7A;           /* rose gold — borders, badges, CTAs (decorative) */
+  --color-brass-light: #D9B295;     /* light rose gold — hover, active underline, text-on-teal */
+  --color-brass-deep: #9C6B4E;      /* deep rose gold — text-safe label color on white/ivory */
+  --color-hero-bg: #F6F0E8;         /* ivory off-white — hero & light section backgrounds */
 
   /* Role-based palette */
-  --color-primary: #2E4636;         /* forest green — primary brand/buttons (white text) */
-  --color-primary-hover: #233A2C;   /* darker green for hover/active */
-  --color-primary-light: #E7EDE5;   /* pale sage tint */
-  --color-primary-dark: #233A2C;    /* alias of primary-hover for legacy classes */
-  --color-accent: #E0BB76;          /* brass-light — accent text on dark green chrome */
-  --color-accent-light: #F0E2C0;    /* pale brass tint for soft badges */
+  --color-primary: #0F3B3E;         /* deep teal — primary brand/buttons (white text) */
+  --color-primary-hover: #1B5C60;   /* mid teal for hover/active/cards */
+  --color-primary-light: #DCEAE9;   /* pale teal tint */
+  --color-primary-dark: #0A2E30;    /* darker teal for pressed states / legacy classes */
+  --color-accent: #D9B295;          /* light rose gold — accent text on deep teal chrome */
+  --color-accent-light: #EFD9C8;    /* pale rose tint for soft badges */
   --color-background: #FFFFFF;
-  --color-surface: #F1ECE0;         /* soft cream — button fills, subtle sections */
+  --color-surface: #EFE6D9;         /* warm ivory — button fills, subtle sections */
   --color-card: #FFFFFF;
-  --color-ink: #15211A;             /* deep green ink for dark surfaces */
-  --color-sidebar: #2E4636;
-  --color-sidebar-text: #CBD8C4;    /* light sage text on green sidebar */
-  --color-sidebar-active: #C9A35F;
-  --color-text-primary: #23331F;    /* dark green-black — headings, primary text (13.4:1) */
-  --color-text-secondary: #5C6B58;  /* muted green-gray — body/secondary text (5.7:1) */
-  --color-text-muted: #5C6B58;
+  --color-ink: #082224;             /* deep teal ink for dark surfaces */
+  --color-sidebar: #0F3B3E;
+  --color-sidebar-text: #B9D2D0;    /* light teal text on teal sidebar */
+  --color-sidebar-active: #C99A7A;
+  --color-text-primary: #14312F;    /* dark teal-black — headings, primary text */
+  --color-text-secondary: #52605F;  /* muted teal-gray — body/secondary text */
+  --color-text-muted: #52605F;
   --color-border: #E5E7EB;
 
   /* Legacy brand vars remapped onto the new palette.
      `gold` → brass-deep so existing text-gold/border-gold/bg-gold usages stay
      AA-safe on white; `charcoal` → dark green-black; `cream` → warm off-white;
      `emerald` → header green. */
-  --gold: #8C6B2E;
-  --gold-light: #C9A35F;
-  --gold-pale: #F1E7D2;
-  --dark: #15211A;
-  --emerald: #2E4636;
-  --cream: #F7F5EF;
+  --gold: #9C6B4E;
+  --gold-light: #C99A7A;
+  --gold-pale: #F1E3D8;
+  --dark: #082224;
+  --emerald: #0F3B3E;
+  --cream: #F6F0E8;
   --white: #FFFFFF;
-  --bg-warm: #F7F5EF;
+  --bg-warm: #F6F0E8;
   --background: #FFFFFF;
-  --foreground: #23331F;
+  --foreground: #14312F;
   --card: #FFFFFF;
-  --card-foreground: #23331F;
+  --card-foreground: #14312F;
   --popover: #FFFFFF;
-  --popover-foreground: #23331F;
-  --primary: #2E4636;
+  --popover-foreground: #14312F;
+  --primary: #0F3B3E;
   --primary-foreground: #FFFFFF;
-  --secondary: #E7EDE5;
-  --secondary-foreground: #233A2C;
-  --muted: #EFECE3;
-  --muted-foreground: #5C6B58;
-  --accent: #E0BB76;
-  --accent-foreground: #23331F;
+  --secondary: #DCEAE9;
+  --secondary-foreground: #0A2E30;
+  --muted: #EDE4D7;
+  --muted-foreground: #52605F;
+  --accent: #D9B295;
+  --accent-foreground: #14312F;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
   --border: #E5E7EB;
   --input: transparent;
-  --input-background: #F7F5EF;
+  --input-background: #F6F0E8;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #2E4636;
+  --ring: #0F3B3E;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -136,27 +136,27 @@
   --font-reading: 'Lora', Georgia, 'Times New Roman', serif;
 
   /* New palette tokens (usable as bg-header, text-brass-deep, bg-surface, etc.) */
-  --color-header: #2E4636;
-  --color-header-dark: #15211A;
-  --color-brass: #C9A35F;
-  --color-brass-light: #E0BB76;
-  --color-brass-deep: #8C6B2E;
-  --color-hero-bg: #F7F5EF;
-  --color-primary: #2E4636;
-  --color-primary-hover: #233A2C;
-  --color-primary-light: #E7EDE5;
-  --color-primary-dark: #233A2C;
-  --color-accent: #E0BB76;
-  --color-accent-light: #F0E2C0;
+  --color-header: #0F3B3E;
+  --color-header-dark: #082224;
+  --color-brass: #C99A7A;
+  --color-brass-light: #D9B295;
+  --color-brass-deep: #9C6B4E;
+  --color-hero-bg: #F6F0E8;
+  --color-primary: #0F3B3E;
+  --color-primary-hover: #0A2E30;
+  --color-primary-light: #DCEAE9;
+  --color-primary-dark: #0A2E30;
+  --color-accent: #D9B295;
+  --color-accent-light: #EFD9C8;
   --color-background: #FFFFFF;
-  --color-surface: #F1ECE0;
-  --color-ink: #15211A;
-  --color-sidebar-navy: #2E4636;
-  --color-sidebar-text: #CBD8C4;
-  --color-sidebar-active: #C9A35F;
-  --color-text-primary: #23331F;
-  --color-text-secondary: #5C6B58;
-  --color-text-muted: #5C6B58;
+  --color-surface: #EFE6D9;
+  --color-ink: #082224;
+  --color-sidebar-navy: #0F3B3E;
+  --color-sidebar-text: #B9D2D0;
+  --color-sidebar-active: #C99A7A;
+  --color-text-primary: #14312F;
+  --color-text-secondary: #52605F;
+  --color-text-muted: #52605F;
 
   /* ---- Type scale (audit fix): every Tailwind text-* utility is remapped onto
      the 6-role scale below, so the whole app collapses from 8+ sizes to the
@@ -186,12 +186,12 @@
   --text-7xl--line-height: 1.1;
 
   /* Legacy aliases remapped to the new palette */
-  --color-cream: #F7F5EF;
-  --color-charcoal: #23331F;
-  --color-gold: #8C6B2E;
-  --color-gold-light: #C9A35F;
-  --color-gold-pale: #F1E7D2;
-  --color-emerald: #2E4636;
+  --color-cream: #F6F0E8;
+  --color-charcoal: #14312F;
+  --color-gold: #9C6B4E;
+  --color-gold-light: #C99A7A;
+  --color-gold-pale: #F1E3D8;
+  --color-emerald: #0F3B3E;
   --spacing-1: 0.5rem;
   --spacing-2: 1rem;
   --spacing-3: 1.5rem;
@@ -251,7 +251,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 16px;
     line-height: 1.5;
-    color: #23331F;
+    color: #14312F;
   }
 
   h1,
@@ -359,7 +359,7 @@
   /* Brass gradient for accent CTAs that carry dark (text-charcoal) labels.
      Kept light enough that --color-text-primary stays >=5.6:1 across the fade. */
   .gold-gradient {
-    background: linear-gradient(135deg, #E0BB76 0%, #C9A35F 100%);
+    background: linear-gradient(135deg, #D9B295 0%, #C99A7A 100%);
   }
 
   .no-scrollbar::-webkit-scrollbar {
