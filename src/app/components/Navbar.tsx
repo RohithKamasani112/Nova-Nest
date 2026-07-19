@@ -148,13 +148,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPag
             </button>
 
             <button
-              onClick={() => navigate('admin-login')}
-              className="hidden md:flex items-center min-h-[44px] border border-primary text-gold font-semibold px-5 py-2 rounded-md hover:bg-gold/10 active:bg-gold/15 transition-all duration-[250ms] text-sm"
-            >
-              Admin Login
-            </button>
-
-            <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="md:hidden flex h-11 w-11 items-center justify-center hover:bg-gold/10 rounded-md transition-colors text-charcoal hover:text-gold"
               aria-label="Menu"
@@ -193,12 +186,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPag
                 >
                   <Calendar size={16} />
                   Schedule Visit
-                </button>
-                <button
-                  onClick={() => navigate('admin-login')}
-                  className="block w-full text-left px-4 py-3 rounded-md border border-gold/70 text-gold hover:bg-gold/10 transition-all duration-[250ms] font-semibold text-sm"
-                >
-                  Admin Login
                 </button>
               </div>
             </div>

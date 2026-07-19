@@ -121,7 +121,7 @@ export const pathForState = (
     case 'blog-post':
       return slug ? blogPath(slug) : '/blog';
     case 'admin-login':
-      return '/admin/login';
+      return '/admin-login';
     case 'dashboard':
       return '/admin/dashboard';
     case 'add-property':
@@ -130,6 +130,8 @@ export const pathForState = (
       return '/admin/manage-properties';
     case 'leads':
       return '/admin/leads';
+    case 'generate-bill':
+      return '/admin/generate-bill';
     case 'settings':
       return '/admin/settings';
     case 'property-details':
@@ -154,11 +156,17 @@ export const parsePath = (pathname: string): ParsedRoute => {
   if (clean === '/about') return { type: 'page', page: 'about' };
   if (clean === '/contact') return { type: 'page', page: 'contact' };
   if (clean === '/blog') return { type: 'page', page: 'blog' };
-  if (clean === '/admin' || clean === '/admin/login') return { type: 'page', page: 'admin-login' };
+  // '/admin-login' is the canonical URL admins type in directly; '/admin' and
+  // '/admin/login' are kept as aliases since they were the URL this page used
+  // to construct (no "Admin Login" nav button links here anymore — it's
+  // reachable only by typing the URL).
+  if (clean === '/admin-login' || clean === '/admin' || clean === '/admin/login')
+    return { type: 'page', page: 'admin-login' };
   if (clean === '/admin/dashboard') return { type: 'page', page: 'dashboard' };
   if (clean === '/admin/add-property') return { type: 'page', page: 'add-property' };
   if (clean === '/admin/manage-properties') return { type: 'page', page: 'manage-properties' };
   if (clean === '/admin/leads') return { type: 'page', page: 'leads' };
+  if (clean === '/admin/generate-bill') return { type: 'page', page: 'generate-bill' };
   if (clean === '/admin/settings') return { type: 'page', page: 'settings' };
 
   const blogMatch = clean.match(/^\/blog\/(.+)$/);

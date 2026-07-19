@@ -41,7 +41,13 @@ export function useUrlSync({
   activeSlug = null,
   applyRoute,
 }: UrlSyncArgs): void {
-  const suppress = useRef(false);
+  // Starts true so the "state -> URL" effect below doesn't fire on the very
+  // first mount: effects run in declaration order, and currentPage always
+  // starts as 'home', so without this it would push '/' over whatever the
+  // visitor actually typed (e.g. /admin-login) before the "URL -> state"
+  // effect even gets a chance to read and apply it. Flipped to false once
+  // that initial parse completes.
+  const suppress = useRef(true);
   const selectedId = selectedProperty?.id;
   // Skip the initial render: GA's config call in index.html already sends the
   // first page_view, so we only report subsequent client-side navigations.

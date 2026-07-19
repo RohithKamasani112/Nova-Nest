@@ -247,7 +247,7 @@ const AppContent: React.FC<{
   renderPage,
   renderAdminContent,
 }) => {
-  const { logout, isAuthenticated } = useAuth();
+  const { logout, isAuthenticated, isLoading: authLoading } = useAuth();
   const reduce = useReducedMotion();
   const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
   const floatingWhatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
@@ -282,8 +282,12 @@ const AppContent: React.FC<{
     window.open(floatingWhatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // Auth guard for admin pages
-  if (isAdminPage && !isAuthenticated) {
+  // Auth guard for admin pages. Session restore (getCurrentAuthUser reading
+  // localStorage) is async, so on a fresh page refresh isAuthenticated is
+  // briefly false before authLoading flips to false — redirecting on that
+  // transient state would kick an already-logged-in admin straight back out
+  // to the login page every time they reload.
+  if (isAdminPage && !authLoading && !isAuthenticated) {
     handleNavigate('admin-login');
   }
 
