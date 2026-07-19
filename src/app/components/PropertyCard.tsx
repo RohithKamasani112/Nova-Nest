@@ -12,6 +12,11 @@ interface PropertyCardProps {
   isFavorite?: boolean;
   onClick?: () => void;
   index?: number;
+  // "Properties Near Me" list view: a formatted distance (e.g. "2.3 km away")
+  // and whether this card's map pin is the one currently selected.
+  distanceLabel?: string;
+  isActive?: boolean;
+  onHoverChange?: (hovering: boolean) => void;
 }
 
 const formatPrice = (property: Property): string => {
@@ -89,6 +94,9 @@ const RippleButton: React.FC<
 export const PropertyCard: React.FC<PropertyCardProps> = ({
   property,
   onClick,
+  distanceLabel,
+  isActive,
+  onHoverChange,
 }) => {
   const reduce = useReducedMotion();
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -108,6 +116,8 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       whileHover={reduce ? undefined : { y: -6, boxShadow: '0 16px 40px rgba(15,31,61,0.14)' }}
       transition={{ duration: 0.3, ease: EASE_ELEGANT }}
       onClick={onClick}
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
@@ -116,7 +126,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           onClick?.();
         }
       }}
-      className="card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.07)]"
+      className={`card group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_2px_16px_rgba(0,0,0,0.07)] transition-shadow ${
+        isActive ? 'ring-2 ring-primary' : ''
+      }`}
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* ── Mobile compact layout (below sm): horizontal thumbnail + tight details ── */}
@@ -131,8 +143,12 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             decoding="async"
             className="h-full w-full object-cover"
           />
-          <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-charcoal">
-            {categoryLabel(property.category)}
+          <span
+            className={`absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] ${
+              property.featured ? 'bg-charcoal text-accent' : 'bg-accent text-charcoal'
+            }`}
+          >
+            {property.featured ? 'New Launch' : categoryLabel(property.category)}
           </span>
         </div>
 
@@ -152,6 +168,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             <span className="truncate text-[11px] font-medium text-muted-foreground">
               {toTitleCase(property.location)}
             </span>
+            {distanceLabel && (
+              <span className="flex-shrink-0 text-[11px] font-semibold text-primary">· {distanceLabel}</span>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-2">
@@ -173,15 +192,15 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           <div className="mt-0.5 flex items-center gap-1.5">
             <button
               onClick={handleActionClick}
-              className="rounded-full bg-charcoal px-3 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-header-dark"
-            >
-              Book Visit
-            </button>
-            <button
-              onClick={handleActionClick}
               className="rounded-full bg-gold px-3 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-primary-dark"
             >
               Enquire
+            </button>
+            <button
+              onClick={handleActionClick}
+              className="rounded-full border border-charcoal/25 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-charcoal transition-colors hover:border-charcoal/40"
+            >
+              Book Visit
             </button>
           </div>
         </div>
@@ -206,14 +225,13 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           className="card-img h-full w-full object-cover"
         />
 
-        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          {property.featured && (
-            <span className="rounded-full bg-charcoal px-2.5 py-1 text-xs font-bold uppercase tracking-[0.05em] text-accent">
-              New Launch
-            </span>
-          )}
-          <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-bold uppercase tracking-[0.05em] text-charcoal">
-            {categoryLabel(property.category)}
+        <div className="absolute left-3 top-3">
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-[0.05em] ${
+              property.featured ? 'bg-charcoal text-accent' : 'bg-accent text-charcoal'
+            }`}
+          >
+            {property.featured ? 'New Launch' : categoryLabel(property.category)}
           </span>
         </div>
 
@@ -241,6 +259,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
         <div className="mb-2 flex items-center gap-1">
           <MapPin size={14} className="flex-shrink-0 text-gold" />
           <span className="truncate text-xs font-medium text-muted-foreground">{toTitleCase(property.location)}</span>
+          {distanceLabel && (
+            <span className="flex-shrink-0 text-xs font-semibold text-primary">· {distanceLabel}</span>
+          )}
         </div>
 
         <div className="mb-3 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3">
@@ -264,40 +285,33 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           )}
         </div>
 
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xl font-extrabold leading-none tracking-normal text-text-primary">
-              {formatPrice(property)}
+        <div className="mb-3 min-w-0">
+          <p className="text-xl font-extrabold leading-none tracking-normal text-text-primary">
+            {formatPrice(property)}
+          </p>
+          {showPerSqft ? (
+            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+              {`₹${property.pricePerSqft!.toLocaleString('en-IN')}/sqft`}
             </p>
-            {showPerSqft ? (
-              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
-                {`₹${property.pricePerSqft!.toLocaleString('en-IN')}/sqft`}
-              </p>
-            ) : (
-              <p className="mt-0.5 text-xs font-medium text-muted-foreground">
-                {property.status === 'rent' ? 'rental price' : 'onwards'}
-              </p>
-            )}
-          </div>
-          {property.bedrooms > 0 && (
-            <span className="flex-shrink-0 rounded-lg bg-gold/10 px-2.5 py-1 text-xs font-bold text-gold">
-              {property.bedrooms} BHK
-            </span>
+          ) : (
+            <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+              {property.status === 'rent' ? 'rental price' : 'onwards'}
+            </p>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex gap-2">
           <RippleButton
             onClick={handleActionClick}
-            className="min-h-[44px] rounded-xl bg-charcoal py-2.5 text-sm font-bold uppercase tracking-[0.05em] text-white transition-colors hover:bg-header-dark"
+            className="min-h-[44px] flex-1 rounded-xl bg-gold py-2.5 text-sm font-bold uppercase tracking-[0.05em] text-white transition-all hover:bg-primary-dark"
           >
-            Book Visit
+            Enquire
           </RippleButton>
           <RippleButton
             onClick={handleActionClick}
-            className="min-h-[44px] rounded-xl bg-gold py-2.5 text-sm font-bold uppercase tracking-[0.05em] text-white transition-all hover:bg-primary-dark"
+            className="min-h-[44px] flex-shrink-0 rounded-xl border border-charcoal/20 px-4 py-2.5 text-sm font-bold uppercase tracking-[0.05em] text-charcoal transition-colors hover:border-charcoal/40 hover:bg-charcoal/5"
           >
-            Enquire
+            Book Visit
           </RippleButton>
         </div>
       </div>

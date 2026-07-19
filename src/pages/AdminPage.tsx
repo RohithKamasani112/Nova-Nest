@@ -1,30 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Property } from '../types';
+import { NearbyPlace, Property } from '../types';
 import {
   createProperty,
   updateProperty,
   uploadImage,
 } from '../services/storageService';
-import {
-  Baby,
-  Building2,
-  Car,
-  Check,
-  CheckCircle,
-  Cctv,
-  Dumbbell,
-  Flame,
-  Home,
-  Landmark,
-  Phone,
-  ShieldCheck,
-  Trees,
-  Upload,
-  Users,
-  Wifi,
-  X,
-  Zap,
-} from 'lucide-react';
+import { Check, CheckCircle, Star, Upload, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import toast from 'react-hot-toast';
 import {
@@ -40,6 +21,11 @@ import {
   stepVariants as stepVariantsBlur,
   staggerContainer,
 } from '../lib/animation';
+import { GooglePlacesAutocomplete } from '../components/GooglePlacesAutocomplete';
+import { LocationAutocomplete } from '../components/LocationAutocomplete';
+import { NearbyPlacesScanner } from '../app/components/NearbyPlacesScanner';
+import { ADMIN_LOCALITY_OPTIONS } from '../data/localities';
+import { getAmenityIcon } from '../data/amenityIcons';
 
 interface AdminPageProps {
   onNavigate: (page: string) => void;
@@ -51,6 +37,7 @@ type FormData = {
   category: string;
   listingType: string;
   streetAddress: string;
+  locality: string;
   city: string;
   pincode: string;
   location: string;
@@ -102,6 +89,7 @@ const initialFormData: FormData = {
   category: 'Apartment',
   listingType: 'For Sale',
   streetAddress: '',
+  locality: '',
   city: '',
   pincode: '',
   location: '',
@@ -212,29 +200,6 @@ const plainControlClass =
   'w-full border border-gray-200 rounded-xl bg-white px-4 py-3 text-base focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 md:text-sm';
 
 const formatINR = (value: number): string => `₹${Math.round(value || 0).toLocaleString('en-IN')}`;
-
-const amenityIcons: Record<string, React.ElementType> = {
-  'Swimming Pool': Home,
-  Gym: Dumbbell,
-  'Covered Parking': Car,
-  'Garden / Lawn': Trees,
-  '24/7 Security': ShieldCheck,
-  'Elevator / Lift': Building2,
-  'Power Backup': Zap,
-  Clubhouse: Users,
-  "Children's Play Area": Baby,
-  'Jogging Track': Users,
-  'CCTV Surveillance': Cctv,
-  'Gated Community': ShieldCheck,
-  'Vastu Compliant': Landmark,
-  'Fire Safety System': Flame,
-  'High-Speed Internet': Wifi,
-  '24/7 Water Supply': Home,
-  'Rainwater Harvesting': Home,
-  'Intercom Facility': Phone,
-  'Visitor Parking': Car,
-  'Maintenance Staff': Users,
-};
 
 const toFormCategory = (category: Property['category']): string => {
   const categoryMap: Record<Property['category'], string> = {
@@ -354,6 +319,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<{ field: string; message: string } | null>(null);
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  // Lat/lng from the selected Google Place — not a visible field, carried
+  // separately from FormData so an unrelated edit doesn't need to re-select
+  // the address to keep coordinates around.
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
 
   // Tracks which pricing field the user last touched so the reactive
   // price <-> price-per-sqft sync respects manual overrides (Section 2).
@@ -388,10 +358,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   useEffect(() => {
     if (!editingProperty) {
       setFormData(initialFormData);
+      setCoords(null);
+      setNearbyPlaces([]);
       setStep(1);
       return;
     }
     const locationParts = splitLocation(editingProperty.location || '');
+    setCoords(
+      editingProperty.latitude !== undefined && editingProperty.longitude !== undefined
+        ? { lat: editingProperty.latitude, lng: editingProperty.longitude }
+        : null
+    );
+    setNearbyPlaces(editingProperty.nearbyPlaces || []);
 
     setFormData((prev) => ({
       ...prev,
@@ -402,6 +380,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       pricePerSqft: editingProperty.pricePerSqft ? String(editingProperty.pricePerSqft) : '',
       location: editingProperty.location || '',
       streetAddress: locationParts.streetAddress,
+      locality: editingProperty.locality || '',
       city: locationParts.city,
       pincode: locationParts.pincode,
       description: editingProperty.description || '',
@@ -519,6 +498,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     },
   });
 
+  // Property cards/dashboard/etc. all render images[0] as the thumbnail, so
+  // "setting" a thumbnail just means moving that image to the front of the
+  // array — nothing downstream needs to know a thumbnail was ever chosen.
+  const setThumbnail = (index: number) => {
+    if (index === 0) return;
+    const images = [...formData.images];
+    const [chosen] = images.splice(index, 1);
+    images.unshift(chosen);
+    setField('images', images);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -538,6 +528,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     // first missing field, flag it, and stop the publish.
     const requiredChecks = [
       { field: 'title', step: 2, ok: !!formData.title.trim(), message: 'Please enter a property title' },
+      { field: 'streetAddress', step: 2, ok: !!formData.streetAddress.trim(), message: 'Please enter the property address' },
+      { field: 'locality', step: 2, ok: !!formData.locality.trim(), message: 'Please select or enter the locality / area' },
       { field: 'description', step: 2, ok: !!formData.description.trim(), message: 'Please add a property description' },
       { field: 'price', step: 3, ok: Number(formData.price) > 0, message: 'Please enter a price' },
     ];
@@ -570,6 +562,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       title: formData.title.trim() || 'Untitled Property',
       price: Number(formData.price) || 0,
       location: fullLocation,
+      locality: formData.locality.trim() || undefined,
+      latitude: coords?.lat,
+      longitude: coords?.lng,
+      nearbyPlaces: nearbyPlaces.length > 0 ? nearbyPlaces : undefined,
       description: formData.description.trim(),
       category: normalizeCategory(formData.category),
       status: isRent ? 'rent' : 'buy',
@@ -845,12 +841,46 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     </div>
                   </div>
                   <div data-field="streetAddress">
-                    <FloatingInput
-                      label="Street Address / Locality"
+                    <label className={labelClass}>Street Address / Locality</label>
+                    <GooglePlacesAutocomplete
                       value={formData.streetAddress}
                       onChange={(v) => setField('streetAddress', v)}
+                      invalid={error?.field === 'streetAddress'}
+                      onPlaceSelect={(place) => {
+                        setField('streetAddress', place.address);
+                        setField('locality', place.locality);
+                        setCoords({ lat: place.lat, lng: place.lng });
+                        // A new address invalidates any places scanned around the old one.
+                        setNearbyPlaces([]);
+                      }}
                     />
-                    <p className="mt-1 text-sm text-gray-500">All listings are in Bangalore — just enter the locality / building.</p>
+                    <ErrorText field="streetAddress" />
+                    <p className="mt-1 text-sm text-gray-500">Start typing a building name or area — we'll auto-detect the locality.</p>
+                  </div>
+                  <div data-field="locality">
+                    <label className={labelClass}>Locality / Area</label>
+                    <LocationAutocomplete
+                      value={formData.locality}
+                      onChange={(v) => setField('locality', v)}
+                      onSelect={(v) => setField('locality', v)}
+                      locations={ADMIN_LOCALITY_OPTIONS}
+                      placeholder="e.g. Whitefield, Marathahalli..."
+                      inputClassName={`w-full rounded-xl border bg-white pl-11 pr-4 py-3 text-base outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 md:text-sm ${
+                        error?.field === 'locality' ? 'border-red-500' : 'border-gray-200'
+                      }`}
+                    />
+                    <ErrorText field="locality" />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Auto-filled from the address above — correct it if Google's detected area is wrong or too specific.
+                    </p>
+                    <NearbyPlacesScanner
+                      lat={coords?.lat ?? null}
+                      lng={coords?.lng ?? null}
+                      address={formData.streetAddress || formData.location}
+                      selected={nearbyPlaces}
+                      onChange={setNearbyPlaces}
+                      onCoordsResolved={(lat, lng) => setCoords({ lat, lng })}
+                    />
                   </div>
                   <div data-field="description">
                     <div className="flex items-center justify-between">
@@ -1179,10 +1209,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
                   {/* ---- Amenities ---- */}
                   <div>
-                    <label className={labelClass}>Amenities</label>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="text-sm font-medium text-gray-700">Amenities</label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setField(
+                            'amenities',
+                            formData.amenities.length === amenityOptions.length ? [] : [...amenityOptions]
+                          )
+                        }
+                        className="text-sm font-semibold text-primary hover:underline"
+                      >
+                        {formData.amenities.length === amenityOptions.length ? 'Clear All' : 'Select All'}
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {amenityOptions.map((amenity) => {
-                        const Icon = amenityIcons[amenity] || Home;
+                        const Icon = getAmenityIcon(amenity);
                         const selected = formData.amenities.includes(amenity);
                         return (
                           <button
@@ -1216,21 +1260,53 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     </div>
 
                     {formData.images.length > 0 && (
-                      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {formData.images.map((img, i) => (
-                          <div key={`${img}-${i}`} className="relative">
-                            <img src={img} alt={`Preview ${i + 1}`} className="h-24 w-full rounded-lg object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => setField('images', formData.images.filter((_, idx) => idx !== i))}
-                              className="absolute right-1 top-1 rounded-full bg-red-600 p-1 text-white hover:bg-red-700"
-                              aria-label="Remove image"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                      <>
+                        <p className="mt-4 text-sm text-gray-500">
+                          Click the star to set an image as the thumbnail shown on property cards. Leave unset and the first image is used automatically.
+                        </p>
+                        <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {formData.images.map((img, i) => {
+                            const isThumbnail = i === 0;
+                            return (
+                              <div key={`${img}-${i}`} className="relative">
+                                <img
+                                  src={img}
+                                  alt={`Preview ${i + 1}`}
+                                  className={`h-24 w-full rounded-lg object-cover ${isThumbnail ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                                />
+                                {isThumbnail && (
+                                  <span className="absolute bottom-1 left-1 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-white">
+                                    <Star size={11} fill="currentColor" />
+                                    Thumbnail
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setThumbnail(i)}
+                                  disabled={isThumbnail}
+                                  className={`absolute right-1 top-1 rounded-full p-1 transition-colors ${
+                                    isThumbnail
+                                      ? 'cursor-default bg-primary text-white'
+                                      : 'bg-white/90 text-gray-500 hover:bg-primary hover:text-white'
+                                  }`}
+                                  aria-label={isThumbnail ? 'Current thumbnail' : 'Set as thumbnail'}
+                                  title={isThumbnail ? 'Current thumbnail' : 'Set as thumbnail'}
+                                >
+                                  <Star size={14} fill={isThumbnail ? 'currentColor' : 'none'} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setField('images', formData.images.filter((_, idx) => idx !== i))}
+                                  className="absolute right-1 top-9 rounded-full bg-red-600 p-1 text-white hover:bg-red-700"
+                                  aria-label="Remove image"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
                     )}
                   </div>
 

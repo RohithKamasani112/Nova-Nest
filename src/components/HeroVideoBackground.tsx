@@ -98,13 +98,14 @@ export const HeroVideoBackground: React.FC<HeroVideoBackgroundProps> = ({ static
         }}
       />
 
-      {/* Per-clip progress indicator */}
+      {/* Per-clip progress indicator — dark pill backdrop keeps contrast
+          against bright daylight footage where a plain white/40 track washes out. */}
       {!staticOnly && (
-        <div className="absolute bottom-4 right-4 z-10 flex gap-1.5 sm:bottom-5 sm:right-6">
+        <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-2 backdrop-blur-sm sm:bottom-5 sm:right-6">
           {CLIPS.map((src, i) => (
             <span
               key={src}
-              className="h-1 w-8 overflow-hidden rounded-full bg-white/40 sm:w-10"
+              className="h-1.5 w-8 overflow-hidden rounded-full bg-white/50 sm:w-10"
             >
               <span
                 className="block h-full rounded-full bg-brass-light transition-all ease-linear"

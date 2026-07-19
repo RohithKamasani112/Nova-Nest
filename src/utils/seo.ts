@@ -87,6 +87,7 @@ export type AppPage =
   | 'add-property'
   | 'manage-properties'
   | 'leads'
+  | 'generate-bill'
   | 'settings';
 
 // URL prefix for locality landing pages, e.g. /property-for-rent-in/whitefield.

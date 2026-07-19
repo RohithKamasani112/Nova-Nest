@@ -408,3 +408,12 @@ export const getLocalityBySlug = (slug: string): Locality | undefined =>
 
 export const localitiesByZone = (zone: Zone): Locality[] =>
   LOCALITIES.filter((l) => l.zone === zone);
+
+// Flat list of known Bangalore locality/area names for the admin property
+// form's editable "Locality / Area" field — the predefined options an admin
+// picks from or corrects Google's auto-detected value against. Sourced from
+// the landing-page localities above, plus areas (like Hoodi) that appear in
+// the homepage's popular-location chips but don't have a dedicated page yet.
+export const ADMIN_LOCALITY_OPTIONS: string[] = Array.from(
+  new Set([...LOCALITIES.map((l) => l.name), 'Hoodi'])
+).sort((a, b) => a.localeCompare(b));

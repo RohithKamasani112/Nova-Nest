@@ -68,6 +68,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     filters.category?.length ||
     filters.amenities?.length ||
     filters.bedrooms?.length ||
+    filters.locality?.length ||
     filters.priceMin ||
     filters.priceMax;
 

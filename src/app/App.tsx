@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { useUrlSync } from '../hooks/useUrlSync';
 import type { AppPage } from '../utils/seo';
@@ -12,6 +12,7 @@ import { AdminPage } from '../pages/AdminPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { ManagePropertiesPage } from '../pages/ManagePropertiesPage';
 import { LeadsManagementPage } from '../pages/LeadsManagementPage';
+import { GenerateBillPage } from '../pages/GenerateBillPage';
 import { AboutPage } from '../pages/AboutPage';
 import { ContactPage } from '../pages/ContactPage';
 import { LocalityPage } from '../pages/LocalityPage';
@@ -19,7 +20,7 @@ import { BlogListPage } from '../pages/BlogListPage';
 import { BlogPostPage } from '../pages/BlogPostPage';
 import { Property, PropertyFilters } from '../types';
 import { Toaster } from 'react-hot-toast';
-import { Phone } from 'lucide-react';
+import { Phone, X } from 'lucide-react';
 import { WhatsAppIcon } from './components/icons/WhatsAppIcon';
 import { WhatsAppContactModal } from './components/WhatsAppContactModal';
 import { createLead } from '../services/storageService';
@@ -43,6 +44,7 @@ type Page =
   | 'add-property'
   | 'manage-properties'
   | 'leads'
+  | 'generate-bill'
   | 'settings';
 
 function App() {
@@ -180,7 +182,7 @@ function App() {
   };
 
   const showNavbar = currentPage !== 'admin-login' && currentPage !== 'property-details';
-  const isAdminPage = ['dashboard', 'add-property', 'manage-properties', 'leads', 'settings'].includes(currentPage);
+  const isAdminPage = ['dashboard', 'add-property', 'manage-properties', 'leads', 'generate-bill', 'settings'].includes(currentPage);
 
   const renderAdminContent = () => {
     switch (currentPage) {
@@ -192,6 +194,8 @@ function App() {
         return <ManagePropertiesPage onEditProperty={handleEditProperty} />;
       case 'leads':
         return <LeadsManagementPage onNavigate={handleNavigate} />;
+      case 'generate-bill':
+        return <GenerateBillPage />;
       case 'settings':
         return (
           <div className="p-6">
@@ -249,6 +253,19 @@ const AppContent: React.FC<{
   const floatingWhatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
   // Capture the visitor's number as a lead before sending them to WhatsApp.
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
+  const [showContactOptions, setShowContactOptions] = useState(false);
+  // The homepage hero is tall enough (min-h-680px+) that on short viewports
+  // the fixed floating contact button can visually overlap the hero's search
+  // bar / chips row. Only reveal it once the visitor has scrolled a bit,
+  // rather than trying to guess a "safe" pixel offset for every screen size.
+  const [showFloatingContact, setShowFloatingContact] = useState(false);
+  useEffect(() => {
+    if (currentPage !== 'home') return;
+    const handleScroll = () => setShowFloatingContact(window.scrollY > 280);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [currentPage]);
   const submitWhatsappLead = (phone: string) => {
     void createLead({
       propertyId: 'general',
@@ -327,40 +344,73 @@ const AppContent: React.FC<{
         </>
       )}
 
-      {currentPage === 'home' && (
-        <div className="fixed bottom-6 right-4 z-50 flex flex-col items-center gap-3 sm:right-6">
-          <motion.a
-            href="tel:+919845418570"
-            aria-label="Call us"
-            onClick={() => trackPhoneClick('floating_button')}
-            whileHover={reduce ? undefined : { scale: 1.12 }}
-            whileTap={{ scale: 0.92 }}
-            animate={reduce ? undefined : { y: [0, -4, 0] }}
-            transition={reduce ? undefined : { repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg"
-          >
-            <Phone size={22} />
-          </motion.a>
+      <AnimatePresence>
+      {currentPage === 'home' && showFloatingContact && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="fixed bottom-6 right-4 z-50 flex flex-col items-center gap-3 sm:right-6"
+        >
+          <AnimatePresence>
+            {showContactOptions && (
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.9 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="flex flex-col items-center gap-3"
+              >
+                <motion.a
+                  href="tel:+919845418570"
+                  aria-label="Call us"
+                  onClick={() => trackPhoneClick('floating_button')}
+                  whileHover={reduce ? undefined : { scale: 1.1 }}
+                  whileTap={{ scale: 0.92 }}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg"
+                >
+                  <Phone size={20} />
+                </motion.a>
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    trackWhatsAppClick('floating_button');
+                    setShowWhatsappModal(true);
+                    setShowContactOptions(false);
+                  }}
+                  aria-label="Contact on WhatsApp"
+                  whileHover={reduce ? undefined : { scale: 1.1 }}
+                  whileTap={{ scale: 0.92 }}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
+                >
+                  <WhatsAppIcon size={20} />
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <motion.button
             type="button"
-            onClick={() => {
-              trackWhatsAppClick('floating_button');
-              setShowWhatsappModal(true);
-            }}
-            aria-label="Contact on WhatsApp"
-            whileHover={reduce ? undefined : { scale: 1.12 }}
+            onClick={() => setShowContactOptions((v) => !v)}
+            aria-label={showContactOptions ? 'Close contact options' : 'Contact us'}
+            aria-expanded={showContactOptions}
+            whileHover={reduce ? undefined : { scale: 1.08 }}
             whileTap={{ scale: 0.92 }}
-            animate={reduce ? undefined : { scale: [1, 1.08, 1] }}
-            transition={reduce ? undefined : { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+            animate={reduce || showContactOptions ? undefined : { scale: [1, 1.08, 1] }}
+            transition={reduce || showContactOptions ? undefined : { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
             className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
           >
-            {!reduce && (
+            {!reduce && !showContactOptions && (
               <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-60 animate-ping" />
             )}
-            <WhatsAppIcon size={26} className="relative z-10" />
+            <span className="relative z-10">
+              {showContactOptions ? <X size={24} /> : <WhatsAppIcon size={26} />}
+            </span>
           </motion.button>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <WhatsAppContactModal
         open={showWhatsappModal}

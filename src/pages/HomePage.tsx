@@ -18,9 +18,10 @@ import {
 import { EASE_ELEGANT, staggerContainer } from '../lib/animation';
 import { HeroVideoBackground } from '../components/HeroVideoBackground';
 import { Seo } from '../components/Seo';
-import { organizationJsonLd, brandOrganizationJsonLd, websiteJsonLd, localityPath, blogPath } from '../utils/seo';
-import { ZONES_IN_ORDER, localitiesByZone } from '../data/localities';
+import { organizationJsonLd, brandOrganizationJsonLd, websiteJsonLd, blogPath } from '../utils/seo';
 import { postsNewestFirst } from '../data/blog';
+import { TopLocalitiesSection } from '../app/components/TopLocalitiesSection';
+import { TestimonialsSection } from '../app/components/TestimonialsSection';
 
 const AnimatedHeading: React.FC<{ text: string; reduce: boolean; start?: boolean; className?: string; delayStart?: number; style?: React.CSSProperties }> = ({
   text,
@@ -31,20 +32,36 @@ const AnimatedHeading: React.FC<{ text: string; reduce: boolean; start?: boolean
   style,
 }) => {
   if (reduce) return <span className={className} style={style}>{text}</span>;
+
+  // Each word is wrapped in its own inline-block so the line only ever wraps
+  // *between* words — per-character spans (needed for the letter-reveal
+  // animation) would otherwise let the browser break mid-word.
+  const words = text.split(' ');
+  let globalIndex = 0;
+
   return (
     <span className={className} style={style} aria-label={text}>
-      {text.split('').map((char, i) => (
-        <motion.span
-          key={`${char}-${i}`}
-          aria-hidden
-          className="inline-block"
-          style={{ whiteSpace: 'pre' }}
-          initial={{ opacity: 0, y: 22 }}
-          animate={start ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }}
-          transition={{ duration: 0.6, delay: delayStart + i * 0.035, ease: EASE_ELEGANT }}
-        >
-          {char === ' ' ? ' ' : char}
-        </motion.span>
+      {words.map((word, wordIndex) => (
+        <React.Fragment key={`word-${wordIndex}`}>
+          <span className="inline-block whitespace-nowrap">
+            {word.split('').map((char) => {
+              const i = globalIndex++;
+              return (
+                <motion.span
+                  key={`char-${i}`}
+                  aria-hidden
+                  className="inline-block"
+                  initial={{ opacity: 0, y: 22 }}
+                  animate={start ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }}
+                  transition={{ duration: 0.6, delay: delayStart + i * 0.035, ease: EASE_ELEGANT }}
+                >
+                  {char}
+                </motion.span>
+              );
+            })}
+          </span>
+          {wordIndex < words.length - 1 && ' '}
+        </React.Fragment>
       ))}
     </span>
   );
@@ -161,13 +178,13 @@ const LocationField: React.FC<LocationFieldProps> = ({ value, onChange, onSelect
         onFocus={() => setFocused(true)}
         onKeyDown={handleKeyDown}
         placeholder="Enter location..."
-        className="h-9 w-full bg-transparent text-sm sm:text-base font-medium text-white placeholder-white/50 focus:outline-none"
+        className="h-9 w-full bg-transparent text-sm sm:text-base font-medium text-charcoal placeholder-charcoal/40 focus:outline-none"
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange('')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80"
+          className="absolute right-0 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal/70"
           aria-label="Clear location"
         >
           <X size={15} />
@@ -206,10 +223,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<'buy' | 'rent' | null>(null);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [locatingClick, setLocatingClick] = useState(false);
   const [showHeroFilters, setShowHeroFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('newest');
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [filters, setFilters] = useState<PropertyFilters>({});
   const [priceRange, setPriceRange] = useState([0, 100000000]);
   const [selectedBedrooms, setSelectedBedrooms] = useState<number[]>([]);
@@ -295,6 +312,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
     onSearch(nextFilters);
   };
 
+  // Local-only "is this click in flight" flag — the actual geolocation
+  // request happens after navigating to /properties, but pulsing the pin icon
+  // immediately gives honest feedback during the brief page transition.
+  const handleNearMeClick = () => {
+    setLocatingClick(true);
+    onSearch({ nearMe: true });
+  };
+
   const search = () => {
     const budget = budgetOptions.find((o) => o.label === selectedBudget);
     onSearch({
@@ -328,106 +353,36 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
           </motion.div>
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 pt-32 pb-16 sm:px-6 sm:py-28 lg:px-8 md:py-36">
+        <div className="relative max-w-6xl mx-auto px-4 pt-32 pb-16 sm:px-6 sm:py-28 lg:px-8 md:py-36">
           <div className="text-center">
 
-            {/* Eyebrow */}
-            <motion.p
-              {...fadeUp(0)}
-              className="font-serif italic text-sm sm:text-base text-accent/90 mb-5 tracking-wide"
-              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 4px 20px rgba(0,0,0,0.8)' }}
+            {/* Single concise hero headline — sized down per breakpoint so it
+                reads as one clean line instead of wrapping awkwardly. */}
+            <h1
+              className="font-serif tracking-tight mb-4 text-xl leading-[1.15] sm:text-2xl md:text-3xl lg:text-4xl"
+              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 8px 40px rgba(0,0,0,0.85)' }}
             >
-              Est. Whitefield, Bangalore — Curated Since Day One
-            </motion.p>
-
-            {/* Exact SEO H1 (brief #2): "Nova Nest Rentals and Property
-                Management — Premium Real Estate Services in Bengaluru". The em
-                dash is kept in the DOM (sr-only) so the heading's text content
-                matches the brief verbatim while the two-line hero treatment is
-                preserved visually. */}
-            <h1 className="font-serif tracking-tight mb-5 text-[2rem] leading-[1.1] sm:text-5xl md:text-6xl">
               <AnimatedHeading
-                text="Nova Nest Property Management"
+                text="Premium Real Estate Services in Bengaluru"
                 reduce={Boolean(reduce)}
                 start={start}
                 className="block text-white"
-                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 8px 40px rgba(0,0,0,0.85)' }}
               />
-              <span className="sr-only"> — </span>
-              <span
-                className="relative mt-1.5 inline-block"
-                style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.9)) drop-shadow(0 8px 32px rgba(0,0,0,0.8))' }}
-              >
-                <motion.span
-                  className="block text-accent"
-                  style={
-                    reduce
-                      ? undefined
-                      : {
-                          backgroundImage:
-                            'linear-gradient(90deg, #8C6B2E 0%, #C9A35F 35%, #E0BB76 50%, #C9A35F 65%, #8C6B2E 100%)',
-                          backgroundSize: '200% auto',
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          color: 'transparent',
-                        }
-                  }
-                  initial={reduce ? undefined : { backgroundPosition: '200% center' }}
-                  animate={reduce ? undefined : start ? { backgroundPosition: '-200% center' } : { backgroundPosition: '200% center' }}
-                  transition={reduce ? undefined : { duration: 2.4, delay: 0.9, ease: 'easeInOut' }}
-                >
-                  Premium Real Estate Services in Bengaluru
-                </motion.span>
-                {!reduce && (
-                  <motion.svg
-                    viewBox="0 0 320 12"
-                    className="absolute left-1/2 -bottom-2 h-3 w-[88%] -translate-x-1/2"
-                    preserveAspectRatio="none"
-                  >
-                    <motion.path
-                      d="M4 7 C 80 2, 240 2, 316 7"
-                      stroke="#C9A35F"
-                      strokeWidth="1.5"
-                      fill="none"
-                      strokeLinecap="round"
-                      initial={{ pathLength: 0, opacity: 0 }}
-                      animate={start ? { pathLength: 1, opacity: 0.85 } : { pathLength: 0, opacity: 0 }}
-                      transition={{ duration: 1, delay: 1.5, ease: EASE_ELEGANT }}
-                    />
-                  </motion.svg>
-                )}
-              </span>
             </h1>
 
             <motion.p
               {...fadeUp(0.3)}
-              className="text-sm sm:text-base md:text-lg text-white/90 mb-12 max-w-xl mx-auto"
+              className="text-sm sm:text-base md:text-lg text-white/90 mb-10 max-w-xl mx-auto"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 4px 20px rgba(0,0,0,0.8)' }}
             >
               Verified homes, plots, and commercial addresses curated with care.
             </motion.p>
 
-            {/* Search bar */}
+            {/* Search bar — solid white so it reads clearly over any photo. */}
             <motion.div {...fadeUp(0.45)} className="w-full max-w-3xl mx-auto relative">
-              {!reduce && (
-                <div
-                  className="pointer-events-none absolute -inset-px rounded-2xl opacity-100 animate-[borderTravel_4s_linear_infinite]"
-                  style={{
-                    background:
-                      'conic-gradient(from 0deg, transparent 0%, transparent 55%, #C9A35F 70%, #E0BB76 80%, #F4DDA0 87%, #FCEDC4 90%, #F4DDA0 93%, #E0BB76 97%, transparent 100%)',
-                    WebkitMask:
-                      'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                    WebkitMaskComposite: 'xor',
-                    maskComposite: 'exclude',
-                    padding: '1px',
-                  }}
-                />
-              )}
-
-              <div className="relative flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/[0.08] p-2 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:flex-row sm:items-center sm:gap-1">
-                <div className="relative flex flex-1 items-center gap-2 rounded-xl px-3 py-2.5 sm:py-2">
-                  <MapPin size={17} className="text-accent flex-shrink-0" />
+              <div className="relative flex flex-col gap-2 rounded-2xl border border-black/5 bg-white p-2 shadow-[0_20px_60px_rgba(0,0,0,0.35)] md:flex-row md:items-center md:gap-1">
+                <div className="relative flex flex-1 min-w-[220px] items-center gap-2 rounded-xl px-3 py-2.5 md:py-2">
+                  <MapPin size={17} className="text-gold flex-shrink-0" />
                   <LocationField
                     value={filters.location || ''}
                     onChange={handleLocationChange}
@@ -436,15 +391,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                   />
                 </div>
 
-                <div className="hidden h-7 w-px bg-white/15 sm:block" />
+                <div className="hidden h-7 w-px bg-charcoal/10 md:block" />
 
-                <div className="flex h-11 flex-shrink-0 items-center gap-1 rounded-xl bg-white/[0.06] p-1">
+                <div className="flex h-11 flex-shrink-0 items-center gap-1 rounded-xl bg-surface p-1">
                   {(['buy', 'rent'] as const).map((s) => (
                     <button
                       key={s}
                       onClick={() => handleStatusToggle(s)}
-                      className={`relative min-h-[36px] flex-1 rounded-lg px-4 text-[13px] font-semibold transition-colors duration-200 sm:flex-none ${
-                        selectedStatus === s ? 'text-charcoal' : 'text-white/75 hover:text-white'
+                      className={`relative min-h-[36px] flex-1 rounded-lg px-4 text-[13px] font-semibold transition-colors duration-200 md:flex-none ${
+                        selectedStatus === s ? 'text-charcoal' : 'text-charcoal/55 hover:text-charcoal'
                       }`}
                     >
                       {selectedStatus === s && (
@@ -461,7 +416,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
 
                 <button
                   onClick={() => setShowHeroFilters((v) => !v)}
-                  className="relative flex h-11 flex-shrink-0 items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-4 text-[13px] font-semibold text-white/85 transition-colors hover:bg-white/[0.12] hover:text-white"
+                  className="relative flex h-11 flex-shrink-0 items-center justify-center gap-2 rounded-xl bg-surface px-4 text-[13px] font-semibold text-charcoal/70 transition-colors hover:bg-charcoal/10 hover:text-charcoal"
                 >
                   <SlidersHorizontal size={15} />
                   Filters
@@ -478,7 +433,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                   whileHover={reduce ? undefined : { scale: 1.03 }}
                   whileTap={reduce ? undefined : { scale: 0.97 }}
                   transition={{ duration: 0.2, ease: EASE_ELEGANT }}
-                  className="flex h-11 flex-shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-6 text-[13px] font-bold text-charcoal hover:bg-accent/90"
+                  className="flex h-11 max-w-[140px] flex-shrink-0 grow-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-[13px] font-bold text-charcoal hover:bg-accent/90"
                 >
                   <Search size={15} />
                   Search
@@ -493,12 +448,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                     animate={{ opacity: 1, y: 0, height: 'auto' }}
                     exit={{ opacity: 0, y: -8, height: 0 }}
                     transition={{ duration: 0.25, ease: EASE_ELEGANT }}
-                    className="absolute left-0 right-0 top-[calc(100%+10px)] overflow-hidden rounded-2xl border border-white/15 bg-charcoal/95 text-left backdrop-blur-xl shadow-2xl z-50"
+                    className="absolute left-0 right-0 top-[calc(100%+10px)] overflow-hidden rounded-2xl border border-black/5 bg-white text-left shadow-2xl z-50"
                   >
                     <div className="max-h-[60vh] overflow-y-auto p-5">
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                       <div>
-                        <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-accent/80">
+                        <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-gold">
                           <IndianRupee size={13} /> Budget
                         </label>
                         <div className="flex flex-wrap gap-2">
@@ -509,7 +464,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                               className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
                                 selectedBudget === o.label
                                   ? 'border-accent bg-accent text-charcoal'
-                                  : 'border-white/15 text-white/70 hover:border-white/30 hover:text-white'
+                                  : 'border-black/10 text-charcoal/70 hover:border-gold/40 hover:text-charcoal'
                               }`}
                             >
                               {o.label}
@@ -518,7 +473,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                         </div>
                       </div>
                       <div>
-                        <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-accent/80">
+                        <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-gold">
                           <Building2 size={13} /> Property Type
                         </label>
                         <div className="flex flex-wrap gap-2">
@@ -529,7 +484,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                               className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors ${
                                 selectedType === o.value
                                   ? 'border-accent bg-accent text-charcoal'
-                                  : 'border-white/15 text-white/70 hover:border-white/30 hover:text-white'
+                                  : 'border-black/10 text-charcoal/70 hover:border-gold/40 hover:text-charcoal'
                               }`}
                             >
                               {o.label}
@@ -538,10 +493,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                         </div>
                       </div>
                     </div>
-                    <div className="mt-5 flex justify-end gap-2 border-t border-white/10 pt-4">
+                    <div className="mt-5 flex justify-end gap-2 border-t border-black/10 pt-4">
                       <button
                         onClick={() => { setSelectedBudget('All Budgets'); setSelectedType(''); }}
-                        className="px-3 py-2 text-[12px] font-semibold text-white/60 hover:text-white"
+                        className="px-3 py-2 text-[12px] font-semibold text-charcoal/50 hover:text-charcoal"
                       >
                         Reset
                       </button>
@@ -559,7 +514,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
             </motion.div>
 
             {/* Popular locations */}
-            <motion.div {...fadeUp(0.6)} className="mt-9 flex flex-wrap items-center justify-center gap-2 text-sm sm:mt-10 sm:gap-3">
+            <motion.div {...fadeUp(0.6)} className="mt-8 flex flex-wrap items-center justify-center gap-2 text-sm sm:gap-3">
               <span className="text-white/55 text-[13px]">Popular:</span>
               {['Whitefield', 'Marathahalli', 'Bellandur', 'Hoodi'].map((place, i) => (
                 <motion.button
@@ -578,6 +533,40 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                   {place}
                 </motion.button>
               ))}
+
+              {/* Find Properties Near Me — inline with the locality chips but
+                  visually marked as an action (gold border/icon) rather than a
+                  place. Text stays white like every other hero element. */}
+              <motion.div
+                {...(reduce
+                  ? {}
+                  : {
+                      initial: { opacity: 0, scale: 0.95 },
+                      animate: { opacity: 1, scale: 1 },
+                      transition: { duration: 0.4, delay: 0.85, ease: 'easeOut' },
+                    })}
+              >
+                <motion.button
+                  whileHover={reduce ? undefined : { scale: 1.05, boxShadow: '0 0 20px rgba(201,163,95,0.5)' }}
+                  whileTap={reduce ? undefined : { scale: 0.97 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={handleNearMeClick}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-accent/60 bg-accent/10 px-3.5 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-accent/20 sm:px-4 sm:text-[13px]"
+                >
+                  <motion.span
+                    animate={!reduce && locatingClick ? { scale: [1, 1.25, 1] } : { scale: 1 }}
+                    transition={
+                      !reduce && locatingClick
+                        ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }
+                        : { duration: 0.2 }
+                    }
+                    className="flex text-accent"
+                  >
+                    <MapPin size={13} />
+                  </motion.span>
+                  Find Properties Near Me
+                </motion.button>
+              </motion.div>
             </motion.div>
           </div>
         </div>
@@ -613,47 +602,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
               ))}
             </div>
 
-            <div className="grid grid-cols-[1fr_1fr_40px] items-center gap-2 md:flex md:flex-shrink-0">
-              <button
-                onClick={() => setShowFilterDrawer(!showFilterDrawer)}
-                className="h-10 border border-charcoal/10 bg-white text-charcoal/65 px-3 rounded-lg hover:border-accent/50 hover:text-accent transition-all text-[13px] font-semibold flex items-center justify-center gap-2 sm:px-4"
-              >
-                <SlidersHorizontal size={15} />
-                Filters
-              </button>
-              <div className="relative">
-                <button
-                  onClick={() => setShowSortDropdown(!showSortDropdown)}
-                  className="h-10 w-full border border-charcoal/10 bg-white text-charcoal/65 px-3 rounded-lg hover:border-accent/50 hover:text-accent transition-all text-[13px] font-semibold flex items-center justify-center gap-2 sm:px-4"
-                >
-                  Sort <ChevronDown size={14} />
-                </button>
-                {showSortDropdown && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white border border-charcoal/10 rounded-xl shadow-lg py-1.5 z-50">
-                    {['newest', 'oldest', 'price-asc', 'price-desc', 'area-asc', 'area-desc'].map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => { setSortBy(opt); setShowSortDropdown(false); }}
-                        className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-accent/10 hover:text-accent transition-colors"
-                      >
-                        {opt.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                className="h-10 w-10 border border-charcoal/10 bg-white text-charcoal/65 rounded-lg hover:border-accent/50 hover:text-accent transition-all flex items-center justify-center"
-                aria-label="Toggle listing view"
-              >
-                {viewMode === 'grid' ? <List size={16} /> : <Grid3x3 size={16} />}
-              </button>
-            </div>
+            <button
+              onClick={() => setShowFilterDrawer(!showFilterDrawer)}
+              className="h-10 flex-shrink-0 border border-charcoal/10 bg-white text-charcoal/65 px-4 rounded-lg hover:border-accent/50 hover:text-accent transition-all text-[13px] font-semibold flex items-center justify-center gap-2"
+            >
+              <SlidersHorizontal size={15} />
+              Filters &amp; Sort
+            </button>
           </div>
-          <p className="text-[12px] text-charcoal/40 font-medium mt-2">
-            {filteredProperties.length} properties found
-          </p>
         </div>
       </section>
 
@@ -671,13 +627,51 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
       >
         <div className="p-5 pt-20 space-y-6 sm:p-6 sm:pt-24">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-xl font-serif font-bold text-charcoal">Filters</h3>
+            <h3 className="text-xl font-serif font-bold text-charcoal">Filters &amp; Sort</h3>
             <button
               onClick={() => setShowFilterDrawer(false)}
               className="h-9 px-3 rounded-lg bg-[#f5f5f5] text-[13px] font-semibold text-charcoal"
             >
               Close
             </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[13px] font-semibold text-charcoal mb-2">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="h-10 w-full rounded-lg border border-charcoal/10 bg-white px-3 text-[13px] font-medium text-charcoal focus:outline-none focus:border-accent"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="area-asc">Area: Small to Large</option>
+                <option value="area-desc">Area: Large to Small</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-charcoal mb-2">View</label>
+              <div className="flex h-10 items-center gap-1 rounded-lg bg-[#f5f5f5] p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`flex h-full flex-1 items-center justify-center gap-1.5 rounded-md text-[12px] font-semibold transition-colors ${
+                    viewMode === 'grid' ? 'bg-white text-charcoal shadow-sm' : 'text-charcoal/50 hover:text-charcoal'
+                  }`}
+                >
+                  <Grid3x3 size={14} /> Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex h-full flex-1 items-center justify-center gap-1.5 rounded-md text-[12px] font-semibold transition-colors ${
+                    viewMode === 'list' ? 'bg-white text-charcoal shadow-sm' : 'text-charcoal/50 hover:text-charcoal'
+                  }`}
+                >
+                  <List size={14} /> List
+                </button>
+              </div>
+            </div>
           </div>
           <div>
             <label className="block text-[13px] font-semibold text-charcoal mb-2">
@@ -816,52 +810,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
         )}
       </section>
 
-      {/* ================================================================= */}
-      {/* EXPLORE BY LOCATION (internal linking to locality landing pages)  */}
-      {/* ================================================================= */}
-      <section className="border-t border-charcoal/[0.07] bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-          <div className="mb-10">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-accent font-bold mb-2">
-              Explore by Location
-            </p>
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal">
-              Premium flats for rent &amp; homes for sale across Bengaluru
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm font-medium leading-7 text-charcoal/55">
-              Nova Nest Rentals and Property Management covers premium 2, 3 &amp; 4 BHK
-              gated communities in Bengaluru's top residential corridors. Pick an area to
-              see local rent ranges, connectivity and a tenant onboarding guide.
-            </p>
-          </div>
+      <TopLocalitiesSection
+        properties={allProperties}
+        onSelectLocality={(locality) => onSearch({ locality: [locality] })}
+      />
 
-          <div className="grid gap-8 sm:grid-cols-2">
-            {ZONES_IN_ORDER.map((zone) => (
-              <div key={zone}>
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-charcoal">
-                  <MapPin size={15} className="text-accent" />
-                  {zone}
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {localitiesByZone(zone).map((loc) => (
-                    <a
-                      key={loc.slug}
-                      href={localityPath(loc.slug)}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onNavigate?.('locality', loc.slug);
-                      }}
-                      className="rounded-full border border-charcoal/12 px-3.5 py-1.5 text-[13px] font-medium text-charcoal/80 transition-colors hover:border-accent hover:text-accent"
-                    >
-                      {loc.name}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <TestimonialsSection />
 
       {/* ================================================================= */}
       {/* LATEST FROM OUR BLOG (3 most recent posts)                        */}

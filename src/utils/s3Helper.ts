@@ -64,9 +64,11 @@ const getS3Client = (): S3Client => {
   return s3Client;
 };
 
-// Upload file to S3
+// Upload file to S3. Accepts any Blob (a File is a Blob, so existing image
+// upload callers are unaffected) — this also lets non-file data like a
+// generated PDF Blob go through the same path.
 export const uploadToS3 = async (
-  file: File,
+  file: Blob,
   path: string
 ): Promise<string> => {
   try {

@@ -42,6 +42,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onSearch }) => {
               Your trusted path to home. Premium rental and sales advisory from
               Whitefield, Bengaluru, with verified properties and local guidance.
             </p>
+            <p className="mt-2 font-serif italic text-sm text-accent/80">
+              Est. Whitefield, Bangalore — Curated Since Day One
+            </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <a href="https://chat.whatsapp.com/IRTKnGNLnck6aHBb0Ps5YR" onClick={() => trackWhatsAppClick('footer_rentals_group')} target="_blank" rel="noopener noreferrer" className="rounded-full border border-accent/30 px-4 py-2 text-sm text-accent hover:bg-accent/10 transition-colors">Rentals Group</a>
               <a href="https://chat.whatsapp.com/HKrukzrHhz8IMm2gfYAOg0" onClick={() => trackWhatsAppClick('footer_sales_group')} target="_blank" rel="noopener noreferrer" className="rounded-full border border-accent/30 px-4 py-2 text-sm text-accent hover:bg-accent/10 transition-colors">Sales Group</a>

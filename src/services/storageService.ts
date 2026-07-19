@@ -1,4 +1,4 @@
-import { Property, Inquiry } from '../types';
+import { Property, Inquiry, Bill } from '../types';
 import {
   uploadToS3,
   getJsonFromS3,
@@ -229,5 +229,56 @@ export const updateLeadStatus = async (
   } catch (error) {
     console.error('Error updating lead:', error);
     throw new Error('Failed to update lead');
+  }
+};
+
+// Bills (standalone payment receipts, independent of the properties dataset).
+// Everything lives under invoices/ — the metadata list plus one PDF per bill.
+
+export const getAllBills = async (): Promise<Bill[]> => {
+  try {
+    return await getJsonFromS3<Bill[]>('invoices/bills.json');
+  } catch (error) {
+    console.error('Error fetching bills:', error);
+    return [];
+  }
+};
+
+// Sequential per-year receipt numbers (e.g. "NN-2026-0002"), derived from the
+// existing bill list rather than a separate counter file — this is a
+// single-admin tool with no concurrent-write locking anywhere in this storage
+// layer (same trade-off createProperty/createLead already make), so scanning
+// the current max is simple and good enough.
+export const getNextReceiptNumber = async (): Promise<string> => {
+  const bills = await getAllBills();
+  const year = new Date().getFullYear();
+  const prefix = `NN-${year}-`;
+  const usedNumbers = bills
+    .map((bill) => bill.receiptNo)
+    .filter((receiptNo) => receiptNo.startsWith(prefix))
+    .map((receiptNo) => parseInt(receiptNo.slice(prefix.length), 10))
+    .filter((n) => !Number.isNaN(n));
+  const next = (usedNumbers.length > 0 ? Math.max(...usedNumbers) : 0) + 1;
+  return `${prefix}${String(next).padStart(4, '0')}`;
+};
+
+// Uploads the generated PDF Blob to invoices/{receiptNo}.pdf and returns its URL.
+export const uploadBillPdf = async (pdfBlob: Blob, receiptNo: string): Promise<string> =>
+  uploadToS3(pdfBlob, `invoices/${receiptNo}.pdf`);
+
+// Saves the bill record once its PDF is already uploaded (pdfUrl included in `bill`).
+export const createBill = async (bill: Omit<Bill, 'id' | 'createdAt'>): Promise<Bill> => {
+  try {
+    const bills = await getAllBills();
+    const newBill: Bill = {
+      ...bill,
+      id: bill.receiptNo,
+      createdAt: new Date().toISOString(),
+    };
+    await uploadJsonToS3([...bills, newBill], 'invoices/bills.json');
+    return newBill;
+  } catch (error) {
+    console.error('Error creating bill:', error);
+    throw new Error('Failed to create bill');
   }
 };

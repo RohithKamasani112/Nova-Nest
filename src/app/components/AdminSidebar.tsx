@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   X,
+  Receipt,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import companyLogo from '../../assets/companyLogo.png';
@@ -23,6 +24,7 @@ const menuItems = [
   { id: 'add-property', label: 'Add Property', icon: PlusCircle },
   { id: 'manage-properties', label: 'Manage Properties', icon: Building2 },
   { id: 'leads', label: 'Leads', icon: Users },
+  { id: 'generate-bill', label: 'Generate Bill', icon: Receipt },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
