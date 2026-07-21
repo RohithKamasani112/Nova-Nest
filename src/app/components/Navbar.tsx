@@ -117,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch, currentPag
                 className="h-full w-full object-cover"
               />
             </span>
-            <span className="font-display text-xl font-bold tracking-[0.015em] text-charcoal hidden sm:inline">
+            <span className="font-display text-lg font-bold tracking-[0.015em] text-charcoal sm:text-xl">
               Nova Nest
             </span>
           </button>

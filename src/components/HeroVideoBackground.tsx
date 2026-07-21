@@ -4,6 +4,7 @@ import loop3 from '../assets/loop3.mp4';
 import loop1 from '../assets/loop1.mp4';
 import loop2 from '../assets/loop2.mp4';
 import heroPoster from '../assets/first_page_image.png';
+import heroPosterMobile from '../assets/mobile_view.jpg';
 
 const CLIPS = [loop3, loop1, loop2];
 
@@ -47,12 +48,22 @@ export const HeroVideoBackground: React.FC<HeroVideoBackgroundProps> = ({ static
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {/* Poster fallback */}
+      {/* Poster fallback — a dedicated portrait-friendly image on small
+          screens (where staticOnly is true and this is all that's shown,
+          since videos don't render there), the video poster on everything
+          wider. Same sm: breakpoint (640px) the staticHero/smallScreen check
+          in HomePage.tsx already uses. */}
+      <img
+        src={heroPosterMobile}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full object-cover sm:hidden"
+      />
       <img
         src={heroPoster}
         alt=""
         aria-hidden
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 hidden h-full w-full object-cover sm:block"
       />
 
       {!staticOnly &&
