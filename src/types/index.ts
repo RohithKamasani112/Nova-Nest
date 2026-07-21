@@ -9,9 +9,10 @@ export interface NearbyPlace {
   rating?: number;
 }
 
-// A standalone payment receipt generated from the admin's "Generate Bill"
-// page — not linked to any property listing record. Stored flat (as JSON)
-// alongside its rendered PDF under S3's invoices/ folder.
+// LEGACY — superseded by BillingDoc below. Kept only so already-generated
+// receipts (stored in S3's invoices/bills.json) still list in the admin's
+// "Past Documents" history and their PDFs stay downloadable. No new Bill
+// records are created by the app anymore.
 export interface Bill {
   id: string; // same value as receiptNo, used as the S3 filename too
   receiptNo: string; // e.g. "NN-2026-0001"
@@ -29,6 +30,111 @@ export interface Bill {
   pdfUrl: string;
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Billing Generator — 3 document types, matching the reference PDFs in
+// Billing_inspiration/. All numeric fields are user-editable case-by-case
+// (never locked constants); `computed` is a frozen snapshot of the calculated
+// totals at generation time, taken from src/utils/billingCalculations.ts, so a
+// historical document never silently changes if a default rate changes later.
+// ---------------------------------------------------------------------------
+
+export type BillingDocType = 'sale_booking' | 'commission' | 'service';
+
+interface BillingDocBase {
+  id: string; // same value as docNumber, used as the S3 filename too
+  docNumber: string; // e.g. "NN-SALE-2026-014"
+  docType: BillingDocType;
+  pdfUrl: string;
+  createdAt: string;
+}
+
+export interface SaleBookingComputed {
+  balanceAfterToken: number;
+  milestoneAmount: number;
+  balanceAfterMilestone: number;
+  tdsAmount: number;
+  commissionAmount: number;
+  commissionGstAmount: number;
+  totalCommissionPayable: number;
+  stampDutyAmount: number;
+  saleAgreementChargesAmount: number;
+  registrationChargesAmount: number;
+  totalGovtCharges: number;
+}
+
+export interface SaleBookingDoc extends BillingDocBase {
+  docType: 'sale_booking';
+  purchaserName: string;
+  purchaserAddress: string;
+  projectName: string;
+  unitNo: string;
+  totalSalePrice: number;
+  tokenAmount: number;
+  saleAgreementAmount: number;
+  milestonePct: number;
+  tdsEnabled: boolean;
+  tdsPct: number;
+  commissionPct: number;
+  commissionGstPct: number;
+  stampDutyPct: number;
+  saleAgreementChargesPct: number;
+  additionalFee: number;
+  registrationChargesPct: number;
+  registrationIncidentCharges: number;
+  termsAndConditions: string[];
+  docDate: string;
+  place: string;
+  computed: SaleBookingComputed;
+}
+
+export interface CommissionComputed {
+  cgstAmount: number;
+  sgstAmount: number;
+  totalPayable: number;
+  amountInWords: string;
+}
+
+export interface CommissionDoc extends BillingDocBase {
+  docType: 'commission';
+  transactionType: 'sale' | 'rental';
+  clientName: string;
+  clientAddress: string;
+  propertyAddress: string;
+  taxableAmount: number;
+  cgstPct: number;
+  sgstPct: number;
+  paymentTerms: string;
+  docDate: string;
+  computed: CommissionComputed;
+}
+
+export interface ServiceLineItem {
+  description: string;
+  amount: number;
+}
+
+export interface ServiceComputed {
+  subtotal: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  total: number;
+  amountInWords: string;
+}
+
+export interface ServiceDoc extends BillingDocBase {
+  docType: 'service';
+  customerName: string;
+  customerAddress: string;
+  lineItems: ServiceLineItem[];
+  gstEnabled: boolean;
+  cgstPct: number;
+  sgstPct: number;
+  docDate: string;
+  computed: ServiceComputed;
+}
+
+export type BillingDoc = SaleBookingDoc | CommissionDoc | ServiceDoc;
 
 // Property Types
 export interface Property {

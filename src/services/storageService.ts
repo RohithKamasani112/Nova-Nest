@@ -1,4 +1,4 @@
-import { Property, Inquiry, Bill } from '../types';
+import { BillingDoc, BillingDocType, Bill, Inquiry, Property } from '../types';
 import {
   uploadToS3,
   getJsonFromS3,
@@ -232,9 +232,9 @@ export const updateLeadStatus = async (
   }
 };
 
-// Bills (standalone payment receipts, independent of the properties dataset).
-// Everything lives under invoices/ — the metadata list plus one PDF per bill.
-
+// LEGACY bills (the old single generic "payment receipt" flow). Read-only —
+// nothing writes to invoices/bills.json anymore, but existing records stay
+// listed/downloadable in the admin's Past Documents history.
 export const getAllBills = async (): Promise<Bill[]> => {
   try {
     return await getJsonFromS3<Bill[]>('invoices/bills.json');
@@ -244,41 +244,63 @@ export const getAllBills = async (): Promise<Bill[]> => {
   }
 };
 
-// Sequential per-year receipt numbers (e.g. "NN-2026-0002"), derived from the
-// existing bill list rather than a separate counter file — this is a
-// single-admin tool with no concurrent-write locking anywhere in this storage
-// layer (same trade-off createProperty/createLead already make), so scanning
-// the current max is simple and good enough.
-export const getNextReceiptNumber = async (): Promise<string> => {
-  const bills = await getAllBills();
-  const year = new Date().getFullYear();
-  const prefix = `NN-${year}-`;
-  const usedNumbers = bills
-    .map((bill) => bill.receiptNo)
-    .filter((receiptNo) => receiptNo.startsWith(prefix))
-    .map((receiptNo) => parseInt(receiptNo.slice(prefix.length), 10))
-    .filter((n) => !Number.isNaN(n));
-  const next = (usedNumbers.length > 0 ? Math.max(...usedNumbers) : 0) + 1;
-  return `${prefix}${String(next).padStart(4, '0')}`;
+// Billing documents (Sale Booking Confirmation, Commission GST Invoice,
+// Service Invoice) — the 4-template generator's storage, independent of the
+// legacy bills.json above. Everything lives under invoices/ — the metadata
+// list plus one PDF per document.
+
+const DOC_NUMBER_PREFIX: Record<BillingDocType, string> = {
+  sale_booking: 'SALE',
+  commission: 'COMM',
+  service: 'SERV',
 };
 
-// Uploads the generated PDF Blob to invoices/{receiptNo}.pdf and returns its URL.
-export const uploadBillPdf = async (pdfBlob: Blob, receiptNo: string): Promise<string> =>
-  uploadToS3(pdfBlob, `invoices/${receiptNo}.pdf`);
-
-// Saves the bill record once its PDF is already uploaded (pdfUrl included in `bill`).
-export const createBill = async (bill: Omit<Bill, 'id' | 'createdAt'>): Promise<Bill> => {
+export const getAllBillingDocs = async (): Promise<BillingDoc[]> => {
   try {
-    const bills = await getAllBills();
-    const newBill: Bill = {
-      ...bill,
-      id: bill.receiptNo,
-      createdAt: new Date().toISOString(),
-    };
-    await uploadJsonToS3([...bills, newBill], 'invoices/bills.json');
-    return newBill;
+    return await getJsonFromS3<BillingDoc[]>('invoices/documents.json');
   } catch (error) {
-    console.error('Error creating bill:', error);
-    throw new Error('Failed to create bill');
+    console.error('Error fetching billing documents:', error);
+    return [];
+  }
+};
+
+// Sequential per-type, per-year document numbers (e.g. "NN-SALE-2026-014"),
+// derived by scanning the existing document list rather than a separate
+// counter file/table — same scan-and-increment trade-off the rest of this
+// storage layer already accepts (single-admin tool, no concurrent-write
+// locking). Scoping the sequence per docType (unlike the old shared-per-year
+// receipt counter) is what actually fixes the old duplicate-number bug: two
+// different document types generated back-to-back can no longer collide.
+export const getNextDocNumber = async (docType: BillingDocType): Promise<string> => {
+  const docs = await getAllBillingDocs();
+  const year = new Date().getFullYear();
+  const prefix = `NN-${DOC_NUMBER_PREFIX[docType]}-${year}-`;
+  const usedNumbers = docs
+    .map((doc) => doc.docNumber)
+    .filter((docNumber) => docNumber.startsWith(prefix))
+    .map((docNumber) => parseInt(docNumber.slice(prefix.length), 10))
+    .filter((n) => !Number.isNaN(n));
+  const next = (usedNumbers.length > 0 ? Math.max(...usedNumbers) : 0) + 1;
+  return `${prefix}${String(next).padStart(3, '0')}`;
+};
+
+// Uploads the generated PDF Blob to invoices/{docNumber}.pdf and returns its URL.
+export const uploadBillingDocPdf = async (pdfBlob: Blob, docNumber: string): Promise<string> =>
+  uploadToS3(pdfBlob, `invoices/${docNumber}.pdf`);
+
+// Saves the document record once its PDF is already uploaded (pdfUrl included in `doc`).
+export const createBillingDoc = async (doc: Omit<BillingDoc, 'id' | 'createdAt'>): Promise<BillingDoc> => {
+  try {
+    const docs = await getAllBillingDocs();
+    const newDoc = {
+      ...doc,
+      id: doc.docNumber,
+      createdAt: new Date().toISOString(),
+    } as BillingDoc;
+    await uploadJsonToS3([...docs, newDoc], 'invoices/documents.json');
+    return newDoc;
+  } catch (error) {
+    console.error('Error creating billing document:', error);
+    throw new Error('Failed to create billing document');
   }
 };

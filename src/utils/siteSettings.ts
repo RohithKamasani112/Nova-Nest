@@ -9,3 +9,12 @@ export const BUSINESS_ADDRESS =
   'Ground Floor, Site No-29&30, Meshwarama Temple, 1st Main Rd, Maheswari Nagar, B Narayanapura, Mahadevapura, Bengaluru, Karnataka 560048';
 
 export const BUSINESS_PHONE = import.meta.env.VITE_BUSINESS_PHONE || '096637 95675';
+
+export const BUSINESS_GSTIN = import.meta.env.VITE_BUSINESS_GSTIN || '29DKVPR4628P1ZS';
+
+export const BUSINESS_EMAIL =
+  import.meta.env.VITE_BUSINESS_EMAIL || 'novanestpropertymanagement@gmail.com';
+
+export const BUSINESS_PROPRIETOR = import.meta.env.VITE_BUSINESS_PROPRIETOR || 'Rajesh Naidu';
+
+export const BUSINESS_TAGLINE = import.meta.env.VITE_BUSINESS_TAGLINE || 'Your trusted path to home';
