@@ -3,6 +3,7 @@ import { Property, Inquiry } from '../types';
 import { createLead, getAllProperties } from '../services/storageService';
 import { trackWhatsAppClick, trackPhoneClick } from '../utils/analytics';
 import { PropertyCard } from '../app/components/PropertyCard';
+import { UrgentBadge } from '../app/components/UrgentBadge';
 import {
   AnimatePresence,
   motion,
@@ -392,6 +393,13 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] lg:items-start">
           <div className="min-w-0 space-y-5">
             <div className="relative h-64 overflow-hidden rounded-2xl border border-white bg-white shadow-[0_18px_50px_rgba(15,31,61,0.16)] sm:h-80 md:h-[420px] lg:h-[450px]">
+              {property.urgent && (
+                <UrgentBadge
+                  reduce={reduce}
+                  className="absolute left-3 top-3 z-10"
+                  label={property.status === 'rent' ? 'Urgent Rent' : 'Urgent Sale'}
+                />
+              )}
               {imageCount > 0 ? (
                 <>
                   <AnimatePresence custom={imageDirection} initial={false}>

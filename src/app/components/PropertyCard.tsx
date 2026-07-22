@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { cardReveal, EASE_ELEGANT } from '../../lib/animation';
 import { toTitleCase, propertyDealSummary } from '../../utils/format';
 import noImage from '../../assets/no-image.png';
+import { UrgentBadge } from './UrgentBadge';
 
 interface PropertyCardProps {
   property: Property;
@@ -31,25 +32,6 @@ const categoryLabel = (category: Property['category']) => {
   if (category === 'condo') return 'Commercial';
   return category.charAt(0).toUpperCase() + category.slice(1);
 };
-
-// Distinct from the static "New Launch"/category badge — a slow pulsing ring
-// draws the eye to urgent listings without being obnoxious. Skipped entirely
-// under prefers-reduced-motion (badge still renders, just without the pulse).
-const UrgentBadge: React.FC<{ reduce: boolean | null; className?: string }> = ({ reduce, className }) => (
-  <div className={`relative ${className ?? ''}`}>
-    {!reduce && (
-      <motion.span
-        aria-hidden
-        className="absolute inset-0 rounded-full bg-red-500"
-        animate={{ scale: [1, 1.7], opacity: [0.55, 0] }}
-        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-      />
-    )}
-    <span className="relative rounded-full bg-red-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.05em] text-white sm:px-2.5 sm:py-1 sm:text-[11px]">
-      Urgent
-    </span>
-  </div>
-);
 
 type Ripple = { id: number; x: number; y: number };
 
@@ -169,7 +151,13 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           >
             {property.featured ? 'New Launch' : categoryLabel(property.category)}
           </span>
-          {property.urgent && <UrgentBadge reduce={reduce} className="absolute right-1.5 top-1.5" />}
+          {property.urgent && (
+            <UrgentBadge
+              reduce={reduce}
+              className="absolute right-1.5 top-1.5"
+              label={property.status === 'rent' ? 'Urgent Rent' : 'Urgent Sale'}
+            />
+          )}
         </div>
 
         <div className="flex w-2/5 min-w-0 flex-col justify-center gap-1 p-2.5">
@@ -254,7 +242,13 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           </span>
         </div>
 
-        {property.urgent && <UrgentBadge reduce={reduce} className="absolute right-3 top-3" />}
+        {property.urgent && (
+          <UrgentBadge
+            reduce={reduce}
+            className="absolute right-3 top-3"
+            label={property.status === 'rent' ? 'Urgent Rent' : 'Urgent Sale'}
+          />
+        )}
 
         <button
           onClick={handleActionClick}
