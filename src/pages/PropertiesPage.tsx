@@ -203,6 +203,8 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         case 'newest':
         default:
+          // Urgent listings float to the top regardless of age; newest first within each group.
+          if (Boolean(a.urgent) !== Boolean(b.urgent)) return a.urgent ? -1 : 1;
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });

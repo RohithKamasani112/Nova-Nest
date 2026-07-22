@@ -155,6 +155,7 @@ export interface Property {
   amenities: string[];
   featured: boolean;
   verified: boolean;
+  urgent?: boolean; // Admin-flagged "urgent sale/rent" — pins to the top of default listings and shows a pulsing badge
   createdAt: string;
   updatedAt?: string;
   ownerId?: string;

@@ -19,6 +19,11 @@ export const SPRING_BOUNCY: Transition = { type: 'spring', stiffness: 200, dampi
 // Elegant ease used for opacity + positional slides.
 export const EASE_ELEGANT: [number, number, number, number] = [0.25, 0.1, 0.0, 1.0];
 
+// Used specifically for the Services page tab-switch cross-fade/slide — a
+// snappier decelerate than EASE_ELEGANT, so the tab swap reads as the page's
+// primary motion rather than blending into every other reveal.
+export const EASE_TAB_SWITCH: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 // ----- Variants ----------------------------------------------------------
 export const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30, filter: 'blur(4px)' },

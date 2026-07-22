@@ -15,6 +15,7 @@ import { LeadsManagementPage } from '../pages/LeadsManagementPage';
 import { GenerateBillPage } from '../pages/GenerateBillPage';
 import { AboutPage } from '../pages/AboutPage';
 import { ContactPage } from '../pages/ContactPage';
+import { ServicesPage } from '../pages/ServicesPage';
 import { LocalityPage } from '../pages/LocalityPage';
 import { BlogListPage } from '../pages/BlogListPage';
 import { BlogPostPage } from '../pages/BlogPostPage';
@@ -29,6 +30,7 @@ import { Footer } from './components/Footer';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import { pageTransition } from '../lib/animation';
 import { trackPropertyView, trackWhatsAppClick, trackPhoneClick } from '../utils/analytics';
+import { BUSINESS_WHATSAPP_NUMBER } from '../utils/siteSettings';
 
 type Page =
   | 'home'
@@ -37,6 +39,7 @@ type Page =
   | 'admin-login'
   | 'about'
   | 'contact'
+  | 'services'
   | 'locality'
   | 'blog'
   | 'blog-post'
@@ -161,6 +164,9 @@ function App() {
       case 'contact':
         return <ContactPage />;
 
+      case 'services':
+        return <ServicesPage onNavigate={handleNavigate} />;
+
       case 'locality':
         return <LocalityPage slug={activeSlug} onNavigate={handleNavigate} />;
 
@@ -249,8 +255,7 @@ const AppContent: React.FC<{
 }) => {
   const { logout, isAuthenticated, isLoading: authLoading } = useAuth();
   const reduce = useReducedMotion();
-  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';
-  const floatingWhatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
+  const floatingWhatsappUrl = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
   // Capture the visitor's number as a lead before sending them to WhatsApp.
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const [showContactOptions, setShowContactOptions] = useState(false);

@@ -12,6 +12,7 @@ import {
 import { motion } from "motion/react";
 import { Seo } from "../components/Seo";
 import { breadcrumbJsonLd } from "../utils/seo";
+import { ServicesTeaserSection } from "../app/components/ServicesTeaserSection";
 
 interface AboutPageProps {
   onNavigate: (page: string) => void;
@@ -221,6 +222,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
           })}
         </div>
       </section>
+
+      <ServicesTeaserSection onNavigate={onNavigate} />
 
       <section className="bg-white py-14 sm:py-24">
         <div className="max-w-4xl mx-auto px-6">

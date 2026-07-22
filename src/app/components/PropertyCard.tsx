@@ -32,6 +32,25 @@ const categoryLabel = (category: Property['category']) => {
   return category.charAt(0).toUpperCase() + category.slice(1);
 };
 
+// Distinct from the static "New Launch"/category badge — a slow pulsing ring
+// draws the eye to urgent listings without being obnoxious. Skipped entirely
+// under prefers-reduced-motion (badge still renders, just without the pulse).
+const UrgentBadge: React.FC<{ reduce: boolean | null; className?: string }> = ({ reduce, className }) => (
+  <div className={`relative ${className ?? ''}`}>
+    {!reduce && (
+      <motion.span
+        aria-hidden
+        className="absolute inset-0 rounded-full bg-red-500"
+        animate={{ scale: [1, 1.7], opacity: [0.55, 0] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+      />
+    )}
+    <span className="relative rounded-full bg-red-500 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.05em] text-white sm:px-2.5 sm:py-1 sm:text-[11px]">
+      Urgent
+    </span>
+  </div>
+);
+
 type Ripple = { id: number; x: number; y: number };
 
 /**
@@ -133,7 +152,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
     >
       {/* ── Mobile compact layout (below sm): horizontal thumbnail + tight details ── */}
       <div className="flex sm:hidden">
-        <div className="relative aspect-square w-24 flex-shrink-0 overflow-hidden bg-black/5">
+        <div className="relative aspect-[4/3] w-3/5 flex-shrink-0 overflow-hidden bg-black/5">
           <img
             src={property.images?.[0] || noImage}
             alt={`${toTitleCase(property.title)} — ${categoryLabel(property.category)} ${
@@ -150,55 +169,55 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           >
             {property.featured ? 'New Launch' : categoryLabel(property.category)}
           </span>
+          {property.urgent && <UrgentBadge reduce={reduce} className="absolute right-1.5 top-1.5" />}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-3">
-          <h3 className="line-clamp-1 text-sm font-bold leading-tight text-text-primary">
+        <div className="flex w-2/5 min-w-0 flex-col justify-center gap-1 p-2.5">
+          <h3 className="line-clamp-1 text-[13px] font-bold leading-tight text-text-primary">
             {toTitleCase(property.title)}
           </h3>
 
-          <span className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.03em] ${
+          <span className={`w-fit whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.03em] ${
             property.status === 'rent' ? 'bg-primary/10 text-primary' : 'bg-gold/15 text-gold'
           }`}>
             {propertyDealSummary(property)}
           </span>
 
           <div className="flex items-center gap-1">
-            <MapPin size={12} className="flex-shrink-0 text-gold" />
-            <span className="truncate text-[11px] font-medium text-muted-foreground">
+            <MapPin size={11} className="flex-shrink-0 text-gold" />
+            <span className="truncate text-[10px] font-medium text-muted-foreground">
               {toTitleCase(property.location)}
             </span>
-            {distanceLabel && (
-              <span className="flex-shrink-0 text-[11px] font-semibold text-primary">· {distanceLabel}</span>
+          </div>
+          {distanceLabel && (
+            <span className="text-[10px] font-semibold text-primary">{distanceLabel}</span>
+          )}
+
+          <p className="text-sm font-extrabold leading-none text-text-primary">{formatPrice(property)}</p>
+
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-semibold text-muted-foreground">
+            {property.bedrooms > 0 && (
+              <span className="flex items-center gap-0.5">
+                <BedDouble size={11} /> {property.bedrooms}
+              </span>
+            )}
+            {property.bathrooms > 0 && (
+              <span className="flex items-center gap-0.5">
+                <Bath size={11} /> {property.bathrooms}
+              </span>
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-base font-extrabold leading-none text-text-primary">{formatPrice(property)}</p>
-            <div className="flex flex-shrink-0 items-center gap-2 text-[11px] font-semibold text-muted-foreground">
-              {property.bedrooms > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <BedDouble size={12} /> {property.bedrooms}
-                </span>
-              )}
-              {property.bathrooms > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <Bath size={12} /> {property.bathrooms}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-0.5 flex items-center gap-1.5">
+          <div className="mt-0.5 flex flex-col gap-1">
             <button
               onClick={handleActionClick}
-              className="rounded-full bg-gold px-3 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-primary-dark"
+              className="w-full rounded-full bg-gold px-2 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-white transition-colors hover:bg-primary-dark"
             >
               Enquire
             </button>
             <button
               onClick={handleActionClick}
-              className="rounded-full border border-charcoal/25 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-charcoal transition-colors hover:border-charcoal/40"
+              className="w-full rounded-full border border-charcoal/25 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-charcoal transition-colors hover:border-charcoal/40"
             >
               Book Visit
             </button>
@@ -234,6 +253,8 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             {property.featured ? 'New Launch' : categoryLabel(property.category)}
           </span>
         </div>
+
+        {property.urgent && <UrgentBadge reduce={reduce} className="absolute right-3 top-3" />}
 
         <button
           onClick={handleActionClick}

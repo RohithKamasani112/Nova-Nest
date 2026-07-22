@@ -143,7 +143,7 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
   );
 
   return (
-    <div className="max-w-7xl">
+    <div className="w-full">
       <div className="mb-6 sm:mb-8">
         <h1 className="mb-2 text-2xl font-bold text-gray-900 sm:text-3xl">Manage Properties</h1>
         <p className="text-sm text-gray-600 sm:text-base">{properties.length} total properties</p>
@@ -257,18 +257,21 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
           </div>
 
           <div className="hidden overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm md:block">
-            <table className="w-full min-w-[1180px] text-sm">
+            <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700 min-w-[260px]">Title</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Location</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Price</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Category</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Type</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Visibility</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Featured</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Date</th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Actions</th>
+                  <th className="w-[18%] px-4 py-3 text-left font-semibold text-gray-700">Title</th>
+                  <th className="w-[13%] px-4 py-3 text-left font-semibold text-gray-700">Location</th>
+                  <th className="w-[9%] px-4 py-3 text-left font-semibold text-gray-700">Price</th>
+                  {/* Edit sits right after the identifying columns (title/location/price)
+                      so it's reachable without scrolling right past every status column. */}
+                  <th className="w-[6%] px-4 py-3 text-left font-semibold text-gray-700">Edit</th>
+                  <th className="w-[9%] px-4 py-3 text-left font-semibold text-gray-700">Category</th>
+                  <th className="w-[7%] px-4 py-3 text-left font-semibold text-gray-700">Type</th>
+                  <th className="w-[9%] px-4 py-3 text-left font-semibold text-gray-700">Visibility</th>
+                  <th className="w-[7%] px-4 py-3 text-left font-semibold text-gray-700">Featured</th>
+                  <th className="w-[9%] px-4 py-3 text-left font-semibold text-gray-700">Date</th>
+                  <th className="w-[13%] px-4 py-3 text-left font-semibold text-gray-700">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -280,18 +283,23 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
                     transition={{ delay: index * 0.05 }}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
-                    <td className="px-6 py-3 min-w-[260px]">
-                      <div className="whitespace-normal break-words font-medium text-gray-900">{toTitleCase(property.title)}</div>
+                    <td className="px-4 py-3">
+                      <div className="line-clamp-2 break-words font-medium text-gray-900">{toTitleCase(property.title)}</div>
                     </td>
-                    <td className="px-6 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-gray-600">
                       <div className="line-clamp-1">{toTitleCase(property.location)}</div>
                     </td>
-                    <td className="px-6 py-3 font-medium text-gray-900">{formatPrice(property.price, property.status)}</td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-3 font-medium text-gray-900">{formatPrice(property.price, property.status)}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => onEditProperty(property)} className="rounded-lg p-2 text-primary transition-colors hover:bg-primary-light" title="Edit property">
+                        <Edit2 size={18} />
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
                       <span className="rounded bg-primary-light px-2.5 py-1 text-xs font-medium capitalize text-primary">{property.category}</span>
                     </td>
-                    <td className="px-6 py-3">{renderStatusBadge(property)}</td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-3">{renderStatusBadge(property)}</td>
+                    <td className="px-4 py-3">
                       <button
                         onClick={() => updatePropertyVisibility(property, property.isActive === false)}
                         className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${property.isActive === false ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
@@ -299,15 +307,12 @@ export const ManagePropertiesPage: React.FC<ManagePropertiesPageProps> = ({
                         {property.isActive === false ? 'Inactive' : 'Active'}
                       </button>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-3">
                       {property.featured && <span className="rounded bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">Yes</span>}
                     </td>
-                    <td className="px-6 py-3 text-gray-600">{new Date(property.createdAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-3 text-gray-600">{new Date(property.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => onEditProperty(property)} className="rounded-lg p-2 text-primary transition-colors hover:bg-primary-light" title="Edit property">
-                          <Edit2 size={18} />
-                        </button>
                         <button
                           onClick={() => updatePropertyVisibility(property, property.isActive === false)}
                           className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${property.isActive === false ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'}`}

@@ -79,6 +79,7 @@ export type AppPage =
   | 'property-details'
   | 'about'
   | 'contact'
+  | 'services'
   | 'locality'
   | 'blog'
   | 'blog-post'
@@ -114,6 +115,8 @@ export const pathForState = (
       return '/about';
     case 'contact':
       return '/contact';
+    case 'services':
+      return '/services';
     case 'locality':
       return slug ? localityPath(slug) : '/';
     case 'blog':
@@ -155,6 +158,7 @@ export const parsePath = (pathname: string): ParsedRoute => {
   if (clean === '/properties') return { type: 'page', page: 'properties' };
   if (clean === '/about') return { type: 'page', page: 'about' };
   if (clean === '/contact') return { type: 'page', page: 'contact' };
+  if (clean === '/services') return { type: 'page', page: 'services' };
   if (clean === '/blog') return { type: 'page', page: 'blog' };
   // '/admin-login' is the canonical URL admins type in directly; '/admin' and
   // '/admin/login' are kept as aliases since they were the URL this page used

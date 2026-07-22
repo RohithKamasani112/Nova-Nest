@@ -18,3 +18,8 @@ export const BUSINESS_EMAIL =
 export const BUSINESS_PROPRIETOR = import.meta.env.VITE_BUSINESS_PROPRIETOR || 'Rajesh Naidu';
 
 export const BUSINESS_TAGLINE = import.meta.env.VITE_BUSINESS_TAGLINE || 'Your trusted path to home';
+
+// Digits-only, country-code-prefixed number used to build wa.me links (the
+// floating contact button in App.tsx read this directly before; centralized
+// here so the Services page can reuse the same source of truth).
+export const BUSINESS_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '919845418570';

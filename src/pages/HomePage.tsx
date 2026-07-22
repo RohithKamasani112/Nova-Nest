@@ -13,6 +13,7 @@ import {
   MapPin,
   Search,
   SlidersHorizontal,
+  Wrench,
   X,
 } from 'lucide-react';
 import { EASE_ELEGANT, staggerContainer } from '../lib/animation';
@@ -21,6 +22,7 @@ import { Seo } from '../components/Seo';
 import { organizationJsonLd, brandOrganizationJsonLd, websiteJsonLd, blogPath } from '../utils/seo';
 import { postsNewestFirst } from '../data/blog';
 import { TopLocalitiesSection } from '../app/components/TopLocalitiesSection';
+import { ServicesTeaserSection } from '../app/components/ServicesTeaserSection';
 import { TestimonialsSection } from '../app/components/TestimonialsSection';
 
 const AnimatedHeading: React.FC<{ text: string; reduce: boolean; start?: boolean; className?: string; delayStart?: number; style?: React.CSSProperties }> = ({
@@ -297,7 +299,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
       case 'oldest': filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break;
       case 'area-asc': filtered.sort((a, b) => a.areaSqft - b.areaSqft); break;
       case 'area-desc': filtered.sort((a, b) => b.areaSqft - a.areaSqft); break;
-      default: filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      default:
+        // Urgent listings float to the top regardless of age; newest first within each group.
+        filtered.sort((a, b) => {
+          if (Boolean(a.urgent) !== Boolean(b.urgent)) return a.urgent ? -1 : 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
     }
     // Store the full filtered set; counts use its length while the grid slices to 9.
     setFilteredProperties(filtered);
@@ -516,7 +523,25 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
             {/* Popular locations */}
             <motion.div {...fadeUp(0.6)} className="mt-8 flex flex-wrap items-center justify-center gap-2 text-sm sm:gap-3">
               <span className="text-white/55 text-[13px]">Popular:</span>
-              {['Whitefield', 'Marathahalli', 'Bellandur', 'Hoodi'].map((place, i) => (
+              {[
+                'Whitefield',
+                'Marathahalli',
+                'Bellandur',
+                'Hoodi',
+                'Mahadevapura',
+                'Garudacharpalya',
+                'Aces Layout',
+                'Kundanahalli',
+                'Brookfield',
+                'Seetharamapalya',
+                'Hope Farm',
+                'ITPL',
+                'Nallurahalli',
+                'Channasandra',
+                'Kadugudi',
+                'Doddanekkundi',
+                'Sarjapur',
+              ].map((place, i) => (
                 <motion.button
                   key={place}
                   {...(reduce
@@ -600,6 +625,19 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
                   )}
                 </button>
               ))}
+
+              <span className="mx-1 h-5 w-px flex-shrink-0 self-center bg-charcoal/10" aria-hidden />
+
+              {/* Not a property-type filter — navigates to the dedicated
+                  Services page instead of toggling `selectedCategory`, so it
+                  intentionally never shows the active-chip underline. */}
+              <button
+                onClick={() => onNavigate?.('services')}
+                className="flex h-9 flex-shrink-0 items-center gap-1.5 whitespace-nowrap px-4 text-[13px] font-semibold text-gold transition-colors duration-200 hover:text-primary-dark"
+              >
+                <Wrench size={14} />
+                Services
+              </button>
             </div>
 
             <button
@@ -814,6 +852,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
         properties={allProperties}
         onSelectLocality={(locality) => onSearch({ locality: [locality] })}
       />
+
+      <ServicesTeaserSection onNavigate={(page) => onNavigate?.(page)} />
 
       <TestimonialsSection />
 
