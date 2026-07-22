@@ -570,7 +570,11 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
               </section>
             )}
 
-            <section ref={setSectionRef('locality')} data-tab-section="locality" className="scroll-mt-28 space-y-4">
+            <section
+              ref={setSectionRef('locality')}
+              data-tab-section="locality"
+              className="scroll-mt-28 space-y-4 rounded-2xl border border-border bg-white p-5 shadow-subtle sm:p-6"
+            >
               <div className="relative h-72 w-full overflow-hidden rounded-2xl border border-border shadow-subtle sm:h-96">
                 <iframe
                   title="Property location map"
