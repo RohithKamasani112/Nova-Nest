@@ -21,7 +21,7 @@ import { BlogListPage } from '../pages/BlogListPage';
 import { BlogPostPage } from '../pages/BlogPostPage';
 import { Property, PropertyFilters } from '../types';
 import { Toaster } from 'react-hot-toast';
-import { Phone, X } from 'lucide-react';
+import { Instagram, Phone, X, Youtube } from 'lucide-react';
 import { WhatsAppIcon } from './components/icons/WhatsAppIcon';
 import { WhatsAppContactModal } from './components/WhatsAppContactModal';
 import { createLead } from '../services/storageService';
@@ -29,8 +29,10 @@ import { PageLoader } from '../components/PageLoader';
 import { Footer } from './components/Footer';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import { pageTransition } from '../lib/animation';
-import { trackPropertyView, trackWhatsAppClick, trackPhoneClick } from '../utils/analytics';
+import { trackPropertyView, trackWhatsAppClick, trackPhoneClick, trackSocialClick } from '../utils/analytics';
 import { BUSINESS_WHATSAPP_NUMBER } from '../utils/siteSettings';
+const INSTAGRAM_URL = 'https://www.instagram.com/nova_nest_rentals?igsh=MXVxbHowcmQwNzZiNg%3D%3D';
+const YOUTUBE_URL = 'https://www.youtube.com/@novanestrentals';
 
 type Page =
   | 'home'
@@ -261,11 +263,15 @@ const AppContent: React.FC<{
   const [showContactOptions, setShowContactOptions] = useState(false);
   // The homepage hero is tall enough (min-h-680px+) that on short viewports
   // the fixed floating contact button can visually overlap the hero's search
-  // bar / chips row. Only reveal it once the visitor has scrolled a bit,
+  // bar / chips row. Only reveal it once the visitor has scrolled a bit there,
   // rather than trying to guess a "safe" pixel offset for every screen size.
+  // Every other (non-admin) page shows it immediately.
   const [showFloatingContact, setShowFloatingContact] = useState(false);
   useEffect(() => {
-    if (currentPage !== 'home') return;
+    if (currentPage !== 'home') {
+      setShowFloatingContact(true);
+      return;
+    }
     const handleScroll = () => setShowFloatingContact(window.scrollY > 280);
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -354,14 +360,68 @@ const AppContent: React.FC<{
       )}
 
       <AnimatePresence>
-      {currentPage === 'home' && showFloatingContact && (
+      {!isAdminPage && showFloatingContact && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="fixed bottom-6 right-4 z-50 flex flex-col items-center gap-3 sm:right-6"
+          className={`fixed right-4 z-50 flex flex-col items-center sm:right-6 ${
+            // The property page has its own full-width sticky WhatsApp bar on
+            // mobile — sit above it there instead of overlapping it.
+            currentPage === 'property-details' ? 'bottom-24 lg:bottom-6' : 'bottom-6'
+          }`}
         >
+          {/* Social — always visible, looping gifs (not gated behind the
+              call/WhatsApp expand toggle) so they stay noticeable on every page.
+              Built from a real icon + text label (not a flattened image) so
+              icon size, padding, vertical alignment and gaps are each
+              independently controllable. */}
+          {/* Sized at ~70% of the original pill (icon/padding/text all scaled
+              down together) so proportions stay the same, just smaller. */}
+          <div className="mb-[11px] flex flex-col items-center gap-[6px]">
+            <motion.a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Follow Nova Nest on Instagram"
+              onClick={() => trackSocialClick('Instagram', INSTAGRAM_URL)}
+              whileHover={reduce ? undefined : { scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-[6px] rounded-full bg-gradient-to-r from-[#4f1d7a] to-[#1a0e2e] py-[7px] pl-[7px] pr-[11px] shadow-lg"
+            >
+              <span className="relative flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5]">
+                {!reduce && (
+                  <span className="absolute inset-0 rounded-full bg-[#d62976] opacity-60 animate-ping" />
+                )}
+                <Instagram size={15} className="relative text-white" />
+              </span>
+              <span className="whitespace-nowrap text-[10px] font-semibold leading-none text-white">
+                @nova_nest_rentals
+              </span>
+            </motion.a>
+            <motion.a
+              href={YOUTUBE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Subscribe to Nova Nest on YouTube"
+              onClick={() => trackSocialClick('YouTube', YOUTUBE_URL)}
+              whileHover={reduce ? undefined : { scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-[6px] rounded-full bg-black py-[7px] pl-[7px] pr-[11px] shadow-lg"
+            >
+              <span className="relative flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded-full bg-[#FF0000]">
+                {!reduce && (
+                  <span className="absolute inset-0 rounded-full bg-[#FF0000] opacity-60 animate-ping" />
+                )}
+                <Youtube size={15} className="relative text-white" />
+              </span>
+              <span className="whitespace-nowrap text-[10px] font-semibold leading-none text-white">
+                @novanestrentals
+              </span>
+            </motion.a>
+          </div>
+
           <AnimatePresence>
             {showContactOptions && (
               <motion.div
@@ -369,7 +429,7 @@ const AppContent: React.FC<{
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.9 }}
                 transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="flex flex-col items-center gap-3"
+                className="mb-3 flex flex-col items-center gap-3"
               >
                 <motion.a
                   href="tel:+919845418570"
