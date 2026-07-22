@@ -379,7 +379,7 @@ const AppContent: React.FC<{
               independently controllable. */}
           {/* Sized at ~70% of the original pill (icon/padding/text all scaled
               down together) so proportions stay the same, just smaller. */}
-          <div className="mb-[11px] flex flex-col items-center gap-[6px]">
+          <div className={`flex flex-col items-center gap-[6px] ${currentPage !== 'property-details' ? 'mb-[11px]' : ''}`}>
             <motion.a
               href={INSTAGRAM_URL}
               target="_blank"
@@ -397,7 +397,7 @@ const AppContent: React.FC<{
                 <Instagram size={15} className="relative text-white" />
               </span>
               <span className="whitespace-nowrap text-[10px] font-semibold leading-none text-white">
-                @nova_nest_rentals
+                @NovaNest
               </span>
             </motion.a>
             <motion.a
@@ -417,66 +417,74 @@ const AppContent: React.FC<{
                 <Youtube size={15} className="relative text-white" />
               </span>
               <span className="whitespace-nowrap text-[10px] font-semibold leading-none text-white">
-                @novanestrentals
+                @NovaNest
               </span>
             </motion.a>
           </div>
 
-          <AnimatePresence>
-            {showContactOptions && (
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.9 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="mb-3 flex flex-col items-center gap-3"
-              >
-                <motion.a
-                  href="tel:+919845418570"
-                  aria-label="Call us"
-                  onClick={() => trackPhoneClick('floating_button')}
-                  whileHover={reduce ? undefined : { scale: 1.1 }}
-                  whileTap={{ scale: 0.92 }}
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg"
-                >
-                  <Phone size={20} />
-                </motion.a>
-                <motion.button
-                  type="button"
-                  onClick={() => {
-                    trackWhatsAppClick('floating_button');
-                    setShowWhatsappModal(true);
-                    setShowContactOptions(false);
-                  }}
-                  aria-label="Contact on WhatsApp"
-                  whileHover={reduce ? undefined : { scale: 1.1 }}
-                  whileTap={{ scale: 0.92 }}
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
-                >
-                  <WhatsAppIcon size={20} />
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* The property details page already has its own dedicated WhatsApp
+              CTA (sidebar + sticky mobile bar) — showing this one too would be
+              a redundant second WhatsApp entry point on that page, so it's
+              skipped there. Instagram/YouTube above are unaffected. */}
+          {currentPage !== 'property-details' && (
+            <>
+              <AnimatePresence>
+                {showContactOptions && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 12, scale: 0.9 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                    className="mb-3 flex flex-col items-center gap-3"
+                  >
+                    <motion.a
+                      href="tel:+919845418570"
+                      aria-label="Call us"
+                      onClick={() => trackPhoneClick('floating_button')}
+                      whileHover={reduce ? undefined : { scale: 1.1 }}
+                      whileTap={{ scale: 0.92 }}
+                      className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg"
+                    >
+                      <Phone size={20} />
+                    </motion.a>
+                    <motion.button
+                      type="button"
+                      onClick={() => {
+                        trackWhatsAppClick('floating_button');
+                        setShowWhatsappModal(true);
+                        setShowContactOptions(false);
+                      }}
+                      aria-label="Contact on WhatsApp"
+                      whileHover={reduce ? undefined : { scale: 1.1 }}
+                      whileTap={{ scale: 0.92 }}
+                      className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
+                    >
+                      <WhatsAppIcon size={20} />
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-          <motion.button
-            type="button"
-            onClick={() => setShowContactOptions((v) => !v)}
-            aria-label={showContactOptions ? 'Close contact options' : 'Contact us'}
-            aria-expanded={showContactOptions}
-            whileHover={reduce ? undefined : { scale: 1.08 }}
-            whileTap={{ scale: 0.92 }}
-            animate={reduce || showContactOptions ? undefined : { scale: [1, 1.08, 1] }}
-            transition={reduce || showContactOptions ? undefined : { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
-          >
-            {!reduce && !showContactOptions && (
-              <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-60 animate-ping" />
-            )}
-            <span className="relative z-10">
-              {showContactOptions ? <X size={24} /> : <WhatsAppIcon size={26} />}
-            </span>
-          </motion.button>
+              <motion.button
+                type="button"
+                onClick={() => setShowContactOptions((v) => !v)}
+                aria-label={showContactOptions ? 'Close contact options' : 'Contact us'}
+                aria-expanded={showContactOptions}
+                whileHover={reduce ? undefined : { scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                animate={reduce || showContactOptions ? undefined : { scale: [1, 1.08, 1] }}
+                transition={reduce || showContactOptions ? undefined : { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+                className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg"
+              >
+                {!reduce && !showContactOptions && (
+                  <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-60 animate-ping" />
+                )}
+                <span className="relative z-10">
+                  {showContactOptions ? <X size={24} /> : <WhatsAppIcon size={26} />}
+                </span>
+              </motion.button>
+            </>
+          )}
         </motion.div>
       )}
       </AnimatePresence>
