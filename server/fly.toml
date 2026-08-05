@@ -1,0 +1,32 @@
+# Replace `app` with the actual app name shown in your Fly.io dashboard
+# (the one you already connected the repo to) before deploying.
+app = "your-fly-app-name"
+primary_region = "bom"  # Mumbai — closest region to a Bengaluru-based business; change if you prefer another
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  # CRM_SERVER_PORT is intentionally NOT set here — it must match
+  # internal_port below. Leave it at the app's default (4001) unless you
+  # also change internal_port to match.
+
+[http_service]
+  internal_port = 4001
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

@@ -10,6 +10,8 @@
     "start": "node dist/index.js",
     "migrate:up": "node-pg-migrate up -m src/db/migrations --envPath ../.env",
     "migrate:down": "node-pg-migrate down -m src/db/migrations --envPath ../.env",
+    "migrate:up:prod": "node-pg-migrate up -m src/db/migrations",
+    "migrate:down:prod": "node-pg-migrate down -m src/db/migrations",
     "seed": "tsx src/db/seed.ts",
     "reset-leads": "tsx scripts/resetLeads.ts",
     "test:parsers": "tsx src/test/parsers.test.ts"
