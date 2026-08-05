@@ -1,6 +1,6 @@
 # Replace `app` with the actual app name shown in your Fly.io dashboard
 # (the one you already connected the repo to) before deploying.
-app = "your-fly-app-name"
+app = "nova-nest"
 primary_region = "bom"  # Mumbai — closest region to a Bengaluru-based business; change if you prefer another
 
 [build]

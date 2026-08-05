@@ -2,6 +2,45 @@
 // starting point the preparer can type over per deal (see the editable-field
 // table in the billing generator spec). Never treated as a locked constant.
 
+import { BUSINESS_STATE_CODE, BUSINESS_STATE_NAME } from './siteSettings';
+
+// Document title per type, per GST mode — a real lookup, not string surgery
+// on a "Tax Invoice" title. Sale Booking's title doesn't change with GST
+// mode: it's a booking confirmation either way, never itself a tax invoice
+// (the only GST-bearing line on it is the commission charge).
+export const DOC_TITLES = {
+  sale_booking: { withGst: 'BOOKING CONFIRMATION', withoutGst: 'BOOKING CONFIRMATION' },
+  commission_sale: { withGst: 'TAX INVOICE – COMMISSION', withoutGst: 'INVOICE – COMMISSION' },
+  commission_rental: { withGst: 'TAX INVOICE – RENTAL BROKERAGE', withoutGst: 'INVOICE – RENTAL BROKERAGE' },
+  service: { withGst: 'TAX INVOICE', withoutGst: 'SERVICE INVOICE' },
+} as const;
+
+// SAC (Services Accounting Code) starting points per document type — every
+// one editable per document, never a locked value. Real estate brokerage
+// commonly files under 997221; general repair/maintenance services under
+// 998719. The preparer should confirm/override per engagement.
+export const SAC_CODE_DEFAULTS = {
+  sale_booking: '997221',
+  commission: '997221',
+  service: '998719',
+};
+
+// Default GST/Rule 46 fields shared by every billing form's initial draft.
+// Assumes an intra-state supply (recipient in the same state as the
+// business) since that's the common case — editable per document, and the
+// actual CGST+SGST vs. IGST split is derived from placeOfSupplyCode vs. the
+// supplier's own state at render/calculation time, not from this default.
+export const gstFieldDefaults = (sacCode: string, gstApplicable = true) => ({
+  gstApplicable,
+  sacCode,
+  placeOfSupplyState: BUSINESS_STATE_NAME,
+  placeOfSupplyCode: BUSINESS_STATE_CODE,
+  reverseCharge: false,
+  recipientGstin: '',
+  recipientStateName: BUSINESS_STATE_NAME,
+  recipientStateCode: BUSINESS_STATE_CODE,
+});
+
 export const DEFAULT_SALE_BOOKING_TERMS: string[] = [
   'The token advance amount confirms the provisional booking of the above property in favour of the Purchaser.',
   'The Purchaser shall execute the Sale Agreement within the mutually agreed timeline and pay the amount stated above at that stage.',

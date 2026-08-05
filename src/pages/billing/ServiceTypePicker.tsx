@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Building2, Home, Percent, Wrench } from 'lucide-react';
+import { Building2, Home, Percent, Receipt, Wrench } from 'lucide-react';
 import { BillingDocType } from '../../types';
 
-export type ServiceTile = BillingDocType | 'commission_sale' | 'commission_rental';
+export type ServiceTile = BillingDocType | 'commission_sale' | 'commission_rental' | 'token_receipt';
 
 interface TileDef {
   id: ServiceTile;
@@ -41,6 +41,13 @@ const TILES: TileDef[] = [
     subtitle: 'Service Invoice',
     icon: Wrench,
     accent: '#7233a8',
+  },
+  {
+    id: 'token_receipt',
+    title: 'Token Receipt',
+    subtitle: 'Rent or Sale',
+    icon: Receipt,
+    accent: '#b45309',
   },
 ];
 

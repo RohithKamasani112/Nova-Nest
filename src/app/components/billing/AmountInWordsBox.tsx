@@ -1,5 +1,5 @@
 import React from 'react';
-import { CREAM, GOLD, printColorAdjust } from './designTokens';
+import { CREAM, GOLD, MUTED_TEXT, printColorAdjust } from './designTokens';
 
 interface AmountInWordsBoxProps {
   children: React.ReactNode;
@@ -14,7 +14,7 @@ export const AmountInWordsBox: React.FC<AmountInWordsBoxProps> = ({ children }) 
       padding: '12px 16px',
       fontSize: 13,
       fontStyle: 'italic',
-      color: '#3a3f52',
+      color: MUTED_TEXT,
     }}
   >
     {children}

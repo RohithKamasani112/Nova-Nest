@@ -4,11 +4,14 @@ import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Receipt, Trash2 } fr
 import toast from 'react-hot-toast';
 import { ServiceInvoiceTemplate, ServiceTemplateData } from '../../app/components/billing/templates/ServiceInvoiceTemplate';
 import { calculateService } from '../../utils/billingCalculations';
-import { SERVICE_DEFAULTS } from '../../utils/billingDefaults';
+import { gstFieldDefaults, SAC_CODE_DEFAULTS, SERVICE_DEFAULTS } from '../../utils/billingDefaults';
 import { createBillingDoc, getNextDocNumber, uploadBillingDocPdf } from '../../services/storageService';
 import { renderNodeToPdf } from '../../utils/pdfExport';
 import { ServiceDoc } from '../../types';
 import { inputClass, labelClass, sectionTitleClass } from './formStyles';
+import { GstModeToggle } from './GstModeToggle';
+import { GstFieldsSection } from './GstFieldsSection';
+import { captureUnscaled, DocumentPreview } from './DocumentPreview';
 
 type Draft = Omit<ServiceTemplateData, 'docNumber' | 'computed'>;
 
@@ -16,8 +19,10 @@ const buildInitialDraft = (): Draft => ({
   docType: 'service',
   customerName: '',
   customerAddress: '',
+  customerEmail: '',
+  customerMobile: '',
   lineItems: [{ description: '', amount: 0 }],
-  gstEnabled: false,
+  ...gstFieldDefaults(SAC_CODE_DEFAULTS.service, false),
   cgstPct: SERVICE_DEFAULTS.cgstPct,
   sgstPct: SERVICE_DEFAULTS.sgstPct,
   docDate: new Date().toISOString().slice(0, 10),
@@ -59,7 +64,7 @@ export const ServiceInvoiceForm: React.FC<ServiceInvoiceFormProps> = ({ onBack, 
     computed,
   };
 
-  const showGstMismatchWarning = draft.gstEnabled && draft.cgstPct !== draft.sgstPct;
+  const showGstMismatchWarning = draft.gstApplicable && draft.cgstPct !== draft.sgstPct;
 
   const isValid =
     draft.customerName.trim() &&
@@ -77,7 +82,7 @@ export const ServiceInvoiceForm: React.FC<ServiceInvoiceFormProps> = ({ onBack, 
 
       await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 50)));
 
-      const pdfBlob = await renderNodeToPdf(previewRef.current);
+      const pdfBlob = await captureUnscaled(previewRef.current, () => renderNodeToPdf(previewRef.current!));
       const pdfUrl = await uploadBillingDocPdf(pdfBlob, nextNumber);
 
       const doc = (await createBillingDoc({
@@ -118,6 +123,8 @@ export const ServiceInvoiceForm: React.FC<ServiceInvoiceFormProps> = ({ onBack, 
           className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6"
         >
           <fieldset disabled={locked} className="space-y-5 disabled:opacity-60">
+            <GstModeToggle value={draft.gstApplicable} onChange={(v) => update('gstApplicable', v)} />
+
             <div>
               <div className={sectionTitleClass}>Customer</div>
               <div className="grid grid-cols-1 gap-4">
@@ -128,6 +135,16 @@ export const ServiceInvoiceForm: React.FC<ServiceInvoiceFormProps> = ({ onBack, 
                 <div>
                   <label className={labelClass}>Customer Address</label>
                   <textarea className={inputClass} rows={2} value={draft.customerAddress} onChange={(e) => update('customerAddress', e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Email (optional)</label>
+                    <input type="email" className={inputClass} value={draft.customerEmail} onChange={(e) => update('customerEmail', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Mobile (optional)</label>
+                    <input type="tel" className={inputClass} value={draft.customerMobile} onChange={(e) => update('customerMobile', e.target.value)} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -166,30 +183,31 @@ export const ServiceInvoiceForm: React.FC<ServiceInvoiceFormProps> = ({ onBack, 
               </div>
             </div>
 
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
-                <input type="checkbox" checked={draft.gstEnabled} onChange={(e) => update('gstEnabled', e.target.checked)} />
-                Apply GST
-              </label>
-              {draft.gstEnabled && (
-                <div className="mt-3 grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>CGST %</label>
-                    <input type="number" step="0.1" className={inputClass} value={draft.cgstPct} onChange={(e) => update('cgstPct', Number(e.target.value))} />
+            {draft.gstApplicable && (
+              <>
+                <div>
+                  <div className={sectionTitleClass}>GST</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>CGST %</label>
+                      <input type="number" step="0.1" className={inputClass} value={draft.cgstPct} onChange={(e) => update('cgstPct', Number(e.target.value))} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>SGST %</label>
+                      <input type="number" step="0.1" className={inputClass} value={draft.sgstPct} onChange={(e) => update('sgstPct', Number(e.target.value))} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelClass}>SGST %</label>
-                    <input type="number" step="0.1" className={inputClass} value={draft.sgstPct} onChange={(e) => update('sgstPct', Number(e.target.value))} />
-                  </div>
+                  {showGstMismatchWarning && (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                      <span>CGST and SGST are usually equal. Double-check before generating.</span>
+                    </div>
+                  )}
                 </div>
-              )}
-              {showGstMismatchWarning && (
-                <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-                  <span>CGST and SGST are usually equal. Double-check before generating.</span>
-                </div>
-              )}
-            </div>
+
+                <GstFieldsSection value={draft} onChange={(patch) => setDraft((prev) => ({ ...prev, ...patch }))} />
+              </>
+            )}
 
             <div>
               <label className={labelClass}>Invoice Date</label>
@@ -232,11 +250,9 @@ export const ServiceInvoiceForm: React.FC<ServiceInvoiceFormProps> = ({ onBack, 
           className="rounded-2xl border border-gray-100 bg-gray-50 p-4 shadow-sm sm:p-6"
         >
           <div className="mb-3 text-sm font-semibold text-text-primary">{locked ? 'Saved Document' : 'Live Preview'}</div>
-          <div className="overflow-x-auto rounded-xl bg-white p-4 shadow-sm">
-            <div ref={previewRef}>
-              <ServiceInvoiceTemplate doc={previewData} />
-            </div>
-          </div>
+          <DocumentPreview contentRef={previewRef}>
+            <ServiceInvoiceTemplate doc={previewData} />
+          </DocumentPreview>
         </motion.div>
       </div>
     </div>

@@ -1,0 +1,47 @@
+/* Token Receipt print path. Scoped entirely behind :has(#token-receipt-print)
+   so it only ever activates on the Token Receipt screen — every other page
+   (including the other 3 billing doc forms, which reuse the same
+   DocumentPreview component and .preview-* classes) prints exactly as
+   before. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body:has(#token-receipt-print) * {
+    visibility: hidden;
+  }
+  body:has(#token-receipt-print) #token-receipt-print,
+  body:has(#token-receipt-print) #token-receipt-print * {
+    visibility: visible;
+  }
+  body:has(#token-receipt-print) #token-receipt-print {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  /* Undo the on-screen zoom transform/scroll clamp so print always gets the
+     true, full-size A4 page regardless of whatever zoom level was last
+     selected in the live preview. */
+  #token-receipt-print .preview-scale-root {
+    transform: none !important;
+  }
+  #token-receipt-print .preview-size-root {
+    width: auto !important;
+    height: auto !important;
+  }
+  #token-receipt-print .preview-scroll-root {
+    overflow: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

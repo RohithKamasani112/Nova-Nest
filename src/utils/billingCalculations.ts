@@ -30,6 +30,7 @@ export interface SaleBookingInput {
   tdsPct: number;
   commissionPct: number;
   commissionGstPct: number;
+  gstApplicable: boolean;
   stampDutyPct: number;
   saleAgreementChargesPct: number;
   additionalFee: number;
@@ -47,6 +48,7 @@ export const calculateSaleBooking = (input: SaleBookingInput): SaleBookingComput
     tdsPct,
     commissionPct,
     commissionGstPct,
+    gstApplicable,
     stampDutyPct,
     saleAgreementChargesPct,
     additionalFee,
@@ -60,7 +62,7 @@ export const calculateSaleBooking = (input: SaleBookingInput): SaleBookingComput
   const tdsAmount = tdsEnabled ? pct(totalSalePrice, tdsPct) : 0;
 
   const commissionAmount = pct(totalSalePrice, commissionPct);
-  const commissionGstAmount = pct(commissionAmount, commissionGstPct);
+  const commissionGstAmount = gstApplicable ? pct(commissionAmount, commissionGstPct) : 0;
   const totalCommissionPayable = commissionAmount + commissionGstAmount;
 
   const stampDutyAmount = pct(totalSalePrice, stampDutyPct);
@@ -88,12 +90,13 @@ export interface CommissionInput {
   taxableAmount: number;
   cgstPct: number;
   sgstPct: number;
+  gstApplicable: boolean;
 }
 
 export const calculateCommission = (input: CommissionInput): CommissionComputed => {
-  const { taxableAmount, cgstPct, sgstPct } = input;
-  const cgstAmount = pct(taxableAmount, cgstPct);
-  const sgstAmount = pct(taxableAmount, sgstPct);
+  const { taxableAmount, cgstPct, sgstPct, gstApplicable } = input;
+  const cgstAmount = gstApplicable ? pct(taxableAmount, cgstPct) : 0;
+  const sgstAmount = gstApplicable ? pct(taxableAmount, sgstPct) : 0;
   const totalPayable = taxableAmount + cgstAmount + sgstAmount;
 
   return {
@@ -106,16 +109,16 @@ export const calculateCommission = (input: CommissionInput): CommissionComputed 
 
 export interface ServiceInput {
   lineItems: ServiceLineItem[];
-  gstEnabled: boolean;
+  gstApplicable: boolean;
   cgstPct: number;
   sgstPct: number;
 }
 
 export const calculateService = (input: ServiceInput): ServiceComputed => {
-  const { lineItems, gstEnabled, cgstPct, sgstPct } = input;
+  const { lineItems, gstApplicable, cgstPct, sgstPct } = input;
   const subtotal = lineItems.reduce((sum, item) => sum + (item.amount || 0), 0);
-  const cgstAmount = gstEnabled ? pct(subtotal, cgstPct) : 0;
-  const sgstAmount = gstEnabled ? pct(subtotal, sgstPct) : 0;
+  const cgstAmount = gstApplicable ? pct(subtotal, cgstPct) : 0;
+  const sgstAmount = gstApplicable ? pct(subtotal, sgstPct) : 0;
   const total = subtotal + cgstAmount + sgstAmount;
 
   return {

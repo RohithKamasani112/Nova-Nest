@@ -1,11 +1,14 @@
 import React from 'react';
 import { CommissionDoc } from '../../../../types';
 import { formatINR } from '../../../../utils/billingCalculations';
+import { DOC_TITLES } from '../../../../utils/billingDefaults';
 import { AmountInWordsBox } from '../AmountInWordsBox';
 import { CategoryPill } from '../CategoryPill';
 import { DocumentFooter } from '../DocumentFooter';
 import { DocumentHeader } from '../DocumentHeader';
 import { DocumentPage } from '../DocumentPage';
+import { ContactLines } from '../ContactLines';
+import { MUTED_LABEL, MUTED_TEXT } from '../designTokens';
 import { LineItemsTable } from '../LineItemsTable';
 import { SectionHeading } from '../SectionHeading';
 import { TotalsBlock } from '../TotalsBlock';
@@ -33,31 +36,31 @@ export const CommissionInvoiceTemplate: React.FC<CommissionInvoiceTemplateProps>
   const chargeDescription = isRental
     ? 'Brokerage – rental agreement facilitation'
     : 'Real estate brokerage / agent commission – sale transaction';
+  const titles = isRental ? DOC_TITLES.commission_rental : DOC_TITLES.commission_sale;
+  const title = doc.gstApplicable ? titles.withGst : titles.withoutGst;
+  const pillBase = isRental ? 'RENTAL BROKERAGE' : 'SALE BROKERAGE';
 
   return (
     <DocumentPage>
-      <DocumentHeader
-        docTypeLabel={isRental ? 'TAX INVOICE – RENTAL BROKERAGE' : 'TAX INVOICE – COMMISSION'}
-        docNumber={doc.docNumber}
-        date={displayDate}
-      />
-      <div style={{ padding: '24px 40px', flex: 1 }}>
+      <DocumentHeader docTypeLabel={title} docNumber={doc.docNumber} date={displayDate} gstApplicable={doc.gstApplicable} />
+      <div style={{ padding: '24px 40px', flex: 1, position: 'relative', zIndex: 1 }}>
         <div style={{ marginBottom: 20 }}>
           <CategoryPill
-            label={isRental ? 'RENTAL BROKERAGE · GST INVOICE' : 'SALE BROKERAGE · GST INVOICE'}
+            label={doc.gstApplicable ? `${pillBase} · GST INVOICE` : pillBase}
             variant={isRental ? 'rental' : 'commission'}
           />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 28 }}>
           <div>
-            <div style={{ fontSize: 11, color: '#8b8f9e', letterSpacing: 1.5, marginBottom: 6 }}>{partyLabel}</div>
+            <div style={{ fontSize: 11, color: MUTED_LABEL, letterSpacing: 1.5, marginBottom: 6 }}>{partyLabel}</div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>{doc.clientName || '—'}</div>
-            <div style={{ fontSize: 13, color: '#5a5f70', whiteSpace: 'pre-line' }}>{doc.clientAddress || '—'}</div>
+            <div style={{ fontSize: 13, color: MUTED_TEXT, whiteSpace: 'pre-line' }}>{doc.clientAddress || '—'}</div>
+            <ContactLines email={doc.clientEmail} mobile={doc.clientMobile} />
           </div>
           <div>
-            <div style={{ fontSize: 11, color: '#8b8f9e', letterSpacing: 1.5, marginBottom: 6 }}>PROPERTY</div>
-            <div style={{ fontSize: 13, color: '#5a5f70', whiteSpace: 'pre-line' }}>{doc.propertyAddress || '—'}</div>
+            <div style={{ fontSize: 11, color: MUTED_LABEL, letterSpacing: 1.5, marginBottom: 6 }}>PROPERTY</div>
+            <div style={{ fontSize: 13, color: MUTED_TEXT, whiteSpace: 'pre-line' }}>{doc.propertyAddress || '—'}</div>
           </div>
         </div>
 
@@ -69,15 +72,18 @@ export const CommissionInvoiceTemplate: React.FC<CommissionInvoiceTemplateProps>
               { key: 'amount', label: 'Amount (₹)', align: 'right', width: '160px' },
             ]}
             rows={[{ description: chargeDescription, amount: formatINR(doc.taxableAmount) }]}
+            totalRow={doc.gstApplicable ? undefined : { label: 'Total', value: formatINR(doc.taxableAmount) }}
           />
-          <TotalsBlock
-            rows={[
-              { label: 'Taxable Amount', value: formatINR(doc.taxableAmount) },
-              { label: `CGST @ ${doc.cgstPct}%`, value: formatINR(computed.cgstAmount) },
-              { label: `SGST @ ${doc.sgstPct}%`, value: formatINR(computed.sgstAmount) },
-              { label: 'Total Payable', value: formatINR(computed.totalPayable) },
-            ]}
-          />
+          {doc.gstApplicable && (
+            <TotalsBlock
+              rows={[
+                { label: 'Taxable Amount', value: formatINR(doc.taxableAmount) },
+                { label: `CGST @ ${doc.cgstPct}%`, value: formatINR(computed.cgstAmount) },
+                { label: `SGST @ ${doc.sgstPct}%`, value: formatINR(computed.sgstAmount) },
+                { label: 'Total Payable (incl. GST)', value: formatINR(computed.totalPayable) },
+              ]}
+            />
+          )}
         </div>
 
         <div style={{ marginBottom: 16 }}>
@@ -85,16 +91,16 @@ export const CommissionInvoiceTemplate: React.FC<CommissionInvoiceTemplateProps>
         </div>
 
         {doc.paymentTerms.trim() && (
-          <div style={{ fontSize: 12, color: '#5a5f70', background: '#f7f7f9', padding: '12px 16px', borderRadius: 6 }}>
+          <div style={{ fontSize: 12, color: MUTED_TEXT, background: '#f7f7f9', padding: '12px 16px', borderRadius: 6 }}>
             <strong>Payment terms:</strong> {doc.paymentTerms}
           </div>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginTop: 72 }}>
-          <div style={{ borderTop: '1px solid #b7bac4', paddingTop: 10, fontSize: 13, color: '#5a5f70' }}>
+          <div style={{ borderTop: '1px solid #b7bac4', paddingTop: 10, fontSize: 13, color: MUTED_TEXT }}>
             {isRental ? 'Tenant Signature' : 'Client Signature'}
           </div>
-          <div style={{ borderTop: '1px solid #b7bac4', paddingTop: 10, textAlign: 'center', fontSize: 13, color: '#5a5f70' }}>
+          <div style={{ borderTop: '1px solid #b7bac4', paddingTop: 10, textAlign: 'center', fontSize: 13, color: MUTED_TEXT }}>
             For Nova Nest Property Management
           </div>
         </div>

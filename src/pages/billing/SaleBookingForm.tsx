@@ -4,11 +4,14 @@ import { AlertTriangle, ArrowLeft, Download, Loader2, Plus, Receipt, Trash2 } fr
 import toast from 'react-hot-toast';
 import { SaleBookingTemplate, SaleBookingTemplateData } from '../../app/components/billing/templates/SaleBookingTemplate';
 import { INDIA_TDS_THRESHOLD, calculateSaleBooking, formatINR } from '../../utils/billingCalculations';
-import { DEFAULT_SALE_BOOKING_TERMS, SALE_BOOKING_DEFAULTS } from '../../utils/billingDefaults';
+import { DEFAULT_SALE_BOOKING_TERMS, gstFieldDefaults, SAC_CODE_DEFAULTS, SALE_BOOKING_DEFAULTS } from '../../utils/billingDefaults';
 import { createBillingDoc, getNextDocNumber, uploadBillingDocPdf } from '../../services/storageService';
 import { renderNodeToPdf } from '../../utils/pdfExport';
 import { SaleBookingDoc } from '../../types';
 import { inputClass, labelClass, sectionTitleClass } from './formStyles';
+import { GstModeToggle } from './GstModeToggle';
+import { GstFieldsSection } from './GstFieldsSection';
+import { captureUnscaled, DocumentPreview } from './DocumentPreview';
 
 type Draft = Omit<SaleBookingTemplateData, 'docNumber' | 'computed'>;
 
@@ -16,6 +19,8 @@ const buildInitialDraft = (): Draft => ({
   docType: 'sale_booking',
   purchaserName: '',
   purchaserAddress: '',
+  purchaserEmail: '',
+  purchaserMobile: '',
   projectName: '',
   unitNo: '',
   totalSalePrice: 0,
@@ -26,6 +31,7 @@ const buildInitialDraft = (): Draft => ({
   tdsPct: SALE_BOOKING_DEFAULTS.tdsPct,
   commissionPct: SALE_BOOKING_DEFAULTS.commissionPct,
   commissionGstPct: SALE_BOOKING_DEFAULTS.commissionGstPct,
+  ...gstFieldDefaults(SAC_CODE_DEFAULTS.sale_booking),
   stampDutyPct: SALE_BOOKING_DEFAULTS.stampDutyPct,
   saleAgreementChargesPct: SALE_BOOKING_DEFAULTS.saleAgreementChargesPct,
   additionalFee: SALE_BOOKING_DEFAULTS.additionalFee,
@@ -95,7 +101,7 @@ export const SaleBookingForm: React.FC<SaleBookingFormProps> = ({ onBack, onSave
       // it gets rasterized into the PDF.
       await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 50)));
 
-      const pdfBlob = await renderNodeToPdf(previewRef.current);
+      const pdfBlob = await captureUnscaled(previewRef.current, () => renderNodeToPdf(previewRef.current!));
       const pdfUrl = await uploadBillingDocPdf(pdfBlob, nextNumber);
 
       const doc = (await createBillingDoc({
@@ -136,6 +142,8 @@ export const SaleBookingForm: React.FC<SaleBookingFormProps> = ({ onBack, onSave
           className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6"
         >
           <fieldset disabled={locked} className="space-y-5 disabled:opacity-60">
+            <GstModeToggle value={draft.gstApplicable} onChange={(v) => update('gstApplicable', v)} />
+
             <div>
               <div className={sectionTitleClass}>Purchaser</div>
               <div className="grid grid-cols-1 gap-4">
@@ -146,6 +154,16 @@ export const SaleBookingForm: React.FC<SaleBookingFormProps> = ({ onBack, onSave
                 <div>
                   <label className={labelClass}>Purchaser Address</label>
                   <textarea className={inputClass} rows={2} value={draft.purchaserAddress} onChange={(e) => update('purchaserAddress', e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Email (optional)</label>
+                    <input type="email" className={inputClass} value={draft.purchaserEmail} onChange={(e) => update('purchaserEmail', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Mobile (optional)</label>
+                    <input type="tel" className={inputClass} value={draft.purchaserMobile} onChange={(e) => update('purchaserMobile', e.target.value)} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -221,11 +239,18 @@ export const SaleBookingForm: React.FC<SaleBookingFormProps> = ({ onBack, onSave
                   <label className={labelClass}>Commission %</label>
                   <input type="number" step="0.1" className={inputClass} value={draft.commissionPct} onChange={(e) => update('commissionPct', Number(e.target.value))} />
                 </div>
-                <div>
-                  <label className={labelClass}>Commission GST %</label>
-                  <input type="number" step="0.1" className={inputClass} value={draft.commissionGstPct} onChange={(e) => update('commissionGstPct', Number(e.target.value))} />
-                </div>
+                {draft.gstApplicable && (
+                  <div>
+                    <label className={labelClass}>Commission GST %</label>
+                    <input type="number" step="0.1" className={inputClass} value={draft.commissionGstPct} onChange={(e) => update('commissionGstPct', Number(e.target.value))} />
+                  </div>
+                )}
               </div>
+              {draft.gstApplicable && (
+                <div className="mt-4">
+                  <GstFieldsSection value={draft} onChange={(patch) => setDraft((prev) => ({ ...prev, ...patch }))} />
+                </div>
+              )}
             </div>
 
             <div>
@@ -319,11 +344,9 @@ export const SaleBookingForm: React.FC<SaleBookingFormProps> = ({ onBack, onSave
           className="rounded-2xl border border-gray-100 bg-gray-50 p-4 shadow-sm sm:p-6"
         >
           <div className="mb-3 text-sm font-semibold text-text-primary">{locked ? 'Saved Document' : 'Live Preview'}</div>
-          <div className="overflow-x-auto rounded-xl bg-white p-4 shadow-sm">
-            <div ref={previewRef}>
-              <SaleBookingTemplate doc={previewData} />
-            </div>
-          </div>
+          <DocumentPreview contentRef={previewRef} pageCount={2}>
+            <SaleBookingTemplate doc={previewData} />
+          </DocumentPreview>
         </motion.div>
       </div>
     </div>

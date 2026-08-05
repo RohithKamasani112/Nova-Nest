@@ -12,7 +12,9 @@ import { AdminPage } from '../pages/AdminPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { ManagePropertiesPage } from '../pages/ManagePropertiesPage';
 import { LeadsManagementPage } from '../pages/LeadsManagementPage';
+import { CrmPage } from '../pages/crm/CrmPage';
 import { GenerateBillPage } from '../pages/GenerateBillPage';
+import { SharePropertiesPage } from '../pages/SharePropertiesPage';
 import { AboutPage } from '../pages/AboutPage';
 import { ContactPage } from '../pages/ContactPage';
 import { ServicesPage } from '../pages/ServicesPage';
@@ -49,7 +51,9 @@ type Page =
   | 'add-property'
   | 'manage-properties'
   | 'leads'
+  | 'crm'
   | 'generate-bill'
+  | 'share-properties'
   | 'settings';
 
 function App() {
@@ -57,6 +61,13 @@ function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [propertyFilters, setPropertyFilters] = useState<PropertyFilters>({});
+  // Pre-fill for Share Properties when opened from a CRM lead's drawer —
+  // mirrors the existing editingProperty pattern used for add-property.
+  const [shareContext, setShareContext] = useState<{ clientName?: string; clientPhone?: string; leadId?: string } | null>(null);
+  const handleShareFromLead = (clientName: string, clientPhone: string | null, leadId: string) => {
+    setShareContext({ clientName, clientPhone: clientPhone ?? undefined, leadId });
+    setCurrentPage('share-properties');
+  };
   // Content slug for locality / blog-post pages (null for everything else).
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [showPageLoader, setShowPageLoader] = useState(true);
@@ -190,7 +201,7 @@ function App() {
   };
 
   const showNavbar = currentPage !== 'admin-login' && currentPage !== 'property-details';
-  const isAdminPage = ['dashboard', 'add-property', 'manage-properties', 'leads', 'generate-bill', 'settings'].includes(currentPage);
+  const isAdminPage = ['dashboard', 'add-property', 'manage-properties', 'leads', 'crm', 'generate-bill', 'share-properties', 'settings'].includes(currentPage);
 
   const renderAdminContent = () => {
     switch (currentPage) {
@@ -202,8 +213,19 @@ function App() {
         return <ManagePropertiesPage onEditProperty={handleEditProperty} />;
       case 'leads':
         return <LeadsManagementPage onNavigate={handleNavigate} />;
+      case 'crm':
+        return <CrmPage onShareProperties={handleShareFromLead} />;
       case 'generate-bill':
         return <GenerateBillPage />;
+      case 'share-properties':
+        return (
+          <SharePropertiesPage
+            initialClientName={shareContext?.clientName}
+            initialClientPhone={shareContext?.clientPhone}
+            leadId={shareContext?.leadId}
+            onShared={() => setShareContext(null)}
+          />
+        );
       case 'settings':
         return (
           <div className="p-6">

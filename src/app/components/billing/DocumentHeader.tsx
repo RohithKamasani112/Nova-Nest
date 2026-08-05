@@ -12,9 +12,10 @@ interface DocumentHeaderProps {
   docTypeLabel: string; // e.g. "SALE CONFIRMATION", "TAX INVOICE – COMMISSION"
   docNumber: string;
   date: string; // already display-formatted, e.g. "14 Mar 2026"
+  gstApplicable: boolean;
 }
 
-export const DocumentHeader: React.FC<DocumentHeaderProps> = ({ docTypeLabel, docNumber, date }) => (
+export const DocumentHeader: React.FC<DocumentHeaderProps> = ({ docTypeLabel, docNumber, date, gstApplicable }) => (
   <div
     style={{
       ...printColorAdjust,
@@ -72,7 +73,12 @@ export const DocumentHeader: React.FC<DocumentHeaderProps> = ({ docTypeLabel, do
         lineHeight: 1.6,
       }}
     >
-      {BUSINESS_ADDRESS} &nbsp;|&nbsp; GSTIN: {BUSINESS_GSTIN}
+      {BUSINESS_ADDRESS}
+      {gstApplicable && (
+        <>
+          &nbsp;|&nbsp; GSTIN: {BUSINESS_GSTIN}
+        </>
+      )}
       <br />
       Phone: {BUSINESS_PHONE} &nbsp;|&nbsp; {BUSINESS_EMAIL}
     </div>

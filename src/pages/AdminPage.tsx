@@ -64,6 +64,7 @@ type FormData = {
   furnishingStatus: string;
   possessionStatus: string;
   availableFrom: string;
+  tenantPreference: string;
   ownershipType: string;
   additionalRooms: string[];
   amenities: string[];
@@ -116,6 +117,7 @@ const initialFormData: FormData = {
   furnishingStatus: '',
   possessionStatus: '',
   availableFrom: '',
+  tenantPreference: '',
   ownershipType: '',
   additionalRooms: [],
   amenities: [],
@@ -157,6 +159,16 @@ const facingOptions = ['East', 'West', 'North', 'South', 'North-East', 'North-We
 const carParkingOptions = ['None', '1 Open', '1 Covered', '2 Open', '2 Covered', '2 (1 Open + 1 Covered)'];
 const furnishingOptions = ['Unfurnished', 'Semi-Furnished', 'Fully Furnished'];
 const possessionOptions = ['Ready to Move', 'Under Construction'];
+const tenantPreferenceOptions = ['Family Only', 'Bachelors Only', 'Family & Bachelors', 'Any'];
+const TENANT_PREFERENCE_TO_STORED: Record<string, Property['tenantPreference']> = {
+  'Family Only': 'family',
+  'Bachelors Only': 'bachelors',
+  'Family & Bachelors': 'family_bachelors',
+  Any: 'any',
+};
+const TENANT_PREFERENCE_TO_FORM: Record<string, string> = Object.fromEntries(
+  Object.entries(TENANT_PREFERENCE_TO_STORED).map(([label, value]) => [value as string, label])
+);
 const ownershipOptions = ['Freehold', 'Leasehold', 'Co-operative Society', 'Power of Attorney'];
 const additionalRoomOptions = ['Servant Room', 'Study Room', 'Pooja Room', 'Store Room', 'Guest Room'];
 const amenityOptions = [
@@ -400,6 +412,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       commissionType: editingProperty.commissionType || 'percentage',
       commissionValue: editingProperty.commissionValue ? String(editingProperty.commissionValue) : '',
       contactNumber: editingProperty.agentPhone || '',
+      maintenanceCharges: editingProperty.maintenanceCharges ? String(editingProperty.maintenanceCharges) : '',
+      securityDeposit: editingProperty.securityDeposit ? String(editingProperty.securityDeposit) : '',
+      facingDirection: editingProperty.facingDirection || '',
+      floorNumber: editingProperty.floorNumber !== undefined ? String(editingProperty.floorNumber) : '',
+      availableFrom: editingProperty.availableFrom || '',
+      possessionStatus: editingProperty.possessionStatus || '',
+      tenantPreference: editingProperty.tenantPreference ? TENANT_PREFERENCE_TO_FORM[editingProperty.tenantPreference] ?? '' : '',
+      furnishingStatus: editingProperty.furnishingStatus || (editingProperty.furnished ? 'Fully Furnished' : ''),
     }));
     setStep(2);
   }, [editingProperty]);
@@ -583,6 +603,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       parking: formData.carParking && formData.carParking !== 'None' ? parseInt(formData.carParking, 10) || undefined : undefined,
       floors: formData.totalFloors ? parseInt(formData.totalFloors, 10) : undefined,
       furnished: formData.furnishingStatus === 'Fully Furnished',
+      furnishingStatus: formData.furnishingStatus ? (formData.furnishingStatus as Property['furnishingStatus']) : undefined,
       videoUrl: formData.videoUrl,
       isActive: formData.isActive,
       pricePerSqft: !isRent && Number(formData.pricePerSqft) > 0 ? Number(formData.pricePerSqft) : undefined,
@@ -590,6 +611,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       commissionValue: hasCommission ? commissionInput : undefined,
       commissionCalculated: hasCommission ? commissionCalculated : undefined,
       agentPhone: formData.contactNumber.trim() || undefined,
+      maintenanceCharges: formData.maintenanceCharges ? Number(formData.maintenanceCharges) || undefined : undefined,
+      securityDeposit: isRent && formData.securityDeposit ? Number(formData.securityDeposit) || undefined : undefined,
+      facingDirection: formData.facingDirection ? (formData.facingDirection as Property['facingDirection']) : undefined,
+      floorNumber: formData.floorNumber ? parseInt(formData.floorNumber, 10) : undefined,
+      availableFrom: formData.availableFrom || undefined,
+      possessionStatus: formData.possessionStatus ? (formData.possessionStatus as Property['possessionStatus']) : undefined,
+      tenantPreference: isRent && formData.tenantPreference ? TENANT_PREFERENCE_TO_STORED[formData.tenantPreference] : undefined,
     };
 
     setLoading(true);
@@ -1086,6 +1114,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       )}
                     </div>
                   </div>
+                  {isRent && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className={labelClass}>Tenant Preference</label>
+                        <select value={formData.tenantPreference} onChange={(e) => setField('tenantPreference', e.target.value)} className={plainControlClass}>
+                          <option value="">Select</option>
+                          {tenantPreferenceOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {!isRent && (
                       <div>

@@ -49,6 +49,23 @@ interface BillingDocBase {
   createdAt: string;
 }
 
+// Rule 46 (CGST Rules) fields, shared by every billing document type. Only
+// rendered when gstApplicable is true, but always persisted as part of the
+// document snapshot so a reprint later renders identically regardless of
+// what today's defaults are. recipientGstin is optional — when blank, the
+// template falls back to rendering recipientStateName/Code instead, which
+// is mandatory on a B2C document above ₹50,000.
+export interface GstFields {
+  gstApplicable: boolean;
+  sacCode: string;
+  placeOfSupplyState: string;
+  placeOfSupplyCode: string;
+  reverseCharge: boolean;
+  recipientGstin: string;
+  recipientStateName: string;
+  recipientStateCode: string;
+}
+
 export interface SaleBookingComputed {
   balanceAfterToken: number;
   milestoneAmount: number;
@@ -63,10 +80,12 @@ export interface SaleBookingComputed {
   totalGovtCharges: number;
 }
 
-export interface SaleBookingDoc extends BillingDocBase {
+export interface SaleBookingDoc extends BillingDocBase, GstFields {
   docType: 'sale_booking';
   purchaserName: string;
   purchaserAddress: string;
+  purchaserEmail: string;
+  purchaserMobile: string;
   projectName: string;
   unitNo: string;
   totalSalePrice: number;
@@ -95,11 +114,13 @@ export interface CommissionComputed {
   amountInWords: string;
 }
 
-export interface CommissionDoc extends BillingDocBase {
+export interface CommissionDoc extends BillingDocBase, GstFields {
   docType: 'commission';
   transactionType: 'sale' | 'rental';
   clientName: string;
   clientAddress: string;
+  clientEmail: string;
+  clientMobile: string;
   propertyAddress: string;
   taxableAmount: number;
   cgstPct: number;
@@ -122,12 +143,13 @@ export interface ServiceComputed {
   amountInWords: string;
 }
 
-export interface ServiceDoc extends BillingDocBase {
+export interface ServiceDoc extends BillingDocBase, GstFields {
   docType: 'service';
   customerName: string;
   customerAddress: string;
+  customerEmail: string;
+  customerMobile: string;
   lineItems: ServiceLineItem[];
-  gstEnabled: boolean;
   cgstPct: number;
   sgstPct: number;
   docDate: string;
@@ -174,6 +196,14 @@ export interface Property {
   commissionCalculated?: number; // Auto-calculated counterpart (₹ amount or %)
   agentPhone?: string; // Per-property agent mobile for WhatsApp/calls; falls back to env default
   nearbyPlaces?: NearbyPlace[]; // Admin-curated points of interest, shown as "What's Nearby" on the listing
+  maintenanceCharges?: number; // Monthly maintenance/HOA amount
+  securityDeposit?: number; // Rent listings: refundable deposit amount
+  facingDirection?: 'East' | 'West' | 'North' | 'South' | 'North-East' | 'North-West' | 'South-East' | 'South-West';
+  floorNumber?: number; // The unit's own floor, distinct from `floors` (total floors in the building)
+  availableFrom?: string; // ISO date; unset/blank means "Ready to Move"
+  possessionStatus?: 'Ready to Move' | 'Under Construction' | 'Select Date';
+  tenantPreference?: 'family' | 'bachelors' | 'family_bachelors' | 'any'; // Rent listings only
+  furnishingStatus?: 'Unfurnished' | 'Semi-Furnished' | 'Fully Furnished'; // Granular; `furnished` boolean above only distinguishes Fully Furnished vs. not
 }
 
 // User Types
@@ -205,6 +235,11 @@ export interface PropertyFilters {
   featured?: boolean;
   verified?: boolean;
   search?: string;
+  furnishingStatus?: Property['furnishingStatus'][];
+  facingDirection?: Property['facingDirection'][];
+  tenantPreference?: Property['tenantPreference'][];
+  gated?: boolean;
+  availableOnly?: boolean; // Share Properties: hide occupied/inactive listings by default
   // One-shot UI hint consumed on mount by PropertiesPage to auto-trigger the
   // "Properties Near Me" geolocation flow — not a literal filter predicate.
   nearMe?: boolean;

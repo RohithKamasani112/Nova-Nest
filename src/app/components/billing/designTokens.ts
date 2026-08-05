@@ -13,6 +13,19 @@ export const GOLD = '#c9a227';
 export const GOLD_ACCENT = '#f5cf4d';
 export const CREAM = '#f4f2ea';
 
+// Print-contrast pass, round 2: round 1's #52565f/#454a56 (7.4:1 / 8.9:1)
+// still read as too light against paper/screen brightness in practice.
+// Pushed near-black — 13:1+ / 15:1+ against white — dark, not bold, per the
+// explicit ask. Labels stay a half-step lighter than body text for
+// hierarchy, but both are now close enough to NAVY_DARK/#1f2430 that
+// nothing on the page reads as washed-out gray anymore.
+export const MUTED_LABEL = '#2b2f38'; // eyebrow/field labels (was #52565f, before that #8b8f9e)
+export const MUTED_TEXT = '#20232b'; // secondary body text, footer captions (was #454a56, before that #5a5f70/#9ba0ac)
+
+// Shared across every generated document (Sale Booking, Commission Invoice,
+// Service Invoice, Token Receipt) — rendered once by DocumentPage itself.
+export const WATERMARK_TEXT = 'NOVA NEST';
+
 export type CategoryVariant = 'sale' | 'rental' | 'commission' | 'service';
 
 export const CATEGORY_COLORS: Record<CategoryVariant, { bg: string; text: string }> = {

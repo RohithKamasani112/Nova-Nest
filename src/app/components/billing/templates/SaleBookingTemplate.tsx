@@ -1,11 +1,14 @@
 import React from 'react';
 import { SaleBookingDoc } from '../../../../types';
 import { formatINR, numberToIndianWords } from '../../../../utils/billingCalculations';
+import { DOC_TITLES } from '../../../../utils/billingDefaults';
 import { AmountInWordsBox } from '../AmountInWordsBox';
 import { CategoryPill } from '../CategoryPill';
 import { DocumentFooter } from '../DocumentFooter';
 import { DocumentHeader } from '../DocumentHeader';
 import { DocumentPage } from '../DocumentPage';
+import { ContactLines } from '../ContactLines';
+import { MUTED_LABEL, MUTED_TEXT } from '../designTokens';
 import { LineItemsTable } from '../LineItemsTable';
 import { SectionHeading } from '../SectionHeading';
 
@@ -28,27 +31,29 @@ const formatDisplayDate = (iso: string): string => {
 export const SaleBookingTemplate: React.FC<SaleBookingTemplateProps> = ({ doc }) => {
   const { computed } = doc;
   const displayDate = formatDisplayDate(doc.docDate);
+  const title = doc.gstApplicable ? DOC_TITLES.sale_booking.withGst : DOC_TITLES.sale_booking.withoutGst;
 
   return (
     <div>
       {/* Page 1 */}
       <DocumentPage>
-        <DocumentHeader docTypeLabel="SALE CONFIRMATION" docNumber={doc.docNumber} date={displayDate} />
-        <div style={{ padding: '24px 40px', flex: 1 }}>
+        <DocumentHeader docTypeLabel={title} docNumber={doc.docNumber} date={displayDate} gstApplicable={doc.gstApplicable} />
+        <div style={{ padding: '24px 40px', flex: 1, position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: 20 }}>
             <CategoryPill label="PROPERTY SALE" variant="sale" />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 28 }}>
             <div>
-              <div style={{ fontSize: 11, color: '#8b8f9e', letterSpacing: 1.5, marginBottom: 6 }}>PURCHASER</div>
+              <div style={{ fontSize: 11, color: MUTED_LABEL, letterSpacing: 1.5, marginBottom: 6 }}>PURCHASER</div>
               <div style={{ fontSize: 15, fontWeight: 700 }}>{doc.purchaserName || '—'}</div>
-              <div style={{ fontSize: 13, color: '#5a5f70', whiteSpace: 'pre-line' }}>
+              <div style={{ fontSize: 13, color: MUTED_TEXT, whiteSpace: 'pre-line' }}>
                 {doc.purchaserAddress || '—'}
               </div>
+              <ContactLines email={doc.purchaserEmail} mobile={doc.purchaserMobile} />
             </div>
             <div>
-              <div style={{ fontSize: 11, color: '#8b8f9e', letterSpacing: 1.5, marginBottom: 6 }}>PROPERTY</div>
+              <div style={{ fontSize: 11, color: MUTED_LABEL, letterSpacing: 1.5, marginBottom: 6 }}>PROPERTY</div>
               <div style={{ fontSize: 15, fontWeight: 700 }}>
                 {doc.projectName || '—'}
                 {doc.unitNo ? ` – Unit ${doc.unitNo}` : ''}
@@ -128,14 +133,18 @@ export const SaleBookingTemplate: React.FC<SaleBookingTemplateProps> = ({ doc })
                   rate: `${doc.commissionPct}%`,
                   amount: formatINR(computed.commissionAmount),
                 },
-                {
-                  particular: 'GST on Commission',
-                  rate: `${doc.commissionGstPct}%`,
-                  amount: formatINR(computed.commissionGstAmount),
-                },
+                ...(doc.gstApplicable
+                  ? [
+                      {
+                        particular: 'GST on Commission',
+                        rate: `${doc.commissionGstPct}%`,
+                        amount: formatINR(computed.commissionGstAmount),
+                      },
+                    ]
+                  : []),
               ]}
               totalRow={{
-                label: 'Total Commission Payable (incl. GST)',
+                label: doc.gstApplicable ? 'Total Commission Payable (incl. GST)' : 'Total Commission Payable',
                 value: formatINR(computed.totalCommissionPayable),
               }}
             />
@@ -144,9 +153,14 @@ export const SaleBookingTemplate: React.FC<SaleBookingTemplateProps> = ({ doc })
         <DocumentFooter pageNumber={1} totalPages={2} />
       </DocumentPage>
 
+      {/* Visible gap + boundary between pages on screen only — each
+          DocumentPage is captured independently by pdfExport.ts, so this
+          spacer has no effect on the exported PDF. */}
+      <div style={{ height: 24, borderBottom: '1px dashed #d1d5db', marginBottom: 24 }} />
+
       {/* Page 2 */}
       <DocumentPage>
-        <div style={{ padding: '32px 40px', flex: 1 }}>
+        <div style={{ padding: '32px 40px', flex: 1, position: 'relative', zIndex: 1 }}>
           <SectionHeading number="7.">Terms &amp; Conditions</SectionHeading>
           <ol style={{ paddingLeft: 20, fontSize: 13, lineHeight: 1.7, color: '#1f2430', marginBottom: 28 }}>
             {doc.termsAndConditions.map((clause, index) => (
@@ -167,16 +181,16 @@ export const SaleBookingTemplate: React.FC<SaleBookingTemplateProps> = ({ doc })
           </AmountInWordsBox>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginTop: 64 }}>
-            <div style={{ borderTop: '1px solid #b7bac4', paddingTop: 10, fontSize: 13, color: '#5a5f70' }}>
+            <div style={{ borderTop: '1px solid #b7bac4', paddingTop: 10, fontSize: 13, color: MUTED_TEXT }}>
               Purchaser Signature
               <div style={{ marginTop: 4 }}>Name: {doc.purchaserName || '—'}</div>
             </div>
-            <div style={{ borderTop: '1px solid #b7bac4', paddingTop: 10, textAlign: 'center', fontSize: 13, color: '#5a5f70' }}>
+            <div style={{ borderTop: '1px solid #b7bac4', paddingTop: 10, textAlign: 'center', fontSize: 13, color: MUTED_TEXT }}>
               Authorized Signatory – Nova Nest
             </div>
           </div>
 
-          <div style={{ marginTop: 24, fontSize: 12, color: '#9ba0ac' }}>{doc.place}, {displayDate}</div>
+          <div style={{ marginTop: 24, fontSize: 12, color: MUTED_TEXT }}>{doc.place}, {displayDate}</div>
         </div>
         <DocumentFooter pageNumber={2} totalPages={2} />
       </DocumentPage>

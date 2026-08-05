@@ -12,6 +12,13 @@ export const BUSINESS_PHONE = import.meta.env.VITE_BUSINESS_PHONE || '096637 956
 
 export const BUSINESS_GSTIN = import.meta.env.VITE_BUSINESS_GSTIN || '29DKVPR4628P1ZS';
 
+// The supplier's own state, used by the billing generator's CGST+SGST vs.
+// IGST rule (same state as place of supply -> CGST+SGST; different -> IGST).
+// Kept as explicit fields rather than parsed from BUSINESS_GSTIN's first two
+// digits so the rule doesn't depend on GSTIN string structure.
+export const BUSINESS_STATE_NAME = import.meta.env.VITE_BUSINESS_STATE_NAME || 'Karnataka';
+export const BUSINESS_STATE_CODE = import.meta.env.VITE_BUSINESS_STATE_CODE || '29';
+
 export const BUSINESS_EMAIL =
   import.meta.env.VITE_BUSINESS_EMAIL || 'novanestpropertymanagement@gmail.com';
 

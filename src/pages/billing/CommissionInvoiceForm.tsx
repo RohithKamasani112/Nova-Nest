@@ -7,11 +7,14 @@ import {
   CommissionTemplateData,
 } from '../../app/components/billing/templates/CommissionInvoiceTemplate';
 import { calculateCommission } from '../../utils/billingCalculations';
-import { COMMISSION_DEFAULTS } from '../../utils/billingDefaults';
+import { COMMISSION_DEFAULTS, gstFieldDefaults, SAC_CODE_DEFAULTS } from '../../utils/billingDefaults';
 import { createBillingDoc, getNextDocNumber, uploadBillingDocPdf } from '../../services/storageService';
 import { renderNodeToPdf } from '../../utils/pdfExport';
 import { CommissionDoc } from '../../types';
 import { inputClass, labelClass, sectionTitleClass } from './formStyles';
+import { GstModeToggle } from './GstModeToggle';
+import { GstFieldsSection } from './GstFieldsSection';
+import { captureUnscaled, DocumentPreview } from './DocumentPreview';
 
 type Draft = Omit<CommissionTemplateData, 'docNumber' | 'computed'>;
 
@@ -20,8 +23,11 @@ const buildInitialDraft = (transactionType: 'sale' | 'rental'): Draft => ({
   transactionType,
   clientName: '',
   clientAddress: '',
+  clientEmail: '',
+  clientMobile: '',
   propertyAddress: '',
   taxableAmount: 0,
+  ...gstFieldDefaults(SAC_CODE_DEFAULTS.commission),
   cgstPct: COMMISSION_DEFAULTS.cgstPct,
   sgstPct: COMMISSION_DEFAULTS.sgstPct,
   paymentTerms: COMMISSION_DEFAULTS.paymentTerms,
@@ -57,7 +63,7 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
   };
 
   const isRental = draft.transactionType === 'rental';
-  const showGstMismatchWarning = draft.cgstPct !== draft.sgstPct;
+  const showGstMismatchWarning = draft.gstApplicable && draft.cgstPct !== draft.sgstPct;
 
   const isValid =
     draft.clientName.trim() &&
@@ -76,7 +82,7 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
 
       await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 50)));
 
-      const pdfBlob = await renderNodeToPdf(previewRef.current);
+      const pdfBlob = await captureUnscaled(previewRef.current, () => renderNodeToPdf(previewRef.current!));
       const pdfUrl = await uploadBillingDocPdf(pdfBlob, nextNumber);
 
       const doc = (await createBillingDoc({
@@ -117,6 +123,8 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
           className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6"
         >
           <fieldset disabled={locked} className="space-y-5 disabled:opacity-60">
+            <GstModeToggle value={draft.gstApplicable} onChange={(v) => update('gstApplicable', v)} />
+
             <div>
               <label className={labelClass}>Transaction Type</label>
               <select
@@ -140,6 +148,16 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
                   <label className={labelClass}>{isRental ? 'Tenant Address' : 'Client Address'}</label>
                   <textarea className={inputClass} rows={2} value={draft.clientAddress} onChange={(e) => update('clientAddress', e.target.value)} />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>{isRental ? 'Tenant Email' : 'Client Email'} (optional)</label>
+                    <input type="email" className={inputClass} value={draft.clientEmail} onChange={(e) => update('clientEmail', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>{isRental ? 'Tenant Mobile' : 'Client Mobile'} (optional)</label>
+                    <input type="tel" className={inputClass} value={draft.clientMobile} onChange={(e) => update('clientMobile', e.target.value)} />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -155,14 +173,18 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
                   <label className={labelClass}>Taxable / Brokerage Amount (₹)</label>
                   <input type="number" className={inputClass} value={draft.taxableAmount || ''} onChange={(e) => update('taxableAmount', Number(e.target.value))} />
                 </div>
-                <div>
-                  <label className={labelClass}>CGST %</label>
-                  <input type="number" step="0.1" className={inputClass} value={draft.cgstPct} onChange={(e) => update('cgstPct', Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className={labelClass}>SGST %</label>
-                  <input type="number" step="0.1" className={inputClass} value={draft.sgstPct} onChange={(e) => update('sgstPct', Number(e.target.value))} />
-                </div>
+                {draft.gstApplicable && (
+                  <>
+                    <div>
+                      <label className={labelClass}>CGST %</label>
+                      <input type="number" step="0.1" className={inputClass} value={draft.cgstPct} onChange={(e) => update('cgstPct', Number(e.target.value))} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>SGST %</label>
+                      <input type="number" step="0.1" className={inputClass} value={draft.sgstPct} onChange={(e) => update('sgstPct', Number(e.target.value))} />
+                    </div>
+                  </>
+                )}
               </div>
               {showGstMismatchWarning && (
                 <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
@@ -171,6 +193,10 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
                 </div>
               )}
             </div>
+
+            {draft.gstApplicable && (
+              <GstFieldsSection value={draft} onChange={(patch) => setDraft((prev) => ({ ...prev, ...patch }))} />
+            )}
 
             <div>
               <label className={labelClass}>Payment Split Terms</label>
@@ -218,11 +244,9 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
           className="rounded-2xl border border-gray-100 bg-gray-50 p-4 shadow-sm sm:p-6"
         >
           <div className="mb-3 text-sm font-semibold text-text-primary">{locked ? 'Saved Document' : 'Live Preview'}</div>
-          <div className="overflow-x-auto rounded-xl bg-white p-4 shadow-sm">
-            <div ref={previewRef}>
-              <CommissionInvoiceTemplate doc={previewData} />
-            </div>
-          </div>
+          <DocumentPreview contentRef={previewRef}>
+            <CommissionInvoiceTemplate doc={previewData} />
+          </DocumentPreview>
         </motion.div>
       </div>
     </div>

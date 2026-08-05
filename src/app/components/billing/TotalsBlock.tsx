@@ -1,5 +1,5 @@
 import React from 'react';
-import { NAVY_DARK } from './designTokens';
+import { MUTED_TEXT, NAVY_DARK } from './designTokens';
 
 export interface TotalsBlockRow {
   label: string;
@@ -27,7 +27,7 @@ export const TotalsBlock: React.FC<TotalsBlockProps> = ({ rows }) => (
               padding: '8px 0',
               fontSize: isLast ? 15 : 13,
               fontWeight: isLast ? 700 : 400,
-              color: isLast ? NAVY_DARK : '#3a3f52',
+              color: isLast ? NAVY_DARK : MUTED_TEXT,
               borderTop: isLast ? `2px solid ${NAVY_DARK}` : 'none',
               marginTop: isLast ? 4 : 0,
             }}

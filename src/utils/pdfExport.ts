@@ -15,13 +15,17 @@ import html2canvas from 'html2canvas';
 // output is a real multi-page PDF rather than one squashed image. If no
 // `data-pdf-page` children exist, the whole container is treated as a single
 // page (the 1-page Commission/Service invoices).
-export const renderNodeToPdf = async (container: HTMLElement): Promise<Blob> => {
+export const renderNodeToPdf = async (
+  container: HTMLElement,
+  orientation: 'portrait' | 'landscape' = 'portrait'
+): Promise<Blob> => {
   const pageNodes = Array.from(
     container.querySelectorAll<HTMLElement>('[data-pdf-page]')
   );
   const pages = pageNodes.length > 0 ? pageNodes : [container];
 
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+  const [pageWidthMm, pageHeightMm] = orientation === 'landscape' ? [297, 210] : [210, 297];
 
   for (let i = 0; i < pages.length; i += 1) {
     const canvas = await html2canvas(pages[i], {
@@ -32,7 +36,7 @@ export const renderNodeToPdf = async (container: HTMLElement): Promise<Blob> => 
     const imgData = canvas.toDataURL('image/png');
 
     if (i > 0) pdf.addPage();
-    pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+    pdf.addImage(imgData, 'PNG', 0, 0, pageWidthMm, pageHeightMm);
   }
 
   return pdf.output('blob');

@@ -7,6 +7,7 @@ import { ServiceTile, ServiceTypePicker } from './billing/ServiceTypePicker';
 import { SaleBookingForm } from './billing/SaleBookingForm';
 import { CommissionInvoiceForm } from './billing/CommissionInvoiceForm';
 import { ServiceInvoiceForm } from './billing/ServiceInvoiceForm';
+import { TokenReceiptForm } from './billing/TokenReceiptForm';
 import { inputClass, labelClass } from './billing/formStyles';
 
 const DOC_TYPE_LABEL: Record<BillingDoc['docType'], string> = {
@@ -117,6 +118,7 @@ export const GenerateBillPage: React.FC = () => {
         <CommissionInvoiceForm initialTransactionType="rental" onBack={handleBack} onSaved={handleSaved} />
       )}
       {activeTile === 'service' && <ServiceInvoiceForm onBack={handleBack} onSaved={handleSaved} />}
+      {activeTile === 'token_receipt' && <TokenReceiptForm onBack={handleBack} />}
 
       {/* Past Documents history — merges the new billing generator's records
           with any pre-existing legacy receipts, so nothing already generated

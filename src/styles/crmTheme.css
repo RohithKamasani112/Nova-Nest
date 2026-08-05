@@ -1,0 +1,67 @@
+/* CRM working-tool theme tokens — scoped to the CRM leads screen only. Do
+   NOT reuse for the marketing site; the global --color-brass/--accent tokens
+   in theme.css stay untouched. Gold here marks exactly one thing (the active
+   state: primary button, active chip) — never a general decorative accent,
+   and it's softened one step down in saturation from the marketing brass
+   because this screen is read for hours, not glanced at once.
+
+   Reference these variables from components — no hardcoded hex for CRM UI. */
+:root {
+  /* Gold — active state only */
+  --crm-gold: #bfa06e;
+  --crm-gold-hover: #ad9060;
+  --crm-gold-text: #23331f; /* dark ink on gold, clears 4.5:1 */
+
+  /* Neutral surfaces */
+  --crm-surface: #ffffff;
+  --crm-surface-hover: #f7f6f3;
+  --crm-border: #e2e4e9;
+  --crm-border-strong: #d8dce4;
+
+  /* Text */
+  --crm-text-primary: #1f2430;
+  --crm-text-secondary: rgba(31, 36, 48, 0.6);
+  --crm-text-muted: rgba(31, 36, 48, 0.4);
+
+  /* Layout */
+  --crm-chrome-height: 150px;
+
+  /* Row density */
+  --crm-row-compact: 40px;
+  --crm-row-comfortable: 56px;
+
+  /* Status dots (Part C5) — muted deliberately, sit under the brand rather
+     than fight it. */
+  --crm-status-new: #78716c;
+  --crm-status-contacted: #0369a1;
+  --crm-status-follow_up: #b45309;
+  --crm-status-site_visit_scheduled: #0f766e;
+  --crm-status-site_visit_done: #115e59;
+  --crm-status-negotiation: #4338ca;
+  --crm-status-converted: #15803d;
+  --crm-status-closed_lost: #9f1239;
+  --crm-status-junk: #a8a29e;
+  --crm-status-overdue: #9f1239;
+
+  /* Multi-interest badge — same person, more than one property enquiry
+     found by phone match. Deliberately not gold (reserved for active
+     state) and not any status-dot color, so it reads as its own signal. */
+  --crm-multi-interest: #6d28d9;
+  --crm-multi-interest-bg: #f3eefb;
+
+  /* Source stripes (Part C1) */
+  --crm-source-magicbricks: #c2410c;
+  --crm-source-housing: #1d4ed8;
+  --crm-source-99acres: #b45309;
+  --crm-source-personal: #166534;
+}
+
+/* Row hover actions (Call/WhatsApp/Add note) stay hidden until hover on
+   pointer devices, but are always visible on touch — there's no hover state
+   to reveal them with a finger. */
+@media (hover: none) {
+  .row-actions {
+    opacity: 1 !important;
+  }
+}
+

@@ -1,18 +1,17 @@
 import { AuthUser, LoginCredentials } from '../types';
-const ADMIN_EMAIL = 'admin@realestate.com';
-const ADMIN_PASSWORD = 'Admin123!';
+import { crmApi } from './crmApi';
 
 export const login = async (credentials: LoginCredentials): Promise<AuthUser> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  if (credentials.email !== ADMIN_EMAIL || credentials.password !== ADMIN_PASSWORD) {
-    throw new Error('Invalid email or password.');
-  }
+  const { data } = await crmApi.post<{ user: { id: string; email: string; name: string }; token: string }>(
+    '/auth/login',
+    { email: credentials.email, password: credentials.password }
+  );
 
   const authUser: AuthUser = {
-    id: 'admin_001',
-    email: ADMIN_EMAIL,
-    name: 'Admin User',
+    id: data.user.id,
+    email: data.user.email,
+    name: data.user.name,
+    accessToken: data.token,
   };
 
   // Store in localStorage for persistence
@@ -22,14 +21,11 @@ export const login = async (credentials: LoginCredentials): Promise<AuthUser> =>
 
 // Logout
 export const logout = async (): Promise<void> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
   localStorage.removeItem('estate_auth_user');
 };
 
 // Get current user from localStorage
 export const getCurrentAuthUser = async (): Promise<AuthUser | null> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
   try {
     const stored = localStorage.getItem('estate_auth_user');
     if (stored) {
