@@ -120,8 +120,6 @@ export const SharePropertiesPage: React.FC<SharePropertiesPageProps> = ({
         </p>
       </div>
 
-      <RecentShares />
-
       {/* Filters */}
       <div className="space-y-3 rounded-xl border p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -257,7 +255,21 @@ export const SharePropertiesPage: React.FC<SharePropertiesPageProps> = ({
         </div>
       </div>
 
-      {/* Selection tray — persistent, survives filter changes above */}
+      {/* Selection tray — persistent, survives filter changes and navigating
+          to Configure and back. That persistence is deliberate (so mixed-BHK
+          picks across filters survive), but it means an old selection can
+          still be sitting here from an earlier pass — Reset is the explicit
+          way to discard it and start clean. */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-700">
+          {selection.order.length > 0 ? `${selection.order.length} selected` : 'No properties selected'}
+        </span>
+        {selection.order.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={() => setSelection(clearSelection())}>
+            Reset selection
+          </Button>
+        )}
+      </div>
       <SelectionTray order={selection.order} properties={selection.selected} onRemove={removeOne} onReorder={reorder} />
 
       {/* Results list */}
@@ -304,6 +316,8 @@ export const SharePropertiesPage: React.FC<SharePropertiesPageProps> = ({
             : `Continue with ${selection.order.length} propert${selection.order.length === 1 ? 'y' : 'ies'}`}
         </Button>
       </div>
+
+      <RecentShares />
     </div>
   );
 };

@@ -38,7 +38,7 @@ export const SaleBookingTemplate: React.FC<SaleBookingTemplateProps> = ({ doc })
       {/* Page 1 */}
       <DocumentPage>
         <DocumentHeader docTypeLabel={title} docNumber={doc.docNumber} date={displayDate} gstApplicable={doc.gstApplicable} />
-        <div style={{ padding: '24px 40px', flex: 1, position: 'relative', zIndex: 1 }}>
+        <div style={{ padding: '24px 80px', flex: 1, position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: 20 }}>
             <CategoryPill label="PROPERTY SALE" variant="sale" />
           </div>
@@ -160,7 +160,7 @@ export const SaleBookingTemplate: React.FC<SaleBookingTemplateProps> = ({ doc })
 
       {/* Page 2 */}
       <DocumentPage>
-        <div style={{ padding: '32px 40px', flex: 1, position: 'relative', zIndex: 1 }}>
+        <div style={{ padding: '32px 80px', flex: 1, position: 'relative', zIndex: 1 }}>
           <SectionHeading number="7.">Terms &amp; Conditions</SectionHeading>
           <ol style={{ paddingLeft: 20, fontSize: 13, lineHeight: 1.7, color: '#1f2430', marginBottom: 28 }}>
             {doc.termsAndConditions.map((clause, index) => (

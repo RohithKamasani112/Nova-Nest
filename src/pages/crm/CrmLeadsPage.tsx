@@ -297,6 +297,32 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
 
         <DateRangePicker state={rangeState} range={period} onUpdate={updateRange} />
 
+        {/* Agent — pulled out of the Filters popover into the main toolbar
+            since it's a daily "whose leads am I looking at" control, not an
+            occasional one. Single-select convenience on top of the same
+            filters.agentId array the popover's multi-select also writes to —
+            picking a name here just sets that array to one value. Export
+            (right side of this toolbar) already sends whatever's in
+            `filters`, agentId included, so exporting "just this agent's
+            leads" is just: pick them here, then Export. */}
+        <Select
+          value={filters.agentId?.length === 1 ? filters.agentId[0] : '__all__'}
+          onValueChange={(v) => setFilters((p) => ({ ...p, agentId: v === '__all__' ? undefined : [v], page: 1 }))}
+        >
+          <SelectTrigger className="h-9 w-auto gap-1.5 whitespace-nowrap">
+            <SelectValue placeholder="Agent" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All agents</SelectItem>
+            {agentOptions.map((a) => (
+              <SelectItem key={a.value} value={a.value}>
+                {a.label}
+                {'count' in a ? ` (${a.count})` : ''}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <FiltersPopover
           filters={filters}
           onChange={(patch) => setFilters((p) => ({ ...p, ...patch, page: 1 }))}

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import toast from 'react-hot-toast';
-import { AlertTriangle, ArrowLeft, Copy, Download, MessageCircle, Printer, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Copy, Download, Loader2, MessageCircle, Printer, Trash2 } from 'lucide-react';
 import { TokenReceiptTemplate } from '../../app/components/billing/templates/TokenReceiptTemplate';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../app/components/ui/tooltip';
 import { renderNodeToPdf } from '../../utils/pdfExport';
@@ -25,6 +25,8 @@ import {
   saveDraft,
   saveLastReceipt,
 } from '../../utils/tokenReceiptStorage';
+import { createBillingDoc, uploadBillingDocPdf } from '../../services/storageService';
+import { TokenReceiptDoc } from '../../types';
 import { inputClass, labelClass, sectionTitleClass } from './formStyles';
 import { captureUnscaled, DocumentPreview } from './DocumentPreview';
 
@@ -58,6 +60,11 @@ const buildInitialDraft = (type: TokenReceiptKind = 'rent'): TokenReceiptDraft =
   agreementDate: '',
   registrationDate: '',
 });
+
+function buildReceiptFilename(draft: TokenReceiptDraft): string {
+  const safeName = draft.clientName.trim().replace(/\s+/g, '_') || 'Receipt';
+  return `TokenReceipt_${draft.receiptCode}_${safeName}.pdf`;
+}
 
 function FieldError({ issues, field }: { issues: FieldIssue[]; field: string }) {
   const issue = issues.find((i) => i.field === field);
@@ -100,16 +107,19 @@ const OverridableField: React.FC<OverridableFieldProps> = ({ label, computed, ov
 
 interface TokenReceiptFormProps {
   onBack: () => void;
+  onSaved: () => void;
 }
 
-export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack }) => {
+export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack, onSaved }) => {
   const [draft, setDraft] = useState<TokenReceiptDraft>(() => {
     const stored = loadDraft();
     return stored ? { ...buildInitialDraft(stored.type ?? 'rent'), ...stored } : buildInitialDraft();
   });
   const [touched, setTouched] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedDoc, setSavedDoc] = useState<TokenReceiptDoc | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const locked = !!savedDoc;
 
   const update = <K extends keyof TokenReceiptDraft>(key: K, value: TokenReceiptDraft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -142,16 +152,27 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack }) =>
     return true;
   };
 
-  const handleDownload = async () => {
-    if (!requireValidBeforeAction('downloading') || !previewRef.current) return;
-    setDownloading(true);
+  const handleSaveAndDownload = async () => {
+    if (!requireValidBeforeAction('saving') || !previewRef.current) return;
+    setSaving(true);
     try {
       const pdfBlob = await captureUnscaled(previewRef.current, () => renderNodeToPdf(previewRef.current!));
+      const pdfUrl = await uploadBillingDocPdf(pdfBlob, draft.receiptCode);
+
+      const { receiptCode, ...draftFields } = draft;
+      const doc = (await createBillingDoc({
+        docType: 'token_receipt',
+        docNumber: receiptCode,
+        ...draftFields,
+        pdfUrl,
+      })) as TokenReceiptDoc;
+
+      // Local download too, same PDF bytes already uploaded — one click gets
+      // both an S3-persisted copy (Past Documents, below) and a file on disk.
       const url = URL.createObjectURL(pdfBlob);
-      const safeName = draft.clientName.trim().replace(/\s+/g, '_') || 'Receipt';
       const a = document.createElement('a');
       a.href = url;
-      a.download = `TokenReceipt_${draft.receiptCode}_${safeName}.pdf`;
+      a.download = buildReceiptFilename(draft);
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -159,12 +180,33 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack }) =>
 
       commitReceiptCode(draft.receiptCode);
       saveLastReceipt(draft);
-      toast.success('Receipt downloaded.');
+      setSavedDoc(doc);
+      toast.success(`${receiptCode} saved & downloaded`);
+      onSaved();
     } catch (error) {
-      console.error('Token receipt PDF export failed:', error);
-      toast.error('Could not generate the PDF. Please try again.');
+      console.error('Token receipt save failed:', error);
+      toast.error('Could not save the receipt. Please try again.');
     } finally {
-      setDownloading(false);
+      setSaving(false);
+    }
+  };
+
+  const handleDownloadAgain = async () => {
+    if (!savedDoc) return;
+    try {
+      const response = await fetch(savedDoc.pdfUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = buildReceiptFilename(draft);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Re-download failed:', error);
+      toast.error('Could not download the saved PDF.');
     }
   };
 
@@ -205,6 +247,12 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack }) =>
     toast.success('Loaded the previous receipt — review the details before downloading.');
   };
 
+  const handleNewReceipt = () => {
+    setSavedDoc(null);
+    setDraft(buildInitialDraft(draft.type));
+    setTouched(false);
+  };
+
   return (
     <div>
       <button onClick={onBack} className="mb-4 flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 no-print">
@@ -217,6 +265,7 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack }) =>
           animate={{ opacity: 1, y: 0 }}
           className="no-print rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6"
         >
+          <fieldset disabled={locked} className="disabled:opacity-60">
           <div className="mb-6 inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1">
             <button
               type="button"
@@ -479,16 +528,41 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack }) =>
               </div>
             )}
           </div>
+          </fieldset>
+
+          {locked && (
+            <p className="mt-3 text-xs text-emerald-700">
+              ✓ Saved as {savedDoc?.docNumber} — start a new receipt to edit another one.
+            </p>
+          )}
 
           {/* Actions — sticky on mobile so they stay reachable while scrolling a long form. */}
           <div className="sticky bottom-0 -mx-4 mt-6 flex flex-wrap gap-2 border-t bg-white px-4 pb-4 pt-3 sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0">
-            <button
-              onClick={handleDownload}
-              disabled={downloading}
-              className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Download size={16} /> {downloading ? 'Generating…' : 'Download PDF'}
-            </button>
+            {!locked ? (
+              <button
+                onClick={handleSaveAndDownload}
+                disabled={saving}
+                className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                {saving ? 'Saving…' : 'Save & Download'}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleDownloadAgain}
+                  className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+                >
+                  <Download size={16} /> Download PDF
+                </button>
+                <button
+                  onClick={handleNewReceipt}
+                  className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-text-primary transition-colors hover:bg-gray-50"
+                >
+                  New Receipt
+                </button>
+              </>
+            )}
             <button
               onClick={handlePrint}
               className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-text-primary transition-colors hover:bg-gray-50"
@@ -506,18 +580,22 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack }) =>
               </TooltipTrigger>
               <TooltipContent>Opens WhatsApp with a message — attach the downloaded PDF manually.</TooltipContent>
             </Tooltip>
-            <button
-              onClick={handleDuplicateLast}
-              className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-text-primary transition-colors hover:bg-gray-50"
-            >
-              <Copy size={16} /> Duplicate last
-            </button>
-            <button
-              onClick={handleClear}
-              className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
-            >
-              <Trash2 size={16} /> Clear
-            </button>
+            {!locked && (
+              <>
+                <button
+                  onClick={handleDuplicateLast}
+                  className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-text-primary transition-colors hover:bg-gray-50"
+                >
+                  <Copy size={16} /> Duplicate last
+                </button>
+                <button
+                  onClick={handleClear}
+                  className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <Trash2 size={16} /> Clear
+                </button>
+              </>
+            )}
           </div>
         </motion.div>
 

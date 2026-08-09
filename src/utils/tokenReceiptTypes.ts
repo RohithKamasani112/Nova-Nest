@@ -1,7 +1,7 @@
-// Token Receipt is deliberately not part of the BillingDoc union in
-// src/types/index.ts — nothing here is ever saved (no database, no API),
-// so it doesn't need docType/docNumber/pdfUrl/createdAt or a Computed
-// snapshot shape. It's pure client-side form state.
+// Pure client-side form/draft state for the Token Receipt generator. Once
+// saved, a draft is snapshotted into a TokenReceiptDoc (src/types/index.ts,
+// part of the BillingDoc union) alongside the other 3 document types —
+// this file only defines the editable-form shape, not the saved-record one.
 
 export type TokenReceiptKind = 'rent' | 'sale';
 export type PaymentMode = 'cash' | 'upi' | 'bank_transfer' | 'cheque';

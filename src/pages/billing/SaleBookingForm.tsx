@@ -105,9 +105,8 @@ export const SaleBookingForm: React.FC<SaleBookingFormProps> = ({ onBack, onSave
       const pdfUrl = await uploadBillingDocPdf(pdfBlob, nextNumber);
 
       const doc = (await createBillingDoc({
-        docType: 'sale_booking',
-        docNumber: nextNumber,
         ...draft,
+        docNumber: nextNumber,
         computed,
         pdfUrl,
       })) as SaleBookingDoc;

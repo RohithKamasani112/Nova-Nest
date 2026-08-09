@@ -20,7 +20,7 @@ export const DocumentHeader: React.FC<DocumentHeaderProps> = ({ docTypeLabel, do
     style={{
       ...printColorAdjust,
       background: NAVY_HEADER_GRADIENT,
-      padding: '28px 40px',
+      padding: '28px 80px',
       borderBottom: `3px solid ${GOLD}`,
     }}
   >

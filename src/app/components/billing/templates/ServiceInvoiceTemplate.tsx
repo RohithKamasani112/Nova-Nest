@@ -36,7 +36,7 @@ export const ServiceInvoiceTemplate: React.FC<ServiceInvoiceTemplateProps> = ({ 
   return (
     <DocumentPage>
       <DocumentHeader docTypeLabel={title} docNumber={doc.docNumber} date={displayDate} gstApplicable={doc.gstApplicable} />
-      <div style={{ padding: '24px 40px', flex: 1, position: 'relative', zIndex: 1 }}>
+      <div style={{ padding: '24px 80px', flex: 1, position: 'relative', zIndex: 1 }}>
         <div style={{ marginBottom: 20 }}>
           <CategoryPill label="HOME MAINTENANCE & REPAIR" variant="service" />
         </div>

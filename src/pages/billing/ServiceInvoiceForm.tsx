@@ -86,9 +86,8 @@ export const ServiceInvoiceForm: React.FC<ServiceInvoiceFormProps> = ({ onBack, 
       const pdfUrl = await uploadBillingDocPdf(pdfBlob, nextNumber);
 
       const doc = (await createBillingDoc({
-        docType: 'service',
-        docNumber: nextNumber,
         ...draft,
+        docNumber: nextNumber,
         computed,
         pdfUrl,
       })) as ServiceDoc;

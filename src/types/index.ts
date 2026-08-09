@@ -1,3 +1,5 @@
+import { TokenReceiptDraft } from '../utils/tokenReceiptTypes';
+
 // A single admin-selected point of interest near a property, surfaced
 // publicly on the listing as a "What's Nearby" section.
 export interface NearbyPlace {
@@ -39,7 +41,7 @@ export interface Bill {
 // historical document never silently changes if a default rate changes later.
 // ---------------------------------------------------------------------------
 
-export type BillingDocType = 'sale_booking' | 'commission' | 'service';
+export type BillingDocType = 'sale_booking' | 'commission' | 'service' | 'token_receipt';
 
 interface BillingDocBase {
   id: string; // same value as docNumber, used as the S3 filename too
@@ -156,7 +158,15 @@ export interface ServiceDoc extends BillingDocBase, GstFields {
   computed: ServiceComputed;
 }
 
-export type BillingDoc = SaleBookingDoc | CommissionDoc | ServiceDoc;
+// Token Receipt's own draft shape (src/utils/tokenReceiptTypes.ts) already
+// covers every field — `receiptCode` is the one renamed to `docNumber` here,
+// matching every other BillingDoc's shared identity field. No GstFields:
+// Token Receipt has no GST concept at all.
+export interface TokenReceiptDoc extends BillingDocBase, Omit<TokenReceiptDraft, 'receiptCode'> {
+  docType: 'token_receipt';
+}
+
+export type BillingDoc = SaleBookingDoc | CommissionDoc | ServiceDoc | TokenReceiptDoc;
 
 // Property Types
 export interface Property {

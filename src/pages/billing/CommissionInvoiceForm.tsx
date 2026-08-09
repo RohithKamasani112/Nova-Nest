@@ -86,9 +86,8 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
       const pdfUrl = await uploadBillingDocPdf(pdfBlob, nextNumber);
 
       const doc = (await createBillingDoc({
-        docType: 'commission',
-        docNumber: nextNumber,
         ...draft,
+        docNumber: nextNumber,
         computed,
         pdfUrl,
       })) as CommissionDoc;

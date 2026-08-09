@@ -253,6 +253,11 @@ const DOC_NUMBER_PREFIX: Record<BillingDocType, string> = {
   sale_booking: 'SALE',
   commission: 'COMM',
   service: 'SERV',
+  // Not actually used to generate Token Receipt numbers — those keep their
+  // own existing sequential receiptCode counter (src/utils/tokenReceiptStorage.ts,
+  // e.g. "NONN0604") rather than switching to this S3-scan-based scheme.
+  // Present only so this Record stays exhaustive over BillingDocType.
+  token_receipt: 'TOKEN',
 };
 
 export const getAllBillingDocs = async (): Promise<BillingDoc[]> => {
@@ -288,15 +293,22 @@ export const getNextDocNumber = async (docType: BillingDocType): Promise<string>
 export const uploadBillingDocPdf = async (pdfBlob: Blob, docNumber: string): Promise<string> =>
   uploadToS3(pdfBlob, `invoices/${docNumber}.pdf`);
 
-// Saves the document record once its PDF is already uploaded (pdfUrl included in `doc`).
-export const createBillingDoc = async (doc: Omit<BillingDoc, 'id' | 'createdAt'>): Promise<BillingDoc> => {
+// Generic over the specific BillingDoc member (not just the union) so each
+// call site's own doc type flows straight through — passing e.g. a
+// SaleBookingDoc-shaped literal and getting a SaleBookingDoc back, no `as`
+// cast needed at the call site. Also sidesteps a TS quirk where excess-
+// property-checking a fresh object literal against a 4-member union (the
+// members don't all share the same fields, e.g. TokenReceiptDoc has no
+// `computed`) can misreport an unrelated member's missing field as an error
+// on a perfectly valid literal.
+export const createBillingDoc = async <T extends BillingDoc>(doc: Omit<T, 'id' | 'createdAt'>): Promise<T> => {
   try {
     const docs = await getAllBillingDocs();
     const newDoc = {
       ...doc,
       id: doc.docNumber,
       createdAt: new Date().toISOString(),
-    } as BillingDoc;
+    } as T;
     await uploadJsonToS3([...docs, newDoc], 'invoices/documents.json');
     return newDoc;
   } catch (error) {

@@ -18,7 +18,7 @@ export const DocumentFooter: React.FC<DocumentFooterProps> = ({ pageNumber, tota
       background: NAVY_DARK,
       color: '#ffffff',
       fontSize: 11,
-      padding: '10px 40px',
+      padding: '10px 80px',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
