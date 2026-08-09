@@ -14,9 +14,11 @@
     "migrate:down:prod": "node-pg-migrate down -m src/db/migrations",
     "seed": "tsx src/db/seed.ts",
     "reset-leads": "tsx scripts/resetLeads.ts",
-    "test:parsers": "tsx src/test/parsers.test.ts"
+    "test:parsers": "tsx src/test/parsers.test.ts",
+    "deploy:lambda": "node scripts/deploy-lambda.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.629.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
@@ -28,6 +30,7 @@
     "node-pg-migrate": "^9.0.0",
     "papaparse": "^5.4.1",
     "pg": "^8.13.1",
+    "serverless-http": "^3.2.0",
     "uuid": "^11.0.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.23.8"
@@ -41,6 +44,7 @@
     "@types/node": "^22.9.0",
     "@types/papaparse": "^5.3.15",
     "@types/pg": "^8.11.10",
+    "archiver": "^7.0.1",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }

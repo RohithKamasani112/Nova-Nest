@@ -18,9 +18,16 @@ import { CrmSource } from '../types/crm';
 
 export const importRouter = Router();
 
+// Lambda hard-caps synchronous request bodies at 6 MB (Function URL / API
+// Gateway, no config gets around it) — 5 MB leaves headroom for multipart
+// overhead. Was 20 MB (spec §10.2) when this only ran on a long-running
+// server; lower here so an oversized file fails with multer's clear 413
+// instead of a confusing platform-level rejection before it even reaches
+// this code. Needs the presigned-S3-upload path (bypasses the Lambda body
+// entirely) if you actually need files bigger than this.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // spec §10.2: max 20 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 const SOURCES: CrmSource[] = ['housing', 'magicbricks', '99acres', 'personal'];

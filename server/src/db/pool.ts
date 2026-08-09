@@ -11,10 +11,18 @@ import { env } from '../env';
 // parameter — applied before any query can run on the connection — rather
 // than a `SET` issued from a 'connect' event handler, which would race the
 // pool's first real query on that same connection.
+// On Lambda, each concurrent invocation can land on its own execution
+// environment, each holding its own copy of this module-level pool — 20
+// concurrent invocations at max:10 would be 200 connections against Neon's
+// own connection limit. A long-running server (Fly/local) has exactly one
+// pool total, so it can afford to pool more aggressively. AWS_LAMBDA_FUNCTION_NAME
+// is set by the Lambda runtime itself, never present outside it.
+const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
 export const pool = new Pool({
   connectionString: env.databaseUrl,
   ssl: { rejectUnauthorized: true },
-  max: 10,
+  max: isLambda ? 2 : 10,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 10_000,
   options: '-c TimeZone=Asia/Kolkata',

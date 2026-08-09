@@ -518,11 +518,17 @@ export async function commitImport(params: CommitParams): Promise<{ batchId: str
       console.error('[import] processing failed', params.batchId, err);
       await pool.query(`UPDATE lead_import_batches SET status = 'failed' WHERE id = $1`, [params.batchId]).catch(() => {});
     } finally {
-      await deleteStoredFile(params.batchId).catch(() => {});
+      await deleteStoredFile(params.batchId, batch.file_name).catch(() => {});
     }
   };
 
-  if (batch.rows_read > BACKGROUND_THRESHOLD) {
+  // Fire-and-forget only makes sense on a long-running process. On Lambda
+  // the execution environment can freeze as soon as the HTTP response goes
+  // out, silently killing whatever `run()` hadn't finished yet — a batch
+  // could sit in "processing" forever. Large imports there just take the
+  // hit and process inline within the same request/invocation instead.
+  const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  if (batch.rows_read > BACKGROUND_THRESHOLD && !isLambda) {
     void run();
     return { batchId: params.batchId, status: 'processing' };
   }

@@ -56,7 +56,10 @@ const SOURCE_CARDS: { value: CrmSource; label: string; description: string }[] =
   { value: 'personal', label: 'Personal Leads', description: 'Add a single lead by hand (walk-in, referral, call...)' },
 ];
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
+// Matches server/src/routes/import.ts's multer limit — kept in sync
+// manually since the backend now runs on Lambda, which hard-caps
+// synchronous request bodies at 6 MB regardless of this app's own config.
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_EXT = ['.xls', '.xlsx', '.csv', '.tsv'];
 
 function formatSourceLabel(source: CrmSource): string {
@@ -118,7 +121,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImpor
   const doPreview = async (selectedFile: File) => {
     if (!source) return;
     if (selectedFile.size > MAX_FILE_SIZE) {
-      toast.error('That file is over 20 MB. Please split it or trim it down.');
+      toast.error('That file is over 5 MB. Please split it or trim it down.');
       return;
     }
     setFile(selectedFile);
@@ -256,7 +259,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImpor
               ) : (
                 <>
                   <p className="font-medium">Drag and drop, or click to browse</p>
-                  <p className="text-xs text-muted-foreground">.xls, .xlsx, .csv, .tsv — max 20 MB</p>
+                  <p className="text-xs text-muted-foreground">.xls, .xlsx, .csv, .tsv — max 5 MB</p>
                 </>
               )}
             </div>

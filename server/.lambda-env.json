@@ -1,0 +1,1 @@
+{"Variables":{"DATABASE_URL":"postgresql://neondb_owner:npg_4gkjI9XrbwGF@ep-orange-brook-ay4oo65o.c-5.us-east-2.aws.neon.tech/novanest?sslmode=require","JWT_SECRET":"03ec918671a4ce5274b5110bf8b5dd9d13ac690253319751054e1b1458096e03976c1192cdf48c769db2220d23083060","S3_BUCKET_NAME":"novanestprod1","NODE_ENV":"production"}}
