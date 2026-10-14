@@ -9,18 +9,19 @@ export interface DateRangeState {
 }
 
 const VALID_PRESETS = new Set<PeriodPreset>([
+  'all',
   'today', 'yesterday', 'this_week', 'last_week', 'this_month', 'last_month',
-  'last_30_days', 'this_quarter', 'this_year', 'custom',
+  'last_7_days', 'last_30_days', 'last_3_months', 'this_quarter', 'this_year', 'custom',
 ]);
 
 function readFromUrl(): DateRangeState {
   const params = new URLSearchParams(window.location.search);
   const preset = params.get('period') as PeriodPreset;
   return {
-    preset: preset && VALID_PRESETS.has(preset) ? preset : 'this_month',
+    preset: preset && VALID_PRESETS.has(preset) ? preset : 'all',
     customFrom: params.get('customFrom') ?? '',
     customTo: params.get('customTo') ?? '',
-    dateField: params.get('dateField') === 'created_at' ? 'created_at' : 'lead_date',
+    dateField: params.get('dateField') === 'lead_date' ? 'lead_date' : 'created_at',
   };
 }
 

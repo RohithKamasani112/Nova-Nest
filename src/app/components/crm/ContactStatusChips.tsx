@@ -7,6 +7,7 @@ type ChipKey =
   | 'contacted'
   | 'due_today'
   | 'overdue'
+  | 'site_visit_scheduled'
   | 'no_follow_up'
   | 'unassigned'
   | 'converted'
@@ -53,6 +54,19 @@ const CHIPS: ChipDef[] = [
     isActive: (f) => f.followUp === 'overdue',
     activate: (f) => ({ ...f, followUp: 'overdue', page: 1 }),
     deactivate: (f) => ({ ...f, followUp: undefined, page: 1 }),
+  },
+  {
+    // The feature this whole chip exists for: a fast, one-tap way to see
+    // every upcoming site visit (today's ones also surface automatically in
+    // TodaysCallsPanel, since setting this status now prompts for a date —
+    // see LeadDetailDrawer.tsx/LeadsTable.tsx — which is what drives that
+    // panel). This chip is the "near future", not-just-today view.
+    key: 'site_visit_scheduled',
+    label: 'Site visit scheduled',
+    countKey: 'siteVisitScheduled',
+    isActive: (f) => !!f.status && f.status.length === 1 && f.status[0] === 'site_visit_scheduled',
+    activate: (f) => ({ ...f, status: ['site_visit_scheduled'], page: 1 }),
+    deactivate: (f) => ({ ...f, status: undefined, page: 1 }),
   },
   {
     key: 'no_follow_up',
@@ -154,12 +168,12 @@ export const ContactStatusChips: React.FC<ContactStatusChipsProps> = ({ filters,
             }
           >
             {chip.label}
-            <span
+            {!filters.source?.length && <span
               className="rounded-full px-1.5 text-[10px]"
               style={active ? { background: 'rgba(0,0,0,0.12)' } : { background: 'var(--crm-surface-hover)', color: 'var(--crm-text-secondary)' }}
             >
               {count === null ? '…' : count}
-            </span>
+            </span>}
           </button>
         );
       })}

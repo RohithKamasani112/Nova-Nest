@@ -91,6 +91,8 @@ export type AppPage =
   | 'crm'
   | 'generate-bill'
   | 'share-properties'
+  | 'sales-home'
+  | 'sales-leads'
   | 'settings';
 
 // URL prefix for locality landing pages, e.g. /property-for-rent-in/whitefield.
@@ -141,6 +143,8 @@ export const pathForState = (
       return '/admin/generate-bill';
     case 'share-properties':
       return '/admin/share-properties';
+    case 'sales-home': return '/admin/sales-home';
+    case 'sales-leads': return '/admin/sales-leads';
     case 'settings':
       return '/admin/settings';
     case 'property-details':
@@ -179,6 +183,8 @@ export const parsePath = (pathname: string): ParsedRoute => {
   if (clean === '/admin/crm') return { type: 'page', page: 'crm' };
   if (clean === '/admin/generate-bill') return { type: 'page', page: 'generate-bill' };
   if (clean === '/admin/share-properties') return { type: 'page', page: 'share-properties' };
+  if (clean === '/admin/sales-home') return { type: 'page', page: 'sales-home' };
+  if (clean === '/admin/sales-leads') return { type: 'page', page: 'sales-leads' };
   if (clean === '/admin/settings') return { type: 'page', page: 'settings' };
 
   const blogMatch = clean.match(/^\/blog\/(.+)$/);

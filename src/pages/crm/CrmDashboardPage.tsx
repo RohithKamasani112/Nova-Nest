@@ -4,11 +4,12 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
 } from 'recharts';
-import { ArrowDown, ArrowUp, AlertCircle } from 'lucide-react';
+import { ArrowDown, ArrowUp, AlertCircle, ChevronDown } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../app/components/ui/table';
 import { getAgentLeaderboard, getKpis } from '../../services/crmApi';
-import { AgentLeaderboardRow, KpiResponse, LeadFiltersState } from '../../types/crm';
+import { AgentLeaderboardRow, KpiResponse, LeadFiltersState, CrmSource } from '../../types/crm';
 import { CATEGORICAL, SEQUENTIAL, STATUS, SOURCE_COLOR } from '../../app/components/crm/kpiPalette';
+import { SourceQuickFilters } from '../../app/components/crm/SourceQuickFilters';
 import { TodaysCallsPanel } from '../../app/components/crm/TodaysCallsPanel';
 import { DateRangePicker } from '../../app/components/crm/DateRangePicker';
 import { useDateRangeState } from '../../app/components/crm/useDateRangeState';
@@ -43,9 +44,9 @@ const StatCard: React.FC<{
   <button
     onClick={onClick}
     disabled={!onClick}
-    className={`flex flex-col gap-1 rounded-xl border p-4 text-left transition-shadow ${onClick ? 'cursor-pointer hover:shadow-md' : 'cursor-default'} ${danger ? 'border-red-200 bg-red-50' : 'bg-white'}`}
+    className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-shadow sm:p-4 ${onClick ? 'cursor-pointer hover:shadow-md' : 'cursor-default'} ${danger ? 'border-red-200 bg-red-50' : 'bg-white'}`}
   >
-    <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <span className="break-words text-xs font-medium text-muted-foreground">{label}</span>
     <div className="flex items-baseline gap-2">
       <span className="text-2xl font-bold text-gray-900">{value}</span>
       {metricKey && <DeltaBadge metric={metricKey} delta={delta ?? null} />}
@@ -59,12 +60,13 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
   const [data, setData] = useState<KpiResponse | null>(null);
   const [leaderboard, setLeaderboard] = useState<AgentLeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<CrmSource[] | undefined>();
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      getKpis({ ...period, dateField }),
-      getAgentLeaderboard({ ...period, dateField }),
+      getKpis({ ...period, dateField, source: source?.[0] }),
+      getAgentLeaderboard({ ...period, dateField, source: source?.[0] }),
     ])
       .then(([kpis, agents]) => {
         setData(kpis);
@@ -72,9 +74,9 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
       })
       .catch(() => toast.error('Could not load dashboard data.'))
       .finally(() => setLoading(false));
-  }, [period.from, period.to, dateField]);
+  }, [period.from, period.to, dateField, source]);
 
-  const drill = (extra: LeadFiltersState) => onDrillDown({ dateField, dateFrom: period.from, dateTo: period.to, ...extra });
+  const drill = (extra: LeadFiltersState) => onDrillDown({ source, dateField, ...(rangeState.preset === 'all' ? {} : { dateFrom: period.from, dateTo: period.to }), ...extra });
 
   if (loading || !data) {
     return <div className="py-16 text-center text-muted-foreground">Loading dashboard...</div>;
@@ -85,11 +87,12 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
   return (
     <div className="space-y-6">
       <DateRangePicker state={rangeState} range={period} onUpdate={updateRange} />
+      <SourceQuickFilters source={source} onChange={setSource} />
 
-      <TodaysCallsPanel onViewAll={() => onDrillDown({ followUp: 'overdue' })} />
+      <TodaysCallsPanel sourceScope={source?.[0]} onViewAll={filters => onDrillDown({ ...filters, source })} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        <StatCard label="Total Leads" value={current.totalLeads} metricKey="totalLeads" delta={deltas.totalLeads} onClick={() => drill({})} />
+        <StatCard label="Total Leads" value={current.totalLeads} metricKey="totalLeads" delta={rangeState.preset === 'all' ? null : deltas.totalLeads} onClick={() => drill({})} />
         <StatCard label="New Leads" value={current.newLeads} metricKey="newLeads" delta={deltas.newLeads} onClick={() => drill({ status: ['new'] })} />
         <StatCard label="Contacted" value={current.contacted} metricKey="contacted" delta={deltas.contacted} onClick={() => drill({})} />
         <StatCard label="Site Visits Done" value={current.siteVisitsDone} metricKey="siteVisitsDone" delta={deltas.siteVisitsDone} onClick={() => drill({ status: ['site_visit_done'] })} />
@@ -123,7 +126,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
                 ))}
               </Pie>
               <Tooltip formatter={(value: number, _name, props: any) => [`${value} leads (${props.payload.conversionRate}% converted)`, props.payload.source]} />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -142,26 +145,42 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
 
         <ChartCard title="Pipeline Funnel">
           <div className="space-y-2 py-2">
-            {data.funnel.map((stage) => (
-              <button
-                key={stage.stage}
-                onClick={() => drill({ status: [stage.stage] })}
-                className="flex w-full items-center gap-3 rounded-lg p-1.5 text-left hover:bg-accent"
-              >
-                <div className="w-32 shrink-0 text-xs capitalize text-muted-foreground">{stage.stage.replace(/_/g, ' ')}</div>
-                <div className="h-6 flex-1 overflow-hidden rounded bg-muted">
-                  <div
-                    className="h-full rounded"
-                    style={{
-                      width: `${Math.max(4, (stage.count / (data.funnel[0].count || 1)) * 100)}%`,
-                      backgroundColor: SEQUENTIAL,
-                    }}
-                  />
-                </div>
-                <div className="w-16 shrink-0 text-right text-sm font-medium">{stage.count}</div>
-                {stage.dropOffPct > 0 && <div className="w-16 shrink-0 text-right text-xs text-muted-foreground">-{stage.dropOffPct}%</div>}
-              </button>
-            ))}
+            {data.funnel.map((stage) => {
+              const barPct = Math.max(4, (stage.count / (data.funnel[0].count || 1)) * 100);
+              return (
+                <button
+                  key={stage.stage}
+                  onClick={() => drill({ status: [stage.stage] })}
+                  className="block w-full rounded-lg p-1.5 text-left hover:bg-accent"
+                >
+                  {/* Below sm: the fixed w-32/w-16/w-16 columns the desktop
+                      row uses leave the bar itself only ~60-90px wide on a
+                      phone. Stack label+count above a full-width bar instead. */}
+                  <div className="sm:hidden">
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <span className="capitalize text-muted-foreground">{stage.stage.replace(/_/g, ' ')}</span>
+                      <span className="text-muted-foreground">
+                        <span className="font-medium text-foreground">{stage.count}</span>
+                        {stage.dropOffPct > 0 && <> · -{stage.dropOffPct}%</>}
+                      </span>
+                    </div>
+                    <div className="h-6 overflow-hidden rounded bg-muted">
+                      <div className="h-full rounded" style={{ width: `${barPct}%`, backgroundColor: SEQUENTIAL }} />
+                    </div>
+                  </div>
+
+                  {/* sm and up — original side-by-side row, unchanged. */}
+                  <div className="hidden items-center gap-3 sm:flex">
+                    <div className="w-32 shrink-0 text-xs capitalize text-muted-foreground">{stage.stage.replace(/_/g, ' ')}</div>
+                    <div className="h-6 flex-1 overflow-hidden rounded bg-muted">
+                      <div className="h-full rounded" style={{ width: `${barPct}%`, backgroundColor: SEQUENTIAL }} />
+                    </div>
+                    <div className="w-16 shrink-0 text-right text-sm font-medium">{stage.count}</div>
+                    {stage.dropOffPct > 0 && <div className="w-16 shrink-0 text-right text-xs text-muted-foreground">-{stage.dropOffPct}%</div>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </ChartCard>
 
@@ -174,7 +193,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
                 ))}
               </Pie>
               <Tooltip />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -197,7 +216,18 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-gray-900">Agent Leaderboard</h2>
-        <div className="overflow-x-auto rounded-xl border bg-white">
+
+        {/* Mobile — below md: reads like a ranking (rank, name, headline
+            metric), not a horizontally-scrolled 11-column table. Tap a row
+            to reveal the rest. */}
+        <div className="space-y-2 md:hidden">
+          {leaderboard.map((a, index) => (
+            <LeaderboardCard key={a.agentId} agent={a} rank={index + 1} drill={drill} />
+          ))}
+        </div>
+
+        {/* Desktop table — md and up, unchanged. */}
+        <div className="hidden overflow-x-auto rounded-xl border bg-white md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -240,6 +270,87 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
           </Table>
         </div>
       </div>
+    </div>
+  );
+};
+
+// Mobile leaderboard row — rank + name + the headline metric (Converted,
+// with Conv.% alongside it) up front; every other figure from the desktop
+// table sits behind a tap-to-expand instead of a horizontal scroll.
+const LeaderboardCard: React.FC<{
+  agent: AgentLeaderboardRow;
+  rank: number;
+  drill: (extra: LeadFiltersState) => void;
+}> = ({ agent: a, rank, drill }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="flex w-full items-center justify-between gap-3 text-left"
+        aria-expanded={expanded}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+            {rank}
+          </span>
+          <span className="truncate font-semibold text-gray-900">{a.agentName}</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="text-right">
+            <div className="font-bold text-gray-900">{a.converted}</div>
+            <div className="text-xs text-gray-500">{a.conversionRate}% conv.</div>
+          </div>
+          <ChevronDown
+            size={16}
+            className={`text-gray-400 transition-transform motion-reduce:transition-none ${expanded ? 'rotate-180' : ''}`}
+          />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-0.5 border-t border-gray-100 pt-2 text-sm" onClick={(e) => e.stopPropagation()}>
+          <LeaderboardStatRow label="Total leads" value={a.total} onClick={() => drill({ agentId: [a.agentId] })} />
+          <LeaderboardStatRow label="New" value={a.newLeads} onClick={() => drill({ agentId: [a.agentId], status: ['new'] })} />
+          <LeaderboardStatRow label="Contacted" value={a.contacted} />
+          <LeaderboardStatRow label="Site visits" value={a.siteVisits} onClick={() => drill({ agentId: [a.agentId], status: ['site_visit_done'] })} />
+          <LeaderboardStatRow label="Lost" value={a.lost} onClick={() => drill({ agentId: [a.agentId], status: ['closed_lost'] })} />
+          <LeaderboardStatRow label="Avg response" value={a.avgResponseHours !== null ? `${a.avgResponseHours}h` : '—'} />
+          <LeaderboardStatRow
+            label="Overdue"
+            value={a.overdueFollowUps}
+            danger={a.overdueFollowUps > 0}
+            onClick={a.overdueFollowUps > 0 ? () => drill({ agentId: [a.agentId], followUp: 'overdue' }) : undefined}
+          />
+          <LeaderboardStatRow label="Deal value" value={`₹${a.dealValue.toLocaleString('en-IN')}`} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const LeaderboardStatRow: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  danger?: boolean;
+  onClick?: () => void;
+}> = ({ label, value, danger, onClick }) => {
+  const valueClass = danger ? 'font-semibold text-red-600' : 'font-medium text-gray-900';
+  return onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      className="tap-target flex w-full items-center justify-between rounded-lg px-1 hover:bg-gray-50"
+    >
+      <span className="text-gray-600">{label}</span>
+      <span className={valueClass}>{value}</span>
+    </button>
+  ) : (
+    <div className="flex min-h-[32px] items-center justify-between px-1">
+      <span className="text-gray-600">{label}</span>
+      <span className={valueClass}>{value}</span>
     </div>
   );
 };

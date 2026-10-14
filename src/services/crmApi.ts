@@ -87,6 +87,18 @@ export async function listAgentsWithStats(includeInactive = false): Promise<Agen
   return data.agents;
 }
 
+// The one shared sales-team login (Settings page, admin only — server
+// enforces this via req.user.role, see server/src/routes/auth.ts).
+export async function getSalesAccount(): Promise<{ email: string | null }> {
+  const { data } = await crmApi.get<{ email: string | null }>('/auth/sales-account');
+  return data;
+}
+
+export async function updateSalesAccount(email: string, password: string): Promise<{ email: string }> {
+  const { data } = await crmApi.put<{ email: string }>('/auth/sales-account', { email, password });
+  return data;
+}
+
 export async function createAgent(input: { name: string; email?: string | null; phone?: string | null }): Promise<CrmAgent> {
   const { data } = await crmApi.post<{ agent: CrmAgent }>('/crm/agents', input);
   return data.agent;

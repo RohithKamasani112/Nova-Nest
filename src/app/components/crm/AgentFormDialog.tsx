@@ -58,15 +58,33 @@ export const AgentFormDialog: React.FC<AgentFormDialogProps> = ({ open, onClose,
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Name *</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" autoFocus />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" autoCapitalize="words" />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Email</label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="agent@example.com" />
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="off"
+              autoCorrect="off"
+              placeholder="agent@example.com"
+            />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Phone</label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="9876543210" />
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              autoCapitalize="off"
+              autoCorrect="off"
+              placeholder="9876543210"
+            />
           </div>
           {agent && (
             <div className="flex items-center justify-between rounded-lg border p-2">

@@ -1,0 +1,15 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "nova-nest-magicbricks"
+resolve_s3 = true
+s3_prefix = "nova-nest-magicbricks"
+region = "ap-south-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+parameter_overrides = "DatabaseSecretArn=\"arn:aws:secretsmanager:ap-south-1:974954696514:secret:novanest/database/prod-kveQsX\" ReservedConcurrency=\"5\" BurstLimit=\"10\" RateLimit=\"5\" AlarmTopicArn=\"\" DedupeRule=\"mobile_project\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-south-1"

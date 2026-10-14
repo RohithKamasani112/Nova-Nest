@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Phone, MessageCircle, StickyNote, CalendarClock, Check, PhoneCall } from 'lucide-react';
+import { StickyNote, CalendarClock, Check, PhoneCall, MoreHorizontal, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { FollowUpQuickPicker } from './FollowUpQuickPicker';
 import { addLeadActivity, getTodaysCalls, listAgents, updateLead } from '../../../services/crmApi';
-import { CrmAgent, LeadListItem } from '../../../types/crm';
-
-function whatsappUrl(phone: string): string {
-  return `https://wa.me/91${phone}`;
-}
+import { CrmAgent, LeadListItem, LeadFiltersState, CrmSource } from '../../../types/crm';
+import { leadPhone, titleCase } from './crmVisuals';
+import { LeadContactActions } from './LeadContactActions';
+import { markLastContacted } from '../../../utils/lastContacted';
 
 function daysLate(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -24,9 +24,12 @@ function daysLate(iso: string): string {
 interface RowProps {
   lead: LeadListItem;
   onChanged: () => void;
+  /** Suppressed inside the "Site Visits Today" group — the section header
+   * already says so, repeating it on every row is just noise there. */
+  showSiteVisitTag?: boolean;
 }
 
-const CallRow: React.FC<RowProps> = ({ lead, onChanged }) => {
+const CallRow: React.FC<RowProps> = ({ lead, onChanged, showSiteVisitTag = true }) => {
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
@@ -65,130 +68,164 @@ const CallRow: React.FC<RowProps> = ({ lead, onChanged }) => {
     }
   };
 
+  const phone = leadPhone(lead);
+
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b py-2 text-sm last:border-0">
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{lead.name}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {lead.phone ?? '—'} · {lead.project_name ?? '—'} · {lead.agent_name ?? 'Unassigned'}
-        </p>
+    <div className="crm-reminder-row">
+      <div className="crm-reminder-summary">
+        <p className="crm-reminder-name" title={lead.name}>{titleCase(lead.name)}</p>
+        <p className="crm-reminder-meta" title={[phone, lead.project_name, lead.agent_name].filter(Boolean).join(' · ')}>{phone ?? 'No phone'} · {lead.project_name ?? lead.agent_name ?? 'Unassigned'}</p>
+        {lead.next_follow_up_at && <p className="crm-reminder-time">{showSiteVisitTag && lead.status === 'site_visit_scheduled' ? 'Site visit · ' : ''}{daysLate(lead.next_follow_up_at)} · {new Date(lead.next_follow_up_at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</p>}
       </div>
-      {lead.next_follow_up_at && (
-        <span className="shrink-0 text-xs text-muted-foreground">{daysLate(lead.next_follow_up_at)}</span>
-      )}
-      <div className="flex shrink-0 items-center gap-1">
-        {lead.phone && (
-          <Button variant="outline" size="icon" className="h-7 w-7" asChild>
-            <a href={`tel:${lead.phone}`} title="Call"><Phone size={13} /></a>
-          </Button>
-        )}
-        {lead.phone && (
-          <Button variant="outline" size="icon" className="h-7 w-7" asChild>
-            <a href={whatsappUrl(lead.phone)} target="_blank" rel="noopener noreferrer" title="WhatsApp"><MessageCircle size={13} /></a>
-          </Button>
-        )}
-        <Popover open={noteOpen} onOpenChange={setNoteOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="h-7 w-7" title="Add note"><StickyNote size={13} /></Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 space-y-2" align="end">
-            <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={2} placeholder="Call notes..." />
-            <Button size="sm" className="w-full" onClick={handleAddNote} disabled={!noteText.trim()}>Save note</Button>
-          </PopoverContent>
-        </Popover>
-        <Popover open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="h-7 w-7" title="Reschedule"><CalendarClock size={13} /></Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72" align="end">
-            <FollowUpQuickPicker onPick={handleReschedule} onCancel={() => setRescheduleOpen(false)} />
-          </PopoverContent>
-        </Popover>
-        <Button variant="outline" size="icon" className="h-7 w-7" title="Mark done" onClick={handleMarkDone}>
-          <Check size={13} />
-        </Button>
+      <div className="crm-reminder-actions">
+        <LeadContactActions phone={phone} name={lead.name} compact onContact={() => markLastContacted(lead.id)} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="crm-reminder-more" aria-label={'More reminder actions for ' + lead.name}><MoreHorizontal size={18} /></button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="crm-workspace">
+            <DropdownMenuItem onSelect={() => setNoteOpen(true)}><StickyNote size={16} /> Add call note</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setRescheduleOpen(true)}><CalendarClock size={16} /> Reschedule</DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleMarkDone}><Check size={16} /> Mark done</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+      <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
+        <DialogContent className="crm-workspace crm-reminder-dialog">
+          <DialogHeader><DialogTitle>Add call note</DialogTitle><DialogDescription>{lead.name}</DialogDescription></DialogHeader>
+          <Textarea aria-label="Call note" value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={3} placeholder="What did you discuss?" />
+          <Button onClick={handleAddNote} disabled={!noteText.trim()}>Save note</Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+        <DialogContent className="crm-workspace crm-reminder-dialog">
+          <DialogHeader><DialogTitle>Reschedule reminder</DialogTitle><DialogDescription>Choose the next follow-up for {lead.name}.</DialogDescription></DialogHeader>
+          <FollowUpQuickPicker onPick={handleReschedule} onCancel={() => setRescheduleOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 interface TodaysCallsPanelProps {
-  onViewAll: () => void;
+  onViewAll: (filters: LeadFiltersState) => void;
+  /**
+   * Sales-login scoping (see SalesLeadsPage.tsx) — when set, this panel is
+   * fixed to that agent's calls (or 'all' for no filter, same meaning as
+   * picking "All leads" at sales-home) and hides the agent picker entirely,
+   * so a sales person locked to their own leads can't browse someone else's
+   * calls through this panel's own dropdown. Omitted (default), this
+   * behaves exactly as before — full admin view, picker visible, defaults
+   * to all agents.
+   */
+  agentScope?: string;
+  sourceScope?: CrmSource;
 }
 
-export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll }) => {
+export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll, agentScope, sourceScope }) => {
   const [overdue, setOverdue] = useState<LeadListItem[]>([]);
   const [dueToday, setDueToday] = useState<LeadListItem[]>([]);
   const [agents, setAgents] = useState<CrmAgent[]>([]);
-  const [agentId, setAgentId] = useState<string>('__all__');
+  const [agentId, setAgentId] = useState<string>(() => (agentScope === undefined || agentScope === 'all' ? '__all__' : agentScope));
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
+    if (agentScope !== undefined) return; // fixed scope — no picker, nothing to populate it with
     listAgents().then(setAgents).catch(() => setAgents([]));
-  }, []);
+  }, [agentScope]);
 
   const load = () => {
     setLoading(true);
+    setLoadError(false);
     getTodaysCalls(agentId === '__all__' ? undefined : agentId)
       .then((r) => {
-        setOverdue(r.overdue);
-        setDueToday(r.dueToday);
+        setOverdue(r.overdue.filter(lead => !sourceScope || lead.source === sourceScope));
+        setDueToday(r.dueToday.filter(lead => !sourceScope || lead.source === sourceScope));
       })
-      .catch(() => toast.error('Could not load today’s calls.'))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentId]);
+  }, [agentId, sourceScope]);
 
   const total = overdue.length + dueToday.length;
+  // Site visits scheduled for today get their own call-to-action group
+  // instead of blending into the generic "Due Today" list — a scheduled
+  // visit reads as "call to confirm they're still coming", not just
+  // another routine follow-up call.
+  const siteVisitsToday = dueToday.filter((l) => l.status === 'site_visit_scheduled');
+  const otherDueToday = dueToday.filter((l) => l.status !== 'site_visit_scheduled');
+  const viewReminders = (followUp: 'overdue' | 'due_today', visitsOnly = false) => onViewAll({
+    followUp,
+    ...(agentId !== '__all__' ? { agentId: [agentId] } : {}),
+    ...(visitsOnly ? { status: ['site_visit_scheduled'] } : {}),
+  });
 
   if (loading) {
-    return <div className="rounded-xl border bg-white p-4 text-sm text-muted-foreground">Loading today's calls...</div>;
+    return <div className="crm-calls-panel rounded-xl border bg-white p-4 text-sm text-muted-foreground">Loading today's calls...</div>;
   }
+
+  if (loadError) return <div className="crm-calls-panel crm-reminder-error" role="alert"><span>Could not load daily reminders.</span><Button variant="outline" onClick={load}>Retry</Button></div>;
 
   if (total === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border bg-white p-4 text-sm text-muted-foreground">
+      <div className="crm-calls-panel flex items-center gap-2 rounded-xl border bg-white p-4 text-sm text-muted-foreground">
         <PhoneCall size={16} /> No calls due — you're all caught up.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border bg-white p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <button className="flex items-center gap-2 text-left" onClick={() => setCollapsed((v) => !v)}>
+    <div className="crm-calls-panel rounded-xl border bg-white p-4">
+      <div className="crm-reminders-header">
+        <button type="button" className="crm-reminders-toggle" aria-expanded={!collapsed} aria-label="Toggle daily reminders" onClick={() => setCollapsed((v) => !v)}>
           <PhoneCall size={16} />
-          <span className="font-semibold text-gray-900">Calls Today — {total} lead{total === 1 ? '' : 's'}</span>
+          <span className="font-semibold text-gray-900">Daily reminders <span className="crm-reminders-count">{total}</span></span><ChevronDown size={16} className={collapsed ? '-rotate-90' : ''} />
         </button>
-        <div className="flex items-center gap-2">
-          <Select value={agentId} onValueChange={setAgentId}>
-            <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All agents</SelectItem>
-              {agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={onViewAll}>View all</Button>
+        <div className="crm-reminders-controls">
+          {agentScope === undefined && (
+            <Select value={agentId} onValueChange={setAgentId}>
+              <SelectTrigger aria-label="Reminder agent" className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All agents</SelectItem>
+                {agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          <Button variant="outline" size="sm" className="tap-target" onClick={() => viewReminders(overdue.length ? 'overdue' : 'due_today')}>{overdue.length ? 'View overdue' : 'View today'}</Button>
         </div>
       </div>
 
       {!collapsed && (
-        <div className="mt-3 space-y-4">
+        <div className="crm-reminders-groups">
           {overdue.length > 0 && (
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-red-600">Overdue ({overdue.length})</p>
+              <p className="crm-reminders-group-label crm-reminders-group-label--overdue">Overdue ({overdue.length})</p>
               <div>{overdue.map((lead) => <CallRow key={lead.id} lead={lead} onChanged={load} />)}</div>
             </div>
           )}
-          {dueToday.length > 0 && (
+          {siteVisitsToday.length > 0 && (
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Due Today ({dueToday.length})</p>
-              <div>{dueToday.map((lead) => <CallRow key={lead.id} lead={lead} onChanged={load} />)}</div>
+              <p className="crm-reminders-group-label">
+                Site visits today ({siteVisitsToday.length})
+                <button type="button" className="crm-reminders-group-link" onClick={() => viewReminders('due_today', true)}>View visits</button>
+              </p>
+              <div>
+                {siteVisitsToday.map((lead) => (
+                  <CallRow key={lead.id} lead={lead} onChanged={load} showSiteVisitTag={false} />
+                ))}
+              </div>
+            </div>
+          )}
+          {otherDueToday.length > 0 && (
+            <div>
+              <p className="crm-reminders-group-label">Due Today ({otherDueToday.length})<button type="button" className="crm-reminders-group-link" onClick={() => viewReminders('due_today')}>View today</button></p>
+              <div>{otherDueToday.map((lead) => <CallRow key={lead.id} lead={lead} onChanged={load} />)}</div>
             </div>
           )}
         </div>

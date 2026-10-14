@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../ui/sheet';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { Phone, Mail, ExternalLink, Share2 } from 'lucide-react';
+import { CalendarDays, Mail, ExternalLink, Share2, MessageSquareText } from 'lucide-react';
+import { LeadContactActions } from './LeadContactActions';
 import { addLeadActivity, getLeadDetail, getLeadInterests, listAgents, updateLead } from '../../../services/crmApi';
 import { CrmAgent, LeadActivity, LeadDetail, LeadInterest } from '../../../types/crm';
-import { SOURCE_LABELS } from './crmVisuals';
+import { CALL_OUTCOMES, leadPhone, SOURCE_LABELS, STATUS_LABELS, STATUS_OPTIONS, tomorrowIso, titleCase } from './crmVisuals';
+import { clearLastContacted, markLastContacted } from '../../../utils/lastContacted';
 import { FollowUpQuickPicker } from './FollowUpQuickPicker';
 import { AgentFormDialog } from './AgentFormDialog';
 
@@ -25,18 +27,9 @@ interface LeadDetailDrawerProps {
   onShareProperties?: (clientName: string, clientPhone: string | null, leadId: string) => void;
 }
 
-const STATUS_OPTIONS = [
-  'new', 'contacted', 'follow_up', 'site_visit_scheduled', 'site_visit_done',
-  'negotiation', 'converted', 'closed_lost', 'junk',
-];
-
 const LOST_REASONS = ['Budget mismatch', 'Location mismatch', 'Bought elsewhere', 'Not responding', 'Postponed', 'Broker/spam', 'Other'];
 
 const KNOWN_FIELDS = new Set(['__unparsed', 'notes']);
-
-function whatsappUrl(phone: string): string {
-  return `https://wa.me/91${phone}`;
-}
 
 export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onClose, onChanged, onShareProperties }) => {
   const [lead, setLead] = useState<LeadDetail | null>(null);
@@ -47,6 +40,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   const [noteFollowUp, setNoteFollowUp] = useState<string | null>(null);
   const [editingFollowUp, setEditingFollowUp] = useState(false);
   const [promptNextFollowUp, setPromptNextFollowUp] = useState(false);
+  const [followUpPromptLabel, setFollowUpPromptLabel] = useState('Set the next follow-up date:');
   const [lostReason, setLostReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [addAgentOpen, setAddAgentOpen] = useState(false);
@@ -67,6 +61,23 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   };
 
   useEffect(() => {
+    // This drawer is one persistent component instance whose `leadId` prop
+    // just changes as different leads are opened — it never unmounts, so
+    // none of its useState calls above reset themselves automatically.
+    // Without this, closing a lead mid-way through setting a site visit
+    // date (no date picked, Cancel not clicked either — just the X button)
+    // left promptNextFollowUp/followUpPromptLabel stuck true/"Set the site
+    // visit date:", and the very next lead opened — completely unrelated,
+    // any status — would show that same prompt as if IT had just been set
+    // to Site Visit Scheduled. Real bug report: a lead sitting at "new"
+    // showing the site-visit-date prompt with no such status change made.
+    setNoteText('');
+    setNoteFollowUp(null);
+    setEditingFollowUp(false);
+    setPromptNextFollowUp(false);
+    setFollowUpPromptLabel('Set the next follow-up date:');
+    setLostReason('');
+    setAddAgentOpen(false);
     load();
     if (leadId) listAgents().then(setAgents).catch(() => setAgents([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,6 +108,18 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
       toast.success('Status updated.');
       load();
       onChanged();
+      // They've come back and acted on this lead — see utils/lastContacted.ts.
+      clearLastContacted(lead.id);
+      // "Site visit scheduled" without a date is what made the "Scheduled
+      // Visits" filter/chip (ContactStatusChips.tsx) and the Today's Calls
+      // panel useless for site visits specifically — next_follow_up_at is
+      // what drives both, and nothing used to ask for it here. Same picker
+      // handleMarkFollowUpDone already uses below, just prompted from a
+      // different trigger.
+      if (status === 'site_visit_scheduled') {
+        setFollowUpPromptLabel('Set the site visit date:');
+        setPromptNextFollowUp(true);
+      }
     } catch (err: any) {
       toast.error(err?.response?.data?.error ?? 'Could not update status.');
     }
@@ -127,6 +150,21 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
     }
   };
 
+  // One-tap outcome logging — same CALL_OUTCOMES + addLeadActivity pattern
+  // as LeadsTable.tsx's row-level popover, surfaced here too since that
+  // popover only reveals on hover and never appears on a touch device.
+  const logOutcome = async (label: string, scheduleFollowUp: boolean) => {
+    if (!lead) return;
+    try {
+      await addLeadActivity(lead.id, 'note', label, scheduleFollowUp ? tomorrowIso() : undefined);
+      toast.success(scheduleFollowUp ? 'Logged — follow-up set for tomorrow.' : 'Logged.');
+      load();
+      onChanged();
+    } catch {
+      toast.error('Could not log outcome.');
+    }
+  };
+
   const handleSetFollowUp = async (iso: string) => {
     if (!lead) return;
     try {
@@ -147,6 +185,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
       await updateLead(lead.id, { nextFollowUpAt: null });
       load();
       onChanged();
+      setFollowUpPromptLabel('Set the next follow-up date:');
       setPromptNextFollowUp(true);
     } catch {
       toast.error('Could not clear follow-up.');
@@ -154,27 +193,44 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   };
 
   const extraFields = lead ? Object.entries(lead.raw_data ?? {}).filter(([k, v]) => !KNOWN_FIELDS.has(k) && v !== null && v !== '') : [];
+  const phone = lead ? leadPhone(lead) : null;
 
   return (
     <Sheet open={!!leadId} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent className="crm-lead-drawer flex w-full flex-col gap-0 p-0 sm:max-w-xl">
+        <SheetDescription className="sr-only">Lead information, enquiry, follow-up and activity history.</SheetDescription>
         {loading || !lead ? (
           <div className="p-6 text-sm text-muted-foreground">Loading...</div>
         ) : (
-          <div className="space-y-6 p-4">
-            <SheetHeader className="p-0">
-              <SheetTitle>{lead.name}</SheetTitle>
+          <>
+          <SheetHeader className="crm-record-header">
+            <div className="crm-eyebrow">LEAD RECORD</div>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="crm-avatar" aria-hidden="true">{lead.name.trim().slice(0, 1).toUpperCase()}</span>
+              <div className="min-w-0">
+                <SheetTitle className="break-words text-xl font-semibold tracking-tight">{titleCase(lead.name)}</SheetTitle>
+                <p className="mt-1 break-all text-sm text-muted-foreground">{phone ?? lead.email ?? 'No contact information'}</p>
+              </div>
+            </div>
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Badge variant="outline">{lead.source}</Badge>
-                <Badge>{lead.status.replace(/_/g, ' ')}</Badge>
+                <Badge variant="outline">{SOURCE_LABELS[lead.source] ?? lead.source}</Badge>
+                <Badge variant="secondary">{STATUS_LABELS[lead.status] ?? lead.status}</Badge>
                 {lead.is_duplicate && <Badge variant="destructive">Flagged duplicate</Badge>}
               </div>
             </SheetHeader>
+          <div className="crm-record-body min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
 
-            <div className="rounded-lg border p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Next follow-up</p>
+            {lead.message && (
+              <section className="crm-enquiry" aria-label="Original enquiry">
+                <p className="crm-section-label"><MessageSquareText size={15} aria-hidden="true" /> Original enquiry</p>
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{lead.message}</p>
+              </section>
+            )}
+
+            <section className="crm-follow-up-card">
+              <div className="flex flex-col gap-3">
+                <div className="min-w-0">
+                  <p className="crm-section-label"><CalendarDays size={15} aria-hidden="true" /> {lead.status === 'site_visit_scheduled' ? 'Site visit' : 'Next follow-up'}</p>
                   {lead.next_follow_up_at ? (
                     <p className={`text-sm font-medium ${new Date(lead.next_follow_up_at) < new Date() ? 'text-red-600' : ''}`}>
                       {formatFollowUp(lead.next_follow_up_at)}
@@ -183,7 +239,20 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                     <p className="text-sm text-muted-foreground">Not set</p>
                   )}
                 </div>
-                <div className="flex shrink-0 gap-1.5">
+                <div className="flex flex-wrap gap-2">
+                  {/* The only other way to get here is the Status dropdown
+                      further down — "Site visit scheduled" is one option
+                      among nine, easy to miss, especially on the sales
+                      login where a rep's whole job is scheduling visits.
+                      This does the exact same thing handleStatusChange
+                      does for that option (set status, then the same date
+                      prompt below), just as one obvious top-of-lead
+                      button instead of a buried dropdown choice. */}
+                  {lead.status !== 'site_visit_scheduled' && (
+                    <Button variant="outline" size="sm" onClick={() => handleStatusChange('site_visit_scheduled')}>
+                      Schedule visit
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => setEditingFollowUp((v) => !v)}>
                     {lead.next_follow_up_at ? 'Change' : 'Set'}
                   </Button>
@@ -196,7 +265,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               </div>
               {(editingFollowUp || promptNextFollowUp) && (
                 <div className="mt-2 border-t pt-2">
-                  {promptNextFollowUp && <p className="mb-1.5 text-xs text-muted-foreground">Set the next follow-up date:</p>}
+                  {promptNextFollowUp && <p className="mb-1.5 text-xs text-muted-foreground">{followUpPromptLabel}</p>}
                   <FollowUpQuickPicker
                     onPick={handleSetFollowUp}
                     onCancel={() => {
@@ -206,28 +275,20 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                   />
                 </div>
               )}
-            </div>
+            </section>
 
+            {/* Call/WhatsApp live in the sticky footer below (always in the
+                thumb zone) — this row is for the less-frequent actions. */}
             <div className="flex flex-wrap gap-2">
-              {lead.phone && (
-                <>
-                  <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
-                    <Phone size={14} /> {lead.phone}
-                  </a>
-                  <a href={whatsappUrl(lead.phone)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm text-emerald-700 hover:bg-accent">
-                    WhatsApp
-                  </a>
-                </>
-              )}
               {lead.email && (
-                <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
-                  <Mail size={14} /> {lead.email}
+                <a href={`mailto:${lead.email}`} className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted">
+                  <Mail size={16} className="shrink-0" /> <span className="truncate">{lead.email}</span>
                 </a>
               )}
               {onShareProperties && (
                 <button
                   type="button"
-                  onClick={() => onShareProperties(lead.name, lead.phone, lead.id)}
+                  onClick={() => onShareProperties(lead.name, phone, lead.id)}
                   className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
                 >
                   <Share2 size={14} /> Share Properties
@@ -235,7 +296,28 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            {/* Quick outcome logging — one tap logs a note and (for the
+                non-terminal outcomes) schedules tomorrow's follow-up. Same
+                CALL_OUTCOMES list and behavior as LeadsTable.tsx's desktop
+                row popover, just placed at the top of the sheet instead of
+                behind a hover-only trigger. */}
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Log call outcome</p>
+              <div className="flex flex-wrap gap-1.5">
+                {CALL_OUTCOMES.map((o) => (
+                  <button
+                    key={o.label}
+                    type="button"
+                    onClick={() => logOutcome(o.label, o.scheduleFollowUp)}
+                    className="crm-outcome-button"
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="crm-details-grid grid grid-cols-2 gap-4 text-sm">
               <DetailField label="Project" value={lead.project_name} />
               <DetailField label="Locality" value={lead.locality} />
               <DetailField label="Configuration" value={lead.configuration} />
@@ -248,7 +330,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               {lead.lost_reason && <DetailField label="Lost reason" value={lead.lost_reason} />}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
                 <Select value={lead.status} onValueChange={handleStatusChange}>
@@ -357,8 +439,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               <div className="space-y-2">
                 {activities.length === 0 && <p className="text-xs text-muted-foreground">No activity yet.</p>}
                 {activities.map((a) => (
-                  <div key={a.id} className="rounded-lg border p-2 text-xs">
-                    <div className="flex items-center justify-between text-muted-foreground">
+                  <div key={a.id} className="crm-activity-item text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-1 text-muted-foreground">
                       <span className="font-medium capitalize">{a.type.replace(/_/g, ' ')}</span>
                       <span>{new Date(a.occurred_at).toLocaleString()}</span>
                     </div>
@@ -367,7 +449,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                         {a.from_status ?? '—'} → {a.to_status}
                       </p>
                     )}
-                    {a.content && <p className="mt-0.5">{a.content}</p>}
+                    {a.content && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{a.content}</p>}
                   </div>
                 ))}
               </div>
@@ -383,6 +465,32 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               </a>
             )}
           </div>
+
+          {/* Sticky bottom action bar — Call/WhatsApp/Status always in the
+              thumb zone regardless of scroll position, clearing the iOS
+              home indicator via the safe-area inset. */}
+          <div
+            className="crm-record-footer shrink-0 border-t bg-background p-4"
+            style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+          >
+            <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">Lead stage</span>
+            <Select value={lead.status} onValueChange={handleStatusChange}>
+              <SelectTrigger aria-label="Lead stage" className="min-w-0 w-full max-w-64 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABELS[s] ?? s.replace(/_/g, ' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            </div>
+            <LeadContactActions phone={phone} name={lead.name} onContact={() => markLastContacted(lead.id)} />
+          </div>
+          </>
         )}
       </SheetContent>
       <AgentFormDialog
@@ -398,8 +506,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
 };
 
 const DetailField: React.FC<{ label: string; value: string | null }> = ({ label, value }) => (
-  <div>
+  <div className="min-w-0">
     <div className="text-xs text-muted-foreground">{label}</div>
-    <div className="font-medium">{value || '—'}</div>
+    <div className="mt-1 break-words font-medium">{value || '—'}</div>
   </div>
 );

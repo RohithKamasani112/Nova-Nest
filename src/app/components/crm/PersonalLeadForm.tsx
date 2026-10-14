@@ -110,11 +110,20 @@ export const PersonalLeadForm: React.FC<PersonalLeadFormProps> = ({ open, onClos
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label className="mb-1.5 block">Name *</Label>
-            <Input value={form.name} onChange={(e) => set('name', e.target.value)} />
+            <Input value={form.name} onChange={(e) => set('name', e.target.value)} autoCapitalize="words" />
           </div>
           <div>
             <Label className="mb-1.5 block">Phone *</Label>
-            <Input value={form.phone} onChange={(e) => set('phone', e.target.value)} onBlur={handlePhoneBlur} />
+            <Input
+              value={form.phone}
+              onChange={(e) => set('phone', e.target.value)}
+              onBlur={handlePhoneBlur}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              autoCapitalize="off"
+              autoCorrect="off"
+            />
             {duplicate && (
               <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
                 <AlertTriangle size={14} className="mt-0.5 shrink-0" />
@@ -133,11 +142,27 @@ export const PersonalLeadForm: React.FC<PersonalLeadFormProps> = ({ open, onClos
           </div>
           <div>
             <Label className="mb-1.5 block">Alt phone</Label>
-            <Input value={form.altPhone ?? ''} onChange={(e) => set('altPhone', e.target.value)} />
+            <Input
+              value={form.altPhone ?? ''}
+              onChange={(e) => set('altPhone', e.target.value)}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              autoCapitalize="off"
+              autoCorrect="off"
+            />
           </div>
           <div>
             <Label className="mb-1.5 block">Email</Label>
-            <Input value={form.email ?? ''} onChange={(e) => set('email', e.target.value)} />
+            <Input
+              value={form.email ?? ''}
+              onChange={(e) => set('email', e.target.value)}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="off"
+              autoCorrect="off"
+            />
           </div>
 
           <div>
@@ -202,24 +227,24 @@ export const PersonalLeadForm: React.FC<PersonalLeadFormProps> = ({ open, onClos
 
           <div>
             <Label className="mb-1.5 block">Budget min</Label>
-            <Input type="number" value={form.priceMin ?? ''} onChange={(e) => set('priceMin', e.target.value ? Number(e.target.value) : null)} />
+            <Input type="text" inputMode="decimal" value={form.priceMin ?? ''} onChange={(e) => set('priceMin', e.target.value ? Number(e.target.value) : null)} />
           </div>
           <div>
             <Label className="mb-1.5 block">Budget max</Label>
-            <Input type="number" value={form.priceMax ?? ''} onChange={(e) => set('priceMax', e.target.value ? Number(e.target.value) : null)} />
+            <Input type="text" inputMode="decimal" value={form.priceMax ?? ''} onChange={(e) => set('priceMax', e.target.value ? Number(e.target.value) : null)} />
           </div>
 
           <div>
             <Label className="mb-1.5 block">City</Label>
-            <Input value={form.city ?? ''} onChange={(e) => set('city', e.target.value)} />
+            <Input value={form.city ?? ''} onChange={(e) => set('city', e.target.value)} autoCapitalize="words" />
           </div>
           <div>
             <Label className="mb-1.5 block">Locality</Label>
-            <Input value={form.locality ?? ''} onChange={(e) => set('locality', e.target.value)} />
+            <Input value={form.locality ?? ''} onChange={(e) => set('locality', e.target.value)} autoCapitalize="words" />
           </div>
           <div className="sm:col-span-2">
             <Label className="mb-1.5 block">Project</Label>
-            <Input value={form.project ?? ''} onChange={(e) => set('project', e.target.value)} />
+            <Input value={form.project ?? ''} onChange={(e) => set('project', e.target.value)} autoCapitalize="words" />
           </div>
 
           <div className="sm:col-span-2">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   PlusCircle,
@@ -39,6 +39,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
+
+  useEffect(() => { setOpen(false); }, [currentPage]);
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [open]);
 
   const go = (id: string) => {
     onNavigate(id);

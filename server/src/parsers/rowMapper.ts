@@ -1,5 +1,5 @@
 import { CrmSource, MappedLead, RawRow, RowWarning } from '../types/crm';
-import { SOURCE_MAPS } from '../lib/sourceMaps';
+import { GENERIC_MAP, SOURCE_MAPS } from '../lib/sourceMaps';
 import {
   AliasIndex,
   buildAliasIndex,
@@ -32,10 +32,13 @@ export interface FieldMapping {
 
 const aliasIndexCache = new Map<string, AliasIndex>();
 
-function getAliasIndex(source: Exclude<CrmSource, 'personal'>): AliasIndex {
+// 'generic' isn't a real CrmSource — it's the cache key for GENERIC_MAP,
+// used for 'personal'/'website' (see resolveMapping below), which don't have
+// a portal-specific SOURCE_MAPS entry to key a real source off of.
+function getAliasIndex(source: Exclude<CrmSource, 'personal' | 'website'> | 'generic'): AliasIndex {
   let index = aliasIndexCache.get(source);
   if (!index) {
-    index = buildAliasIndex(SOURCE_MAPS[source]);
+    index = buildAliasIndex(source === 'generic' ? GENERIC_MAP : SOURCE_MAPS[source]);
     aliasIndexCache.set(source, index);
   }
   return index;
@@ -44,22 +47,25 @@ function getAliasIndex(source: Exclude<CrmSource, 'personal'>): AliasIndex {
 /**
  * `overrides` maps a normalized header key -> canonicalField, sourced from
  * source_mapping_overrides (spec §3, "mapping preview is mandatory... overrides
- * are saved per-source and reused as the default next time").
+ * are saved per-source and reused as the default next time") for a real
+ * portal source, or from this upload's own in-session column-mapping choices
+ * for personal/website (see importService.ts — those two never persist
+ * overrides as future defaults, since every personal spreadsheet is a one-off
+ * with no reason to expect the same layout next time).
+ *
+ * personal/website still get real auto-mapping now (GENERIC_MAP, plain
+ * English column names like "Name"/"Phone"/"Email") rather than leaving
+ * every column unmapped — that used to mean an easy trap: importing without
+ * first mapping Name by hand silently produced an all-error batch. This
+ * doesn't remove that manual step for anything GENERIC_MAP doesn't
+ * recognize, it just catches the common case.
  */
 export function resolveMapping(
   headers: string[],
   source: CrmSource,
   overrides: Record<string, string> = {}
 ): FieldMapping[] {
-  if (source === 'personal') {
-    return headers.map((header) => ({
-      header,
-      headerNormalized: normalizeHeaderDisplay(header),
-      canonicalField: null,
-    }));
-  }
-
-  const index = getAliasIndex(source);
+  const index = getAliasIndex(source === 'personal' || source === 'website' ? 'generic' : source);
   const claimed = new Set<string>();
   const results: FieldMapping[] = new Array(headers.length);
 
@@ -249,7 +255,7 @@ export function mapRow(
         break;
       }
       case 'lead_date': {
-        const r = normalizeDate(cellValue, source as Exclude<CrmSource, 'personal'>);
+        const r = normalizeDate(cellValue, source as Exclude<CrmSource, 'personal' | 'website'>);
         lead.leadDate = r.leadDate;
         if (r.warning) {
           warn(lead.warnings, r.warning, `Lead date "${r.raw}" did not match any known format for this source.`, 'lead_date');

@@ -46,14 +46,17 @@ interface UploadModalProps {
   open: boolean;
   onClose: () => void;
   onImported: () => void;
-  onPickPersonal: () => void;
 }
 
 const SOURCE_CARDS: { value: CrmSource; label: string; description: string }[] = [
   { value: 'housing', label: 'Housing', description: 'Bulk upload the Housing.com leads export' },
   { value: 'magicbricks', label: 'MagicBricks', description: 'Bulk upload the MagicBricks leads export' },
   { value: '99acres', label: '99acres', description: 'Bulk upload the 99acres responses export' },
-  { value: 'personal', label: 'Personal Leads', description: 'Add a single lead by hand (walk-in, referral, call...)' },
+  {
+    value: 'personal',
+    label: 'Personal Leads',
+    description: 'Bulk upload your own spreadsheet — walk-ins, referrals, calls (any columns; you map them yourself)',
+  },
 ];
 
 // Matches server/src/routes/import.ts's multer limit — kept in sync
@@ -66,7 +69,7 @@ function formatSourceLabel(source: CrmSource): string {
   return SOURCE_CARDS.find((s) => s.value === source)?.label ?? source;
 }
 
-export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImported, onPickPersonal }) => {
+export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImported }) => {
   const [step, setStep] = useState<Step>('source');
   const [source, setSource] = useState<CrmSource | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -109,11 +112,6 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImpor
   };
 
   const handlePickSource = (value: CrmSource) => {
-    if (value === 'personal') {
-      handleClose();
-      onPickPersonal();
-      return;
-    }
     setSource(value);
     setStep('upload');
   };
@@ -207,6 +205,19 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImpor
 
   const unmappedCount = preview?.mapping.filter((m) => !effectiveMapping(m.headerKey, m.canonicalField)).length ?? 0;
 
+  // Every row needs a name + (phone or email) to save at all (server-side
+  // validateRow: MISSING_NAME / MISSING_CONTACT) — for a source with no
+  // auto-mapping (personal/website), it's easy to click straight through to
+  // Import without ever mapping a column to Name, which silently turns the
+  // entire batch into error rows. Block that before it happens instead of
+  // just letting the import "succeed" with 0 rows actually saved.
+  const mappedFields = new Set(
+    (preview?.mapping ?? []).map((m) => effectiveMapping(m.headerKey, m.canonicalField)).filter((f): f is string => !!f)
+  );
+  const hasNameMapped = mappedFields.has('name');
+  const hasContactMapped = mappedFields.has('phone_raw') || mappedFields.has('email');
+  const canImport = hasNameMapped && hasContactMapped;
+
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
@@ -221,7 +232,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImpor
           </DialogTitle>
           {step === 'upload' && (
             <DialogDescription>
-              Upload the export exactly as downloaded from {source ? formatSourceLabel(source) : 'the portal'} — no need to convert it.
+              {source === 'personal'
+                ? "Upload your own spreadsheet — any columns are fine, you'll map them to CRM fields on the next step."
+                : `Upload the export exactly as downloaded from ${source ? formatSourceLabel(source) : 'the portal'} — no need to convert it.`}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -300,7 +313,17 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImpor
               )}
             </div>
 
-            <div className="max-h-64 overflow-y-auto rounded-lg border">
+            {source === 'personal' && (
+              <p className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-xs text-foreground">
+                Personal spreadsheets have no fixed column layout, so plainly-named columns (Name, Phone, Email, City...)
+                are matched automatically but anything unusual won't be — check the mapping below. At minimum,{' '}
+                <strong>Name</strong> and either <strong>Phone</strong> or <strong>Email</strong> need to be mapped to
+                something; a row missing both can't be saved. Anything left unmapped is still kept, under
+                "Additional fields from source" on that lead.
+              </p>
+            )}
+
+            <div className="max-h-64 overflow-x-auto overflow-y-auto rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -434,11 +457,29 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImpor
               <p className="text-xs text-muted-foreground">{unmappedCount} column(s) unmapped — they'll be preserved under "Additional fields from source" on each lead.</p>
             )}
 
+            {!canImport && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-2.5 text-sm text-red-800">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <p>
+                  Map a column to <strong>Name</strong>
+                  {!hasContactMapped ? (
+                    <>
+                      {' '}and to <strong>Phone</strong> or <strong>Email</strong>
+                    </>
+                  ) : null}{' '}
+                  before importing — every row needs both, or it can't be saved (this would otherwise import as{' '}
+                  {preview.rowsRead} error rows, all "missing name"{!hasContactMapped ? ' / "missing contact"' : ''}).
+                </p>
+              </div>
+            )}
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep('upload')}>
                 Back
               </Button>
-              <Button onClick={handleImport}>Import {preview.rowsRead} rows</Button>
+              <Button onClick={handleImport} disabled={!canImport} title={canImport ? undefined : 'Map Name and Phone/Email first'}>
+                Import {preview.rowsRead} rows
+              </Button>
             </DialogFooter>
           </div>
         )}

@@ -127,6 +127,13 @@ export interface LeadListItem {
   source: string;
   name: string;
   phone: string | null;
+  // The normalized `phone` column is null whenever a number doesn't pass
+  // the Indian-mobile check (normalizePhone in valueNormalize.ts — must be
+  // 10 digits starting 6-9). Website submissions only validate digit count
+  // client-side, so a lead can land here with a real number typed in that
+  // still fails that check server-side — phone_raw keeps the original
+  // digits so the UI still has something to call, even unnormalized.
+  phone_raw: string | null;
   email: string | null;
   project_name: string | null;
   locality: string | null;
@@ -158,7 +165,7 @@ export async function listLeads(
 
   const listParams = [...params, pageSize, (page - 1) * pageSize];
   const listQuery = `
-    SELECT l.id, l.source, l.name, l.phone, l.email, l.project_name, l.locality, l.city,
+    SELECT l.id, l.source, l.name, l.phone, l.phone_raw, l.email, l.project_name, l.locality, l.city,
            l.property_type, l.listing_type, l.configuration,
            l.price_value, l.agent_id, a.name AS agent_name, l.status, l.lead_date, l.next_follow_up_at,
            la.occurred_at AS last_activity_at, la.type AS last_activity_type, l.updated_at,
@@ -191,6 +198,7 @@ export interface ChipCounts {
   unassigned: number;
   converted: number;
   lost: number;
+  siteVisitScheduled: number;
 }
 
 export async function getChipCounts(): Promise<ChipCounts> {
@@ -203,7 +211,8 @@ export async function getChipCounts(): Promise<ChipCounts> {
        count(*) FILTER (WHERE next_follow_up_at IS NULL AND status NOT IN ${TERMINAL_STATUSES}) AS "noFollowUpSet",
        count(*) FILTER (WHERE agent_id IS NULL) AS unassigned,
        count(*) FILTER (WHERE status = 'converted') AS converted,
-       count(*) FILTER (WHERE status = 'closed_lost') AS lost
+       count(*) FILTER (WHERE status = 'closed_lost') AS lost,
+       count(*) FILTER (WHERE status = 'site_visit_scheduled') AS "siteVisitScheduled"
      FROM leads WHERE deleted_at IS NULL`
   );
   const r = rows[0];
@@ -216,6 +225,7 @@ export async function getChipCounts(): Promise<ChipCounts> {
     unassigned: Number(r.unassigned),
     converted: Number(r.converted),
     lost: Number(r.lost),
+    siteVisitScheduled: Number(r.siteVisitScheduled),
   };
 }
 
@@ -473,6 +483,68 @@ export async function checkDuplicateContact(phone?: string, email?: string) {
     params
   );
   return rows[0] ?? null;
+}
+
+export interface WebsiteLeadInput {
+  name: string;
+  phone: string;
+  email?: string | null;
+  message?: string | null;
+  /** Property slug/name the visitor was looking at, if any — free text, not a foreign key. */
+  project?: string | null;
+  leadType?: string | null;
+}
+
+/** Public, unauthenticated counterpart to `createPersonalLead` — the row
+ *  every website contact/quote form and quick-enquiry button lands in
+ *  (source = 'website'). Reuses the same duplicate-flagging convention the
+ *  dedupe-indexes migration introduced for imports: a second lead sharing an
+ *  existing primary lead's phone/email is inserted with `is_duplicate =
+ *  true` and `duplicate_of_id` set, rather than rejected or silently merged
+ *  — a real visitor calling twice about two different flats shouldn't lose
+ *  either enquiry. */
+export async function createWebsiteLead(input: WebsiteLeadInput): Promise<{ id: string }> {
+  const name = normalizeName(input.name) || 'Website enquiry';
+  const phoneResult = normalizePhone(input.phone);
+  const emailResult = input.email ? normalizeEmail(input.email) : { email: null };
+
+  const existing = await checkDuplicateContact(phoneResult.phone ?? undefined, emailResult.email ?? undefined);
+
+  const { rows } = await pool.query(
+    `INSERT INTO leads (
+       source, name, name_normalized, phone, phone_raw, email, lead_date,
+       project_name, message, lead_type, status, is_duplicate, duplicate_of_id, raw_data
+     ) VALUES (
+       'website', $1, $2, $3, $4, $5, now(), $6, $7, $8, 'new', $9, $10, $11
+     ) RETURNING id`,
+    [
+      name,
+      normalizeNameKey(name),
+      phoneResult.phone,
+      phoneResult.phoneRaw,
+      emailResult.email,
+      cleanCell(input.project ?? null),
+      cleanCell(input.message ?? null),
+      cleanCell(input.leadType ?? null),
+      !!existing,
+      existing?.id ?? null,
+      JSON.stringify({ website: true }),
+    ]
+  );
+
+  if (existing) {
+    await pool.query(
+      `INSERT INTO lead_duplicates (existing_lead_id, incoming_source, matched_on, incoming_payload)
+       VALUES ($1, 'website', $2, $3)`,
+      [
+        existing.id,
+        phoneResult.phone && emailResult.email ? 'phone+email' : phoneResult.phone ? 'phone' : 'email',
+        JSON.stringify(input),
+      ]
+    );
+  }
+
+  return { id: rows[0].id };
 }
 
 export async function createPersonalLead(input: PersonalLeadInput) {

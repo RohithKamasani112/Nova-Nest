@@ -1,8 +1,11 @@
 import { AuthUser, LoginCredentials } from '../types';
 import { crmApi } from './crmApi';
 
+// Real backend login (server/src/routes/auth.ts) — replaces the old
+// hardcoded ADMIN_EMAIL/ADMIN_PASSWORD check now that the CRM's Postgres
+// `users` table is the actual source of truth for admin credentials.
 export const login = async (credentials: LoginCredentials): Promise<AuthUser> => {
-  const { data } = await crmApi.post<{ user: { id: string; email: string; name: string }; token: string }>(
+  const { data } = await crmApi.post<{ user: { id: string; email: string; name: string; role: string }; token: string }>(
     '/auth/login',
     { email: credentials.email, password: credentials.password }
   );
@@ -11,6 +14,7 @@ export const login = async (credentials: LoginCredentials): Promise<AuthUser> =>
     id: data.user.id,
     email: data.user.email,
     name: data.user.name,
+    role: data.user.role,
     accessToken: data.token,
   };
 
@@ -29,7 +33,12 @@ export const getCurrentAuthUser = async (): Promise<AuthUser | null> => {
   try {
     const stored = localStorage.getItem('estate_auth_user');
     if (stored) {
-      return JSON.parse(stored);
+      const session = JSON.parse(stored) as AuthUser;
+      if (!session.accessToken) { localStorage.removeItem('estate_auth_user'); return null; }
+      const { data } = await crmApi.get<{ user: Omit<AuthUser, 'accessToken'> }>('/auth/me');
+      const user = { ...data.user, accessToken: session.accessToken };
+      localStorage.setItem('estate_auth_user', JSON.stringify(user));
+      return user;
     }
     return null;
   } catch (error) {

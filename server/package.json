@@ -15,10 +15,19 @@
     "seed": "tsx src/db/seed.ts",
     "reset-leads": "tsx scripts/resetLeads.ts",
     "test:parsers": "tsx src/test/parsers.test.ts",
+    "test:sales-account": "tsx src/test/salesAccount.test.ts",
+    "test:website-lead": "tsx src/test/websiteLead.test.ts",
+    "test:magicbricks": "npm run build && node --test dist/test/magicbricks.test.js",
+    "test:magicbricks:db": "npm run build && node --test dist/test/magicbricksDb.test.js",
+    "test:portals": "npm run build && node --test dist/test/magicbricks.test.js dist/test/housing.test.js",
+    "package:portals": "npm run package:magicbricks",
+    "package:magicbricks": "npm run build && node scripts/package-magicbricks.mjs",
+    "dev:magicbricks": "npm run build && node scripts/test-magicbricks-local.mjs",
     "deploy:lambda": "node scripts/deploy-lambda.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.629.0",
+    "@aws-sdk/client-secrets-manager": "^3.1150.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
@@ -45,6 +54,7 @@
     "@types/papaparse": "^5.3.15",
     "@types/pg": "^8.11.10",
     "archiver": "^7.0.1",
+    "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }

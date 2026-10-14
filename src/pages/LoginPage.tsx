@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff, Home } from 'lucide-react';
-import toast from 'react-hot-toast';
 import companyLogo from '../assets/companyLogo.png';
+import { SALES_VIEW_AGENT_KEY } from '../utils/salesView';
 
 interface LoginPageProps {
   onNavigate: (page: string) => void;
@@ -21,8 +21,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
-      onNavigate('dashboard');
+      const authUser = await login({ email, password });
+      if (authUser.role === 'sales') {
+        // Straight to the leads view if this device already has a stored
+        // "who am I" choice, otherwise the picker first.
+        onNavigate(localStorage.getItem(SALES_VIEW_AGENT_KEY) ? 'sales-leads' : 'sales-home');
+      } else {
+        onNavigate('crm');
+      }
     } catch (error) {
       // Error already handled by context
     } finally {
@@ -53,7 +59,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             className="max-w-md"
           >
             <div className="mb-8">
-              <img src={companyLogo} alt="Nova Nest Property Management" className="mb-4 h-16 w-16 rounded-xl object-cover" />
+              {/* Sized by height, not force-cropped into a square — the
+                  source logo is a wide lockup, a square crop here was
+                  truncating the "NOVA NEST" wordmark. */}
+              <img src={companyLogo} alt="Nova Nest" className="mb-4 h-16 w-auto rounded-xl" />
               <h1 className="text-4xl font-bold mb-2">Nova Nest</h1>
               <p className="text-gray-300">Secure Admin Access</p>
             </div>

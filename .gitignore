@@ -51,3 +51,5 @@ Thumbs.db
 dist/
 build/
 .turbo/
+server/.magicbricks-package/
+server/.aws-sam/

@@ -44,3 +44,49 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
   );
   return rows[0] ?? null;
 }
+
+// A single shared login the whole sales team uses (owner's request: not
+// individual per-person accounts — whoever's on shift logs in, then picks
+// "who I am" from the agent roster or "all leads" on their own device; see
+// SalesHomePage.tsx). At most one active `role = 'sales'` row exists at a
+// time — changing the email deactivates the old row rather than deleting it,
+// so historical `users.id` references (e.g. any activity logged while
+// signed in as this account) still resolve.
+export async function getSalesAccountEmail(): Promise<string | null> {
+  const { rows } = await pool.query<{ email: string }>(
+    "SELECT email FROM users WHERE role = 'sales' AND is_active = true LIMIT 1"
+  );
+  return rows[0]?.email ?? null;
+}
+
+export async function upsertSalesAccount(email: string, password: string): Promise<{ email: string }> {
+  const passwordHash = await bcrypt.hash(password, 10);
+  const client = await pool.connect();
+  try {
+  await client.query('BEGIN');
+  await client.query("SELECT pg_advisory_xact_lock(hashtext('sales-account'))");
+  const existing = await client.query<{ role: string }>('SELECT role FROM users WHERE lower(email) = lower($1)', [email]);
+  if (existing.rows.some(user => user.role !== 'sales')) {
+    throw new SalesAccountConflictError();
+  }
+  const { rows } = await client.query<{ email: string }>(
+    `INSERT INTO users (email, password_hash, name, role, is_active)
+     VALUES ($1, $2, 'Sales Team', 'sales', true)
+     ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'sales', is_active = true
+     RETURNING email`,
+    [email.toLowerCase(), passwordHash]
+  );
+  await client.query("UPDATE users SET is_active = false WHERE role = 'sales' AND email <> $1", [email.toLowerCase()]);
+  await client.query('COMMIT');
+  return { email: rows[0].email };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export class SalesAccountConflictError extends Error {
+  constructor() { super('This email belongs to another account. Choose a different sales email.'); }
+}

@@ -1,4 +1,4 @@
-export type CrmSource = 'housing' | 'magicbricks' | '99acres' | 'personal';
+export type CrmSource = 'housing' | 'magicbricks' | '99acres' | 'personal' | 'website';
 
 export interface CrmAgent {
   id: string;
@@ -82,6 +82,10 @@ export interface LeadListItem {
   source: CrmSource;
   name: string;
   phone: string | null;
+  /** Falls back to this when `phone` is null — a number that didn't pass
+   *  server-side normalization still has its original digits here, so the
+   *  UI can still call/WhatsApp it. See leadsService.ts's LeadListItem. */
+  phone_raw: string | null;
   email: string | null;
   project_name: string | null;
   locality: string | null;
@@ -207,6 +211,7 @@ export interface ChipCounts {
   unassigned: number;
   converted: number;
   lost: number;
+  siteVisitScheduled: number;
 }
 
 export interface TodaysCallsResponse {

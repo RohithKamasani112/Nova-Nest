@@ -7,12 +7,13 @@ import {
   getCurrentAuthUser,
 } from '../services/authService';
 import toast from 'react-hot-toast';
+import { clearSalesView } from '../utils/salesView';
 
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<AuthUser>;
   signup: (credentials: SignupCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -48,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const authUser = await authLogin(credentials);
       setUser(authUser);
       toast.success('Login successful!');
+      return authUser;
     } catch (error: any) {
       toast.error('Login failed. Please check your details and try again.');
       throw error;
@@ -56,7 +58,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signup = async (credentials: SignupCredentials) => {
     try {
-      const authUser = await authSignup(credentials);
+      void credentials;
+      const authUser = await authSignup();
       setUser(authUser);
       toast.success('Account created successfully!');
     } catch (error: any) {
@@ -68,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = async () => {
     try {
       await authLogout();
+      clearSalesView(); // shared sales login — next login shows the "who's this?" picker again
       setUser(null);
       toast.success('Logged out successfully');
     } catch (error: any) {

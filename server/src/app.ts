@@ -6,6 +6,7 @@ import { importRouter, importsListHandler } from './routes/import';
 import { agentsRouter } from './routes/agents';
 import { leadsRouter } from './routes/leads';
 import { kpisRouter } from './routes/kpis';
+import { publicLeadsRouter } from './routes/publicLeads';
 import { requireAuth } from './middleware/requireAuth';
 import { asyncHandler } from './lib/asyncHandler';
 import { getFilterOptions } from './services/leadsService';
@@ -21,6 +22,7 @@ app.use(express.json({ limit: '2mb' }));
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 app.use('/api/auth', authRouter);
+app.use('/api/public/leads', publicLeadsRouter);
 app.use('/api/crm/import', importRouter);
 app.get('/api/crm/imports', requireAuth, importsListHandler);
 app.use('/api/crm/agents', agentsRouter);

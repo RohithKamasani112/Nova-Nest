@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Search, Download, Settings2, Rows2, Rows3, X, XCircle } from 'lucide-react';
+import { Search, Download, Settings2, Rows2, Rows3, X, XCircle, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { Button } from '../../app/components/ui/button';
 import { Input } from '../../app/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../app/components/ui/select';
@@ -9,18 +9,21 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../app/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../app/components/ui/tooltip';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '../../app/components/ui/sheet';
+import { SourceQuickFilters } from '../../app/components/crm/SourceQuickFilters';
 import { ContactStatusChips } from '../../app/components/crm/ContactStatusChips';
 import { LeadsTable } from '../../app/components/crm/LeadsTable';
 import { LeadDetailDrawer } from '../../app/components/crm/LeadDetailDrawer';
 import { DateRangePicker } from '../../app/components/crm/DateRangePicker';
 import { useDateRangeState } from '../../app/components/crm/useDateRangeState';
 import { AgentFormDialog } from '../../app/components/crm/AgentFormDialog';
-import { FiltersPopover } from '../../app/components/crm/FiltersPopover';
+import { FiltersPopover, FilterFieldsContent } from '../../app/components/crm/FiltersPopover';
 import { OPTIONAL_COLUMN_LABELS, OPTIONAL_COLUMNS, useLeadsTablePrefs } from '../../app/components/crm/useLeadsTablePrefs';
 import { SOURCE_LABELS, SOURCE_STRIPE_VAR } from '../../app/components/crm/crmVisuals';
 import {
@@ -76,6 +79,22 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
   const { visibleColumns, toggleColumn, density, setDensity } = useLeadsTablePrefs();
   const reduceMotion = useReducedMotion();
 
+  // Mobile-only: the toolbar's Source/Status/Agent/City/Locality/Project
+  // fields move into a bottom sheet below md. Batched into a local draft
+  // instead of writing straight to `filters` (like the desktop popover
+  // does) — on a flaky connection, applying one query after every single
+  // multi-select tap is worse than picking several filters and applying
+  // once (see brief §0: "flaky 4G connection").
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [mobileDraft, setMobileDraft] = useState<LeadFiltersState>(filters);
+
+  // Mobile-only: "Load more" appends a page onto the existing list instead
+  // of the desktop's Previous/Next, which replaces it. Tracked separately
+  // from filters.page so desktop pagination (rangeStart/rangeEnd/Prev/Next
+  // below) is completely untouched by this.
+  const [mobileLoadedPage, setMobileLoadedPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const loadOptions = () => {
     setOptionsLoading(true);
     setOptionsError(false);
@@ -107,13 +126,29 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
   useEffect(() => {
     refresh();
     setSelectedIds(new Set());
+    setMobileLoadedPage(1);
+    setMobileDraft(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  const loadMoreMobile = async () => {
+    const nextPage = mobileLoadedPage + 1;
+    setLoadingMore(true);
+    try {
+      const r = await listLeads({ ...filters, page: nextPage });
+      setLeads((prev) => [...prev, ...r.leads]);
+      setMobileLoadedPage(nextPage);
+    } catch {
+      toast.error('Could not load more leads.');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
-    setFilters((prev) => ({ ...prev, dateField: rangeState.dateField, dateFrom: period.from, dateTo: period.to, page: 1 }));
+    setFilters((prev) => ({ ...prev, dateField: rangeState.dateField, dateFrom: rangeState.preset === 'all' ? undefined : period.from, dateTo: rangeState.preset === 'all' ? undefined : period.to, page: 1 }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period.from, period.to, rangeState.dateField]);
+  }, [period.from, period.to, rangeState.dateField, rangeState.preset]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -230,6 +265,32 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
 
   const hasActiveFilters = activeFilterDimensions > 0 || !!filters.search;
 
+  // Mobile filter sheet: draft is seeded from `filters` whenever the sheet
+  // opens (and reset whenever filters change elsewhere, in the effect
+  // above), so it never opens showing stale selections.
+  const openMobileFilters = () => {
+    setMobileDraft(filters);
+    setMobileFiltersOpen(true);
+  };
+  const mobileDraftActiveCount =
+    FILTER_KEYS.filter((k) => (mobileDraft[k]?.length ?? 0) > 0).length + (mobileDraft.followUp ? 1 : 0);
+  const clearMobileDraft = () => {
+    setMobileDraft((p) => ({
+      ...p,
+      source: undefined,
+      status: undefined,
+      agentId: undefined,
+      city: undefined,
+      locality: undefined,
+      project: undefined,
+      followUp: undefined,
+    }));
+  };
+  const applyMobileFilters = () => {
+    setFilters((p) => ({ ...p, ...mobileDraft, page: 1 }));
+    setMobileFiltersOpen(false);
+  };
+
   const handleBulkStatus = async (status: string) => {
     let lostReason: string | undefined;
     if (status === 'closed_lost') {
@@ -259,11 +320,61 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Toolbar — one compact row (Part B). Search collapses to an icon
-          below 1280px; result range + density/columns/export sit on the
-          right and wrap onto their own line at narrower widths. */}
-      <div className="flex flex-wrap items-center gap-2 border-b pb-2">
+    <div className="crm-leads-workspace flex flex-col gap-4">
+      {/* Mobile toolbar — below md: sticky full-width search + a single
+          Filters button (badged with the active-count) + a small overflow
+          menu for Export. Density toggle, column visibility, and page size
+          are dropped entirely (not just hidden) — they only mean anything
+          for the desktop table, and below md, LeadsTable renders its card
+          view instead. */}
+      <div
+        className="crm-mobile-toolbar sticky z-20 flex items-center gap-2 py-2 md:hidden"
+        // top clears the fixed hamburger button (AdminSidebar.tsx: offset
+        // 0.75rem + its own 2.75rem height) plus the safe-area inset, so
+        // once this bar is stuck at the top of the scroll it sits just
+        // below the hamburger instead of partly behind it (hamburger is
+        // z-40, this is z-20, and both would otherwise occupy the same
+        // top-left corner once scrolled).
+        style={{ top: 'calc(4.5rem + env(safe-area-inset-top))', background: 'var(--crm-surface)' }}
+      >
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Search leads by name, phone or email"
+            placeholder="Search..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            enterKeyHint="search"
+            className="tap-target w-full pl-8"
+          />
+        </div>
+        <Button variant="outline" onClick={openMobileFilters} className="tap-target relative shrink-0">
+          <SlidersHorizontal size={15} />
+          Filters
+          {activeFilterDimensions > 0 && (
+            <span className="ml-0.5 rounded-full bg-primary px-1.5 text-xs font-medium text-white">
+              {activeFilterDimensions}
+            </span>
+          )}
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="tap-target shrink-0" aria-label="More actions">
+              <MoreVertical size={15} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => downloadLeadsExportCsv(filters)}>
+              <Download size={14} /> Export CSV
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Desktop toolbar — md and up, unchanged. Search collapses to an
+          icon below 1280px; result range + density/columns/export sit on
+          the right and wrap onto their own line at narrower widths. */}
+      <div className="crm-inbox-toolbar hidden flex-wrap items-center gap-2 md:flex">
         <div className="hidden items-center xl:flex">
           <div className="relative">
             <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -445,7 +556,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
             animate={{ y: 0, opacity: 1 }}
             exit={reduceMotion ? undefined : { y: 64, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed inset-x-0 bottom-4 z-40 mx-auto flex w-fit max-w-[calc(100%-2rem)] flex-wrap items-center gap-2 rounded-xl border bg-white px-4 py-3 shadow-lg"
+            className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 mx-auto flex w-fit max-w-[calc(100%-2rem)] flex-wrap items-center gap-2 rounded-xl border bg-white px-4 py-3 shadow-lg"
             style={{ borderColor: 'var(--crm-border)' }}
           >
             <span className="text-sm font-medium">{selectedIds.size} selected</span>
@@ -471,6 +582,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
       </AnimatePresence>
 
       {/* Chips — the daily workflow, permanent space, single scrollable row */}
+      <SourceQuickFilters source={filters.source} onChange={(source) => setFilters(p => ({ ...p, source, page: 1 }))} />
       <ContactStatusChips filters={filters} onChange={setFilters} />
 
       <LeadsTable
@@ -494,7 +606,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
           of the viewport instead of trailing off past a long inner scroll
           the user has to find their way past first. */}
       <div
-        className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t px-3 py-2.5 text-sm shadow-[0_-2px_8px_rgba(0,0,0,0.04)]"
+        className="sticky bottom-0 z-10 hidden items-center justify-between gap-3 border-t px-3 py-2.5 text-sm shadow-[0_-2px_8px_rgba(0,0,0,0.04)] md:flex"
         style={{ background: 'var(--crm-surface)', borderColor: 'var(--crm-border)' }}
       >
         <span className="tabular-nums text-muted-foreground">
@@ -509,6 +621,63 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
           </Button>
         </div>
       </div>
+
+      {/* Mobile — Load more appends a page instead of paginating, which
+          the brief calls out as the better mobile interaction anyway. */}
+      {!loading && leads.length < total && (
+        <div className="pb-1 md:hidden">
+          <button
+            type="button"
+            onClick={loadMoreMobile}
+            disabled={loadingMore}
+            className="tap-target flex w-full items-center justify-center rounded-lg border border-gray-300 text-sm font-medium text-gray-700 disabled:opacity-60"
+          >
+            {loadingMore ? 'Loading…' : `Load more (${leads.length} of ${total})`}
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Filters sheet — Source/Status/Agent/City/Locality/Project/
+          Follow-up (same fields FiltersPopover renders on desktop) plus the
+          date range, batched into mobileDraft and only sent to `filters`
+          (i.e. only re-queried) on Apply. */}
+      <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
+          <SheetHeader className="border-b px-4 py-3">
+            <SheetTitle>Filters</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+            <DateRangePicker state={rangeState} range={period} onUpdate={updateRange} />
+            <FilterFieldsContent
+              filters={mobileDraft}
+              onChange={(patch) => setMobileDraft((p) => ({ ...p, ...patch }))}
+              sourceOptions={sourceOptions}
+              statusOptions={statusOptions}
+              agentOptions={agentOptions}
+              cityOptions={cityOptions}
+              localityOptions={localityOptions}
+              projectOptions={projectOptions}
+              loading={optionsLoading}
+            />
+          </div>
+          <SheetFooter className="flex-row gap-2 border-t px-4 py-3">
+            <button
+              type="button"
+              onClick={clearMobileDraft}
+              className="tap-target flex-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-700"
+            >
+              Clear all
+            </button>
+            <button
+              type="button"
+              onClick={applyMobileFilters}
+              className="tap-target flex-1 rounded-lg bg-primary text-sm font-medium text-white"
+            >
+              Apply{mobileDraftActiveCount > 0 ? ` (${mobileDraftActiveCount})` : ''}
+            </button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       <LeadDetailDrawer
         leadId={openLeadId}

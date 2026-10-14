@@ -1,30 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { MessageCircle, MoreHorizontal, Phone, Star, StickyNote, UploadCloud } from 'lucide-react';
+import { ArrowUpRight, Star, StickyNote, UploadCloud } from 'lucide-react';
+import { LeadContactActions } from './LeadContactActions';
 import { Checkbox } from '../ui/checkbox';
 import { Button } from '../ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { FollowUpQuickPicker } from './FollowUpQuickPicker';
 import { LeadInterest, LeadListItem } from '../../../types/crm';
 import { addLeadActivity, getLeadInterests, updateLead } from '../../../services/crmApi';
+import { clearLastContacted, getLastContactedLeadId, markLastContacted } from '../../../utils/lastContacted';
 import {
   ACTIVITY_VERB,
   CALL_OUTCOMES,
+  leadPhone,
   SOURCE_LABELS,
   SOURCE_STRIPE_VAR,
   STATUS_DOT_VAR,
   STATUS_LABELS,
   STATUS_OPTIONS,
+  telHref,
   titleCase,
+  tomorrowIso,
 } from './crmVisuals';
-import { formatAbsoluteDateTime, formatRelativeDate } from './relativeDate';
+import { formatAbsoluteDateTime, formatRelativeDate, formatShortDate } from './relativeDate';
 import { ColumnKey, Density, OPTIONAL_COLUMN_LABELS, OPTIONAL_COLUMNS } from './useLeadsTablePrefs';
-
-function whatsappUrl(phone: string): string {
-  return `https://wa.me/91${phone}`;
-}
 
 // Single ` · ` at 40% opacity for an empty value — not an em dash, which
 // reads as loudly as real data at 50 rows.
@@ -58,7 +60,14 @@ function Truncated({
 // problem the way a missed follow-up is.
 function followUpOrActivity(lead: LeadListItem): { text: string; overdue: boolean } | null {
   const fu = formatRelativeDate(lead.next_follow_up_at);
-  if (fu) return { text: `Due ${fu.text}`, overdue: fu.overdue };
+  if (fu) {
+    // A scheduled visit is a calendar appointment, not a countdown — show
+    // the actual date ("Visit 20 Sep") instead of "Due in 3 days".
+    if (lead.status === 'site_visit_scheduled' && lead.next_follow_up_at) {
+      return { text: `Visit ${formatShortDate(lead.next_follow_up_at)}`, overdue: fu.overdue };
+    }
+    return { text: `Due ${fu.text}`, overdue: fu.overdue };
+  }
   const act = formatRelativeDate(lead.last_activity_at);
   if (act) {
     const verb = ACTIVITY_VERB[lead.last_activity_type ?? ''] ?? 'Active';
@@ -86,22 +95,24 @@ const RelativeCell: React.FC<{ value: { text: string; overdue: boolean } | null;
   );
 };
 
-// Tomorrow 10am — matches FollowUpQuickPicker's own "Tomorrow" default, so a
-// quick-logged outcome and a manually-picked follow-up date read the same.
-function tomorrowIso(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(10, 0, 0, 0);
-  return d.toISOString();
-}
-
 // Inline status dropdown — same guard rules as LeadDetailDrawer's status
 // changer (lost reason required for closed_lost, optional deal value prompt
 // for converted) so behavior doesn't diverge depending on where you edit
 // from. Styled to read as plain text-plus-dot at rest, only revealing
 // dropdown chrome on hover/focus.
-const InlineStatusSelect: React.FC<{ lead: LeadListItem; onChanged: () => void }> = ({ lead, onChanged }) => {
+const InlineStatusSelect: React.FC<{ lead: LeadListItem; onChanged: () => void; onStatusUpdated: (id: string) => void }> = ({
+  lead,
+  onChanged,
+  onStatusUpdated,
+}) => {
   const [busy, setBusy] = useState(false);
+  // Site-visit date now uses the same FollowUpQuickPicker every other date
+  // entry point uses (LeadDetailDrawer, Today's Calls) instead of a raw
+  // window.prompt() text box — that prompt was the roughest interaction in
+  // the app: no calendar, easy to mistype, and looks broken on a phone.
+  // Status is saved immediately either way; the picker only supplies the
+  // follow-up date afterward, same two-step flow LeadDetailDrawer uses.
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleChange = async (status: string) => {
     if (status === lead.status) return;
@@ -124,6 +135,11 @@ const InlineStatusSelect: React.FC<{ lead: LeadListItem; onChanged: () => void }
       await updateLead(lead.id, { status, lostReason, dealValue });
       toast.success('Status updated.');
       onChanged();
+      onStatusUpdated(lead.id);
+      // Without a date here, this lead won't show up in the "Site visit
+      // scheduled" filter chip's near-term view or Today's Calls, since
+      // both key off next_follow_up_at.
+      if (status === 'site_visit_scheduled') setShowDatePicker(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.error ?? 'Could not update status.');
     } finally {
@@ -131,32 +147,53 @@ const InlineStatusSelect: React.FC<{ lead: LeadListItem; onChanged: () => void }
     }
   };
 
+  const handlePickDate = async (iso: string) => {
+    try {
+      await updateLead(lead.id, { nextFollowUpAt: iso });
+      toast.success('Site visit date set.');
+      onChanged();
+    } catch {
+      toast.error('Could not set the site visit date.');
+    } finally {
+      setShowDatePicker(false);
+    }
+  };
+
   return (
-    <span onClick={(e) => e.stopPropagation()}>
-      <Select value={lead.status} onValueChange={handleChange} disabled={busy}>
-        <SelectTrigger
-          size="sm"
-          className="h-auto w-auto gap-1 border-0 bg-transparent px-0 py-0 text-xs shadow-none hover:bg-[var(--crm-surface-hover)] focus-visible:ring-1 data-[size=sm]:h-auto [&_svg]:opacity-0 hover:[&_svg]:opacity-50"
-        >
-          <span className="flex items-center gap-1.5">
-            <span
-              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: STATUS_DOT_VAR[lead.status] ?? 'var(--crm-status-new)' }}
-            />
-            <span className="truncate" style={{ color: 'var(--crm-text-secondary)' }}>
-              <SelectValue>{STATUS_LABELS[lead.status] ?? lead.status}</SelectValue>
-            </span>
-          </span>
-        </SelectTrigger>
-        <SelectContent onClick={(e) => e.stopPropagation()}>
-          {STATUS_OPTIONS.map((s) => (
-            <SelectItem key={s} value={s}>
-              {STATUS_LABELS[s] ?? s}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </span>
+    <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+      <PopoverAnchor asChild>
+        <span onClick={(e) => e.stopPropagation()}>
+          <Select value={lead.status} onValueChange={handleChange} disabled={busy}>
+            <SelectTrigger
+              size="sm"
+              aria-label={`Change status for ${lead.name}`}
+              className="min-h-7 w-auto max-w-full gap-1 rounded-md border-0 bg-transparent px-1.5 py-1 text-xs shadow-none hover:bg-[var(--crm-surface-hover)] focus-visible:ring-1 data-[size=sm]:h-auto"
+            >
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ background: STATUS_DOT_VAR[lead.status] ?? 'var(--crm-status-new)' }}
+                />
+                <span className="truncate" style={{ color: 'var(--crm-text-secondary)' }}>
+                  <SelectValue>{STATUS_LABELS[lead.status] ?? lead.status}</SelectValue>
+                </span>
+              </span>
+            </SelectTrigger>
+            <SelectContent onClick={(e) => e.stopPropagation()}>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABELS[s] ?? s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </span>
+      </PopoverAnchor>
+      <PopoverContent className="w-72" align="start" onClick={(e) => e.stopPropagation()}>
+        <p className="mb-1.5 text-xs text-muted-foreground">Site visit date for {titleCase(lead.name)}:</p>
+        <FollowUpQuickPicker onPick={handlePickDate} onCancel={() => setShowDatePicker(false)} />
+      </PopoverContent>
+    </Popover>
   );
 };
 
@@ -225,7 +262,11 @@ const MultiInterestBadge: React.FC<{ leadId: string; count: number }> = ({ leadI
 // canned outcome buttons both log a note and (for non-terminal outcomes)
 // schedule a next-day follow-up, so "didn't pick up" surfaces again in
 // Overdue/Today's Calls on its own instead of relying on someone to remember.
-const RowActions: React.FC<{ lead: LeadListItem; onChanged: () => void }> = ({ lead, onChanged }) => {
+const RowActions: React.FC<{ lead: LeadListItem; onChanged: () => void; onContact: (id: string) => void }> = ({
+  lead,
+  onChanged,
+  onContact,
+}) => {
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState('');
 
@@ -255,39 +296,18 @@ const RowActions: React.FC<{ lead: LeadListItem; onChanged: () => void }> = ({ l
     }
   };
 
+  const phone = leadPhone(lead);
+
   return (
     <div
-      className="row-actions flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+      className="row-actions flex shrink-0 items-center justify-end gap-2"
       onClick={(e) => e.stopPropagation()}
     >
-      {lead.phone && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-              <a href={`tel:${lead.phone}`}>
-                <Phone size={14} />
-              </a>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Call</TooltipContent>
-        </Tooltip>
-      )}
-      {lead.phone && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-              <a href={whatsappUrl(lead.phone)} target="_blank" rel="noopener noreferrer">
-                <MessageCircle size={14} />
-              </a>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>WhatsApp</TooltipContent>
-        </Tooltip>
-      )}
+      <LeadContactActions phone={phone} name={lead.name} compact onContact={() => onContact(lead.id)} />
       <Popover open={noteOpen} onOpenChange={setNoteOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Log call / add note">
-            <StickyNote size={14} />
+          <Button variant="outline" size="icon" className="crm-note-button" title="Log call / add note" aria-label={`Add note for ${lead.name}`}>
+            <StickyNote size={17} strokeWidth={1.8} />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-72 space-y-2" align="end" onClick={(e) => e.stopPropagation()}>
@@ -344,7 +364,7 @@ interface LeadsTableProps {
   onUploadClick?: () => void;
 }
 
-const ACTIONS_COL_WIDTH = 120;
+const ACTIONS_COL_WIDTH = 152;
 
 export const LeadsTable: React.FC<LeadsTableProps> = ({
   leads,
@@ -372,11 +392,28 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  // "Which lead was I just calling?" — see utils/lastContacted.ts. Marked
+  // the instant Call/WhatsApp is tapped (so the highlight shows up right
+  // away, no need to actually leave and come back), re-synced from
+  // localStorage whenever the list refreshes (so a status update made from
+  // LeadDetailDrawer, a separate component, still clears it here).
+  const [highlightId, setHighlightId] = useState<string | null>(() => getLastContactedLeadId());
+  useEffect(() => {
+    setHighlightId(getLastContactedLeadId());
+  }, [leads]);
+  const handleContact = (id: string) => {
+    markLastContacted(id);
+    setHighlightId(id);
+  };
+  const handleStatusUpdated = (id: string) => {
+    clearLastContacted(id);
+    setHighlightId((cur) => (cur === id ? null : cur));
+  };
+
   const compact = density === 'compact';
-  const rowHeight = compact ? 40 : 52;
-  const cellPad = compact ? 'py-1 px-2' : 'py-2 px-2';
+  const rowHeight = compact ? 52 : 68;
+  const cellPad = compact ? 'py-2 px-3' : 'py-3 px-3';
   const optionalCols = OPTIONAL_COLUMNS.filter((c) => visibleColumns.has(c));
-  const anySelected = selectedIds.size > 0;
 
   // Scroll-only right-edge shadow on the sticky Lead column — no permanent
   // border at rest, so there's nothing to read as a stray divider.
@@ -446,21 +483,21 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
           never desync because there's nothing else scrolling independently. */}
       <div
         ref={wrapRef}
-        className="hidden lg:block"
+        className="crm-table-scroll hidden lg:block"
         style={{
           overflow: 'auto',
           maxHeight: 'calc(100vh - 300px)',
           background: 'var(--crm-surface)',
           border: '1px solid var(--crm-border)',
-          borderRadius: 8,
+          borderRadius: 16,
         }}
       >
-        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: 14 }}>
+        <table className="crm-lead-table" style={{ width: '100%', minWidth: 1050 + optionalCols.length * 130, tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: 14 }}>
           <colgroup>
-            <col style={{ width: '26%' }} />
-            <col style={{ width: '30%' }} />
+            <col style={{ width: 240 }} />
+            <col style={{ width: 260 }} />
             <col style={{ width: 70 }} />
-            <col style={{ width: '18%' }} />
+            <col style={{ width: 180 }} />
             <col style={{ width: 130 }} />
             {optionalCols.map((c) => (
               <col key={c} style={{ width: 130 }} />
@@ -542,8 +579,8 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                   background: 'var(--crm-surface)',
                   borderBottom: '1px solid var(--crm-border-strong)',
                 }}
-                className={cellPad}
-              />
+                className={`${cellPad} crm-table-actions`}
+              >Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -559,21 +596,28 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                       ? formatAbsoluteDateTime(lead.last_activity_at)
                       : null;
 
+                  const isHighlighted = lead.id === highlightId;
+                  const phone = leadPhone(lead);
                   return (
                     <tr
                       key={lead.id}
-                      className="group cursor-pointer"
-                      style={{ height: rowHeight, borderBottom: '1px solid var(--crm-border)' }}
+                      className={`group cursor-pointer ${isSelected ? 'crm-row-selected' : ''}`}
+                      style={{
+                        height: rowHeight,
+                        borderBottom: '1px solid var(--crm-border)',
+                        background: isHighlighted ? 'var(--crm-last-contacted-bg)' : undefined,
+                      }}
+                      title={isHighlighted ? 'You were just contacting this lead' : undefined}
                       onClick={() => onRowClick(lead.id)}
                       tabIndex={0}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
+                        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
                           e.preventDefault();
                           onRowClick(lead.id);
                         }
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--crm-surface-hover)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = isHighlighted ? 'var(--crm-last-contacted-bg)' : 'transparent')}
                     >
                       {/* Lead: stripe is a per-row inset shadow at the table's true left
                           edge (not a border, so border-collapse can never merge it into
@@ -584,15 +628,15 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                           position: 'sticky',
                           left: 0,
                           zIndex: 1,
-                          background: 'var(--crm-surface)',
-                          boxShadow: `inset 3px 0 0 0 ${stripeColor}${scrolledX ? ', 4px 0 8px -4px rgba(0,0,0,0.15)' : ''}`,
+                          background: isHighlighted ? 'var(--crm-last-contacted-bg)' : 'var(--crm-surface)',
+                          boxShadow: `inset 3px 0 0 0 ${isHighlighted ? 'var(--crm-last-contacted-border)' : stripeColor}${scrolledX ? ', 4px 0 8px -4px rgba(0,0,0,0.15)' : ''}`,
                         }}
                         className={cellPad}
-                        title={`Source: ${SOURCE_LABELS[lead.source] ?? lead.source}`}
+                        title={isHighlighted ? 'You were just contacting this lead' : `Source: ${SOURCE_LABELS[lead.source] ?? lead.source}`}
                       >
                         <div className="flex items-center gap-2">
                           <span
-                            className={anySelected || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}
+                            className="opacity-100"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Checkbox checked={isSelected} onCheckedChange={() => onToggleOne(lead.id)} aria-label={`Select ${lead.name}`} />
@@ -611,17 +655,17 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                             </div>
                             {!compact && (
                               <a
-                                href={lead.phone ? `tel:${lead.phone}` : undefined}
+                                href={phone ? telHref(phone) : undefined}
                                 onClick={(e) => e.stopPropagation()}
                                 className="tabular-nums block truncate"
                                 style={{
                                   fontSize: 12,
                                   lineHeight: '15px',
                                   marginTop: 1,
-                                  color: lead.phone ? 'var(--crm-text-secondary)' : 'var(--crm-text-muted)',
+                                  color: phone ? 'var(--crm-text-secondary)' : 'var(--crm-text-muted)',
                                 }}
                               >
-                                {lead.phone ?? '·'}
+                                {phone ?? '·'}
                               </a>
                             )}
                           </div>
@@ -669,7 +713,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                             </span>
                           )}
                           <div className="mt-0.5">
-                            <InlineStatusSelect lead={lead} onChanged={onChanged} />
+                            <InlineStatusSelect lead={lead} onChanged={onChanged} onStatusUpdated={handleStatusUpdated} />
                           </div>
                         </div>
                       </td>
@@ -686,8 +730,8 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
 
                       {/* Actions: its own reserved column, always this width — the
                           icons fade in on hover but never spill into Follow-up. */}
-                      <td className={cellPad} style={{ width: ACTIONS_COL_WIDTH }}>
-                        <RowActions lead={lead} onChanged={onChanged} />
+                      <td className={`${cellPad} crm-table-actions`} style={{ width: ACTIONS_COL_WIDTH }}>
+                        <RowActions lead={lead} onChanged={onChanged} onContact={handleContact} />
                       </td>
                     </tr>
                   );
@@ -696,88 +740,44 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
         </table>
       </div>
 
-      {/* Card view — <1024px */}
-      <div className="space-y-2 lg:hidden">
+      {/* Compact list below desktop: details open on tap; contact controls have reserved space. */}
+      <div className="crm-mobile-leads lg:hidden" aria-label="Lead list">
         {loading
-          ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-lg bg-muted" />)
+          ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="crm-mobile-lead-skeleton animate-pulse" />)
           : leads.map((lead) => {
-              const fu = formatRelativeDate(lead.next_follow_up_at);
-              const stripeColor = SOURCE_STRIPE_VAR[lead.source] ?? 'transparent';
+              const phone = leadPhone(lead);
+              const isHighlighted = lead.id === highlightId;
+              const followUp = followUpOrActivity(lead);
+              const stage = STATUS_LABELS[lead.status] ?? lead.status;
+              const compactStage = lead.status === 'site_visit_scheduled' ? 'Visit set' : lead.status === 'site_visit_done' ? 'Visit done' : stage;
               return (
                 <div
                   key={lead.id}
-                  className="cursor-pointer"
-                  style={{
-                    background: 'var(--crm-surface)',
-                    borderLeft: `4px solid ${stripeColor}`,
-                    border: '1px solid var(--crm-border)',
-                    borderLeftWidth: 4,
-                    borderRadius: 6,
-                    padding: 12,
-                  }}
-                  onClick={() => onRowClick(lead.id)}
+                  className={'crm-mobile-lead ' + (isHighlighted ? 'crm-mobile-lead--contacted' : '')}
+                  style={{ '--lead-source-color': SOURCE_STRIPE_VAR[lead.source] ?? 'transparent' } as React.CSSProperties}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <p className="min-w-0 truncate text-sm font-semibold">{titleCase(lead.name)}</p>
-                      {lead.other_interest_count > 0 && (
-                        <MultiInterestBadge leadId={lead.id} count={lead.other_interest_count} />
-                      )}
+                  <button type="button" className="crm-mobile-summary" onClick={() => onRowClick(lead.id)} aria-label={'Open ' + lead.name + ', ' + stage}>
+                    <span className="crm-mobile-name">
+                      <span className="crm-mobile-name-text">{titleCase(lead.name)}</span>
+                      {lead.other_interest_count > 0 && <span className="crm-mobile-interest-count" title="Total enquiries">{lead.other_interest_count + 1}</span>}
                     </span>
-                    <span className="inline-flex shrink-0 items-center gap-1.5">
-                      <span
-                        className="inline-block h-1.5 w-1.5 rounded-full"
-                        style={{ background: STATUS_DOT_VAR[lead.status] ?? 'var(--crm-status-new)' }}
-                      />
-                      <span className="text-xs" style={{ color: 'var(--crm-text-secondary)' }}>
-                        {STATUS_LABELS[lead.status] ?? lead.status}
+                    <span className="crm-mobile-meta">
+                      {phone && <span className="crm-mobile-phone">{phone}</span>}
+                      <span className="crm-mobile-stage" title={stage}>
+                        <span className="crm-mobile-status-dot" style={{ background: STATUS_DOT_VAR[lead.status] ?? 'var(--crm-status-new)' }} />
+                        <span>{compactStage}</span>
                       </span>
                     </span>
+                  </button>
+                  <button type="button" className="crm-mobile-context" onClick={() => onRowClick(lead.id)} aria-label={'View property and follow-up for ' + lead.name}>
+                    <span title={lead.project_name ?? lead.locality ?? ''}>{lead.project_name ?? lead.locality ?? 'No property set'}</span>
+                    <span style={{ color: followUp?.overdue ? 'var(--crm-status-overdue)' : undefined }}>{followUp?.text ?? lead.agent_name ?? 'Unassigned'}</span>
+                  </button>
+                  <div className="crm-mobile-actions">
+                    {phone ? <LeadContactActions phone={phone} name={lead.name} compact onContact={() => handleContact(lead.id)} /> : (
+                      <button type="button" className="crm-mobile-open" onClick={() => onRowClick(lead.id)} aria-label={'View ' + lead.name}><ArrowUpRight size={18} /></button>
+                    )}
                   </div>
-                  <p className="tabular-nums mt-0.5 text-sm" style={{ color: 'var(--crm-text-secondary)' }}>
-                    {lead.phone ?? '·'}
-                  </p>
-                  <p className="mt-1 text-xs" style={{ color: 'var(--crm-text-secondary)' }}>
-                    {[lead.locality, lead.configuration].filter(Boolean).join(' · ') || '·'}
-                  </p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span
-                      className={lead.agent_name ? 'text-xs' : 'text-xs italic'}
-                      style={{ color: lead.agent_name ? 'var(--crm-text-primary)' : 'var(--crm-text-muted)' }}
-                    >
-                      {lead.agent_name ?? 'Unassigned'}
-                    </span>
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      {lead.phone && (
-                        <a
-                          href={`tel:${lead.phone}`}
-                          className="tap-target flex items-center justify-center rounded-full text-primary"
-                          aria-label="Call"
-                        >
-                          <Phone size={18} />
-                        </a>
-                      )}
-                      {lead.phone && (
-                        <a
-                          href={whatsappUrl(lead.phone)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="tap-target flex items-center justify-center rounded-full text-emerald-600"
-                          aria-label="WhatsApp"
-                        >
-                          <MessageCircle size={18} />
-                        </a>
-                      )}
-                      <button type="button" className="tap-target flex items-center justify-center rounded-full" aria-label="More" onClick={() => onRowClick(lead.id)}>
-                        <MoreHorizontal size={18} />
-                      </button>
-                    </div>
-                  </div>
-                  {fu && (
-                    <p className="mt-1 text-xs" style={{ color: fu.overdue ? 'var(--crm-status-overdue)' : 'var(--crm-text-muted)' }}>
-                      Follow-up: {fu.text}
-                    </p>
-                  )}
                 </div>
               );
             })}

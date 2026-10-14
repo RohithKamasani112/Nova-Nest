@@ -20,6 +20,95 @@ interface FiltersPopoverProps {
   onClearAll: () => void;
 }
 
+type FilterFieldsProps = Omit<FiltersPopoverProps, 'activeCount' | 'onClearAll'>;
+
+// The actual Source/Status/Agent/City/Locality/Project/Follow-up fields,
+// with no trigger/popover chrome of its own — extracted so the mobile
+// Filters sheet (CrmLeadsPage.tsx) can render the exact same fields as this
+// desktop popover instead of a second, drifting copy.
+export const FilterFieldsContent: React.FC<FilterFieldsProps> = ({
+  filters,
+  onChange,
+  sourceOptions,
+  statusOptions,
+  agentOptions,
+  cityOptions,
+  localityOptions,
+  projectOptions,
+  loading,
+}) => (
+  <>
+    <div className="grid grid-cols-2 gap-2">
+      <MultiSelect
+        label="Source"
+        options={sourceOptions}
+        selected={filters.source ?? []}
+        onChange={(v) => onChange({ source: v })}
+        loading={loading}
+        emptyLabel="No sources yet"
+      />
+      <MultiSelect
+        label="Status"
+        options={statusOptions}
+        selected={filters.status ?? []}
+        onChange={(v) => onChange({ status: v })}
+        loading={loading}
+        emptyLabel="No statuses yet"
+      />
+      <MultiSelect
+        label="Agent"
+        options={agentOptions}
+        selected={filters.agentId ?? []}
+        onChange={(v) => onChange({ agentId: v })}
+        loading={loading}
+        emptyLabel="No agents yet"
+      />
+      <MultiSelect
+        label="City"
+        options={cityOptions}
+        selected={filters.city ?? []}
+        onChange={(v) => onChange({ city: v })}
+        loading={loading}
+        emptyLabel="No cities yet"
+      />
+      <MultiSelect
+        label="Locality"
+        options={localityOptions}
+        selected={filters.locality ?? []}
+        onChange={(v) => onChange({ locality: v })}
+        loading={loading}
+        emptyLabel="No localities yet"
+      />
+      <MultiSelect
+        label="Project"
+        options={projectOptions}
+        selected={filters.project ?? []}
+        onChange={(v) => onChange({ project: v })}
+        loading={loading}
+        emptyLabel="No projects yet"
+      />
+    </div>
+
+    <div>
+      <Select
+        value={filters.followUp ?? '__any__'}
+        onValueChange={(v) => onChange({ followUp: v === '__any__' ? undefined : (v as LeadFiltersState['followUp']) })}
+      >
+        <SelectTrigger className="tap-target w-full">
+          <SelectValue placeholder="Follow-up" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__any__">Any follow-up</SelectItem>
+          <SelectItem value="due_today">Due today</SelectItem>
+          <SelectItem value="overdue">Overdue</SelectItem>
+          <SelectItem value="this_week">This week</SelectItem>
+          <SelectItem value="none">None set</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  </>
+);
+
 // Source / Status / Agent / City / Locality / Project / Follow-up all live
 // here now — they're secondary, used occasionally rather than daily, so
 // they don't need permanent toolbar space. The chips row (ContactStatusChips)
@@ -60,74 +149,17 @@ export const FiltersPopover: React.FC<FiltersPopoverProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <MultiSelect
-            label="Source"
-            options={sourceOptions}
-            selected={filters.source ?? []}
-            onChange={(v) => onChange({ source: v })}
-            loading={loading}
-            emptyLabel="No sources yet"
-          />
-          <MultiSelect
-            label="Status"
-            options={statusOptions}
-            selected={filters.status ?? []}
-            onChange={(v) => onChange({ status: v })}
-            loading={loading}
-            emptyLabel="No statuses yet"
-          />
-          <MultiSelect
-            label="Agent"
-            options={agentOptions}
-            selected={filters.agentId ?? []}
-            onChange={(v) => onChange({ agentId: v })}
-            loading={loading}
-            emptyLabel="No agents yet"
-          />
-          <MultiSelect
-            label="City"
-            options={cityOptions}
-            selected={filters.city ?? []}
-            onChange={(v) => onChange({ city: v })}
-            loading={loading}
-            emptyLabel="No cities yet"
-          />
-          <MultiSelect
-            label="Locality"
-            options={localityOptions}
-            selected={filters.locality ?? []}
-            onChange={(v) => onChange({ locality: v })}
-            loading={loading}
-            emptyLabel="No localities yet"
-          />
-          <MultiSelect
-            label="Project"
-            options={projectOptions}
-            selected={filters.project ?? []}
-            onChange={(v) => onChange({ project: v })}
-            loading={loading}
-            emptyLabel="No projects yet"
-          />
-        </div>
-
-        <div>
-          <Select
-            value={filters.followUp ?? '__any__'}
-            onValueChange={(v) => onChange({ followUp: v === '__any__' ? undefined : (v as LeadFiltersState['followUp']) })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Follow-up" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__any__">Any follow-up</SelectItem>
-              <SelectItem value="due_today">Due today</SelectItem>
-              <SelectItem value="overdue">Overdue</SelectItem>
-              <SelectItem value="this_week">This week</SelectItem>
-              <SelectItem value="none">None set</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <FilterFieldsContent
+          filters={filters}
+          onChange={onChange}
+          sourceOptions={sourceOptions}
+          statusOptions={statusOptions}
+          agentOptions={agentOptions}
+          cityOptions={cityOptions}
+          localityOptions={localityOptions}
+          projectOptions={projectOptions}
+          loading={loading}
+        />
       </PopoverContent>
     </Popover>
   );

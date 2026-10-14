@@ -36,7 +36,11 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="justify-between">
+        {/* h-11 below md for a 44px tap target (this trigger is exposed on
+            mobile via CrmLeadsPage's Filters sheet, not just the desktop
+            popover) — twMerge (cn()) resolves the conflict with size="sm"'s
+            own h-8, so desktop keeps its original compact height. */}
+        <Button variant="outline" size="sm" className="h-11 justify-between md:h-8">
           {label}
           {selected.length > 0 && (
             <span className="ml-1 rounded-full bg-primary/15 px-1.5 text-xs text-primary">{selected.length}</span>

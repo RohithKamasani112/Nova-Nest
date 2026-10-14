@@ -58,7 +58,7 @@ export function normalizeEmail(raw: unknown): EmailResult {
 
 // ----------------------------------------------------------------- date ---
 
-const DATE_FORMATS_BY_SOURCE: Record<Exclude<CrmSource, 'personal'>, string[]> = {
+const DATE_FORMATS_BY_SOURCE: Record<Exclude<CrmSource, 'personal' | 'website'>, string[]> = {
   housing: ['DD/MM/YYYY HH:mm', 'DD/MM/YYYY', 'DD-MM-YYYY'],
   magicbricks: ['MMM D, YYYY h:mm:ss A', 'MMM D, YYYY', 'DD/MM/YYYY'],
   '99acres': ['MM/DD/YYYY HH:mm', 'MM/DD/YYYY'],
@@ -77,7 +77,7 @@ export interface DateResult {
   warning?: 'UNPARSED_DATE';
 }
 
-export function normalizeDate(raw: unknown, source: Exclude<CrmSource, 'personal'>): DateResult {
+export function normalizeDate(raw: unknown, source: Exclude<CrmSource, 'personal' | 'website'>): DateResult {
   if (typeof raw === 'number') {
     return { leadDate: excelSerialToDate(raw), raw: String(raw) };
   }
@@ -85,7 +85,16 @@ export function normalizeDate(raw: unknown, source: Exclude<CrmSource, 'personal
   const trimmed = cleanCell(raw);
   if (trimmed === null) return { leadDate: null, raw: null };
 
-  for (const fmt of DATE_FORMATS_BY_SOURCE[source]) {
+  // source is typed to exclude 'personal'/'website', but rowMapper.ts's
+  // mapRow() calls this for every source via an unsafe cast (there's no
+  // per-source date format for either — both fall straight to the ISO
+  // fallback below, or UNPARSED_DATE). Guard rather than throw: this used
+  // to be unreachable in practice (the UI never let 'personal' reach a
+  // column-mapping step where a header could be mapped to lead_date), but
+  // now that it can, a plain `[source]` lookup here throws on the missing
+  // key and silently fails the whole row (parseFile.ts's catch retries it
+  // as empty and marks it a parse error) for every row with a date value.
+  for (const fmt of DATE_FORMATS_BY_SOURCE[source] ?? []) {
     const parsed = dayjs(trimmed, fmt, true); // strict parse, naive wall-clock
     if (parsed.isValid()) {
       const utcMs =

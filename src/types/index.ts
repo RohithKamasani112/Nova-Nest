@@ -309,6 +309,7 @@ export interface PaginatedResponse<T> {
 
 // Auth Types
 export interface AuthUser {
+  role: string;
   id: string;
   email: string;
   name: string;

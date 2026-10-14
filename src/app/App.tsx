@@ -7,6 +7,10 @@ import { AdminSidebar } from './components/AdminSidebar';
 import { HomePage } from '../pages/HomePage';
 import { PropertiesPage } from '../pages/PropertiesPage';
 import { PropertyDetailsPage } from '../pages/PropertyDetailsPage';
+import { SalesHomePage } from '../pages/SalesHomePage';
+import { SalesLeadsPage } from '../pages/SalesLeadsPage';
+import { SettingsPage } from '../pages/SettingsPage';
+import { SALES_VIEW_AGENT_KEY } from '../utils/salesView';
 import { LoginPage } from '../pages/LoginPage';
 import { AdminPage } from '../pages/AdminPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
@@ -54,6 +58,8 @@ type Page =
   | 'crm'
   | 'generate-bill'
   | 'share-properties'
+  | 'sales-home'
+  | 'sales-leads'
   | 'settings';
 
 function App() {
@@ -201,7 +207,7 @@ function App() {
   };
 
   const showNavbar = currentPage !== 'admin-login' && currentPage !== 'property-details';
-  const isAdminPage = ['dashboard', 'add-property', 'manage-properties', 'leads', 'crm', 'generate-bill', 'share-properties', 'settings'].includes(currentPage);
+  const isAdminPage = ['dashboard', 'add-property', 'manage-properties', 'leads', 'crm', 'generate-bill', 'share-properties', 'settings', 'sales-home', 'sales-leads'].includes(currentPage);
 
   const renderAdminContent = () => {
     switch (currentPage) {
@@ -226,13 +232,9 @@ function App() {
             onShared={() => setShareContext(null)}
           />
         );
-      case 'settings':
-        return (
-          <div className="p-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-            <p className="text-gray-600">Configure your application settings</p>
-          </div>
-        );
+      case 'sales-home': return <SalesHomePage onNavigate={handleNavigate} />;
+      case 'sales-leads': return <SalesLeadsPage onNavigate={handleNavigate} />;
+      case 'settings': return <SettingsPage />;
       default:
         return <AdminDashboardPage onNavigate={handleNavigate} />;
     }
@@ -277,7 +279,16 @@ const AppContent: React.FC<{
   renderPage,
   renderAdminContent,
 }) => {
-  const { logout, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
+  const isSalesPage = currentPage === 'sales-home' || currentPage === 'sales-leads';
+  const salesLanding = localStorage.getItem(SALES_VIEW_AGENT_KEY) ? 'sales-leads' : 'sales-home';
+  useEffect(() => {
+    if (authLoading || !isAdminPage) return;
+    if (!isAuthenticated) handleNavigate('admin-login');
+    else if (user?.role === 'sales' && !isSalesPage) handleNavigate(salesLanding);
+    else if (user?.role === 'sales' && currentPage === 'sales-leads' && !localStorage.getItem(SALES_VIEW_AGENT_KEY)) handleNavigate('sales-home');
+    else if (user?.role !== 'sales' && isSalesPage) handleNavigate('crm');
+  }, [authLoading, isAuthenticated, isAdminPage, user?.role, isSalesPage, salesLanding, currentPage]);
   const reduce = useReducedMotion();
   const floatingWhatsappUrl = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
   // Capture the visitor's number as a lead before sending them to WhatsApp.
@@ -320,8 +331,8 @@ const AppContent: React.FC<{
   // briefly false before authLoading flips to false — redirecting on that
   // transient state would kick an already-logged-in admin straight back out
   // to the login page every time they reload.
-  if (isAdminPage && !authLoading && !isAuthenticated) {
-    handleNavigate('admin-login');
+  if (isAdminPage && (authLoading || !isAuthenticated || (user?.role === 'sales' && !isSalesPage) || (user?.role !== 'sales' && isSalesPage))) {
+    return <div className="p-6">Loading your workspace...</div>;
   }
 
   return (
@@ -338,15 +349,15 @@ const AppContent: React.FC<{
 
       {isAdminPage ? (
         <div className="min-h-screen bg-surface">
-          <AdminSidebar
+          {!isSalesPage && <AdminSidebar
             currentPage={currentPage}
             onNavigate={handleNavigate}
             onLogout={async () => {
               await logout();
               handleNavigate('home');
             }}
-          />
-          <div className="min-h-screen bg-surface px-3 py-5 pb-12 pt-16 sm:px-5 md:ml-64 md:p-8 md:pt-8">
+          />}
+          <div className={isSalesPage ? 'min-h-screen bg-surface' : `${currentPage === 'crm' ? 'crm-admin-content' : 'bg-surface'} min-h-screen px-3 py-5 pb-12 pt-16 sm:px-5 md:ml-64 md:p-8 md:pt-8`}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentPage}

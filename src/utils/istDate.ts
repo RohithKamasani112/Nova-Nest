@@ -80,25 +80,31 @@ export function startOfIstYear(date: Date): Date {
 }
 
 export type PeriodPreset =
+  | 'all'
   | 'today'
   | 'yesterday'
   | 'this_week'
   | 'last_week'
   | 'this_month'
   | 'last_month'
+  | 'last_7_days'
   | 'last_30_days'
+  | 'last_3_months'
   | 'this_quarter'
   | 'this_year'
   | 'custom';
 
 export const PERIOD_LABELS: Record<PeriodPreset, string> = {
+  all: 'All time',
   today: 'Today',
   yesterday: 'Yesterday',
   this_week: 'This Week',
   last_week: 'Last Week',
   this_month: 'This Month',
   last_month: 'Last Month',
+  last_7_days: 'Last 7 Days',
   last_30_days: 'Last 30 Days',
+  last_3_months: 'Last 3 Months',
   this_quarter: 'This Quarter',
   this_year: 'This Year',
   custom: 'Custom Range',
@@ -114,6 +120,7 @@ export function computeIstPeriod(preset: PeriodPreset, customFrom?: string, cust
   const now = new Date();
 
   switch (preset) {
+    case 'all': return { from: '1900-01-01T00:00:00.000Z', to: endOfIstDay(now).toISOString() };
     case 'today':
       return { from: startOfIstDay(now).toISOString(), to: endOfIstDay(now).toISOString() };
     case 'yesterday': {
@@ -135,8 +142,16 @@ export function computeIstPeriod(preset: PeriodPreset, customFrom?: string, cust
       const lastMonthAnchor = fromIstParts(p.year, p.month - 1, 1);
       return { from: startOfIstMonth(lastMonthAnchor).toISOString(), to: endOfIstMonth(lastMonthAnchor).toISOString() };
     }
+    case 'last_7_days': {
+      const start = addIstDays(now, -6);
+      return { from: startOfIstDay(start).toISOString(), to: endOfIstDay(now).toISOString() };
+    }
     case 'last_30_days': {
       const start = addIstDays(now, -29);
+      return { from: startOfIstDay(start).toISOString(), to: endOfIstDay(now).toISOString() };
+    }
+    case 'last_3_months': {
+      const start = addIstDays(now, -89);
       return { from: startOfIstDay(start).toISOString(), to: endOfIstDay(now).toISOString() };
     }
     case 'this_quarter':

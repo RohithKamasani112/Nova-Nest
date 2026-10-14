@@ -84,6 +84,36 @@ export const SOURCE_MAPS: Record<Exclude<CrmSource, 'personal'>, Record<string, 
   '99acres': ACRES99_MAP,
 };
 
+// Personal/website spreadsheets have no fixed export format to key aliases
+// off of the way the 3 portals do — but most people still name their own
+// columns something plain and obvious ("Name", "Phone", "Project"...), so a
+// generic pass using the canonical field's own everyday name still auto-maps
+// the common case. Anything named less obviously just falls through to
+// unmapped, same as before — this only adds matches, never removes the
+// existing manual-mapping fallback.
+export const GENERIC_MAP: Record<string, string[]> = {
+  name: ['name'],
+  phone_raw: ['phone', 'mobile', 'phone number', 'mobile number'],
+  email: ['email'],
+  lead_date: ['lead date', 'date'],
+  listing_type: ['listing type'],
+  property_type: ['property type'],
+  configuration: ['configuration', 'bhk'],
+  price_raw: ['price', 'budget'],
+  city: ['city'],
+  locality: ['locality'],
+  state: ['state'],
+  project_name: ['project name', 'project'],
+  external_property_id: ['property id', 'listing id'],
+  address: ['address'],
+  source_status: ['status'],
+  notes: ['notes'],
+  property_description: ['property description', 'description'],
+  lead_type: ['lead type'],
+  message: ['message'],
+  agent_name: AGENT_ALIASES,
+};
+
 /** Fields required for the §3 "sanity gate" (>=2 must resolve or reject). */
 export const SANITY_GATE_MIN_FIELDS = 2;
 

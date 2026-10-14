@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { env } from '../env';
+import { databaseUrl } from './config';
 
 // Neon is serverless/connection-limited; keep the pool small and let idle
 // connections close quickly rather than holding them open.
@@ -20,16 +20,18 @@ import { env } from '../env';
 const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
 export const pool = new Pool({
-  connectionString: env.databaseUrl,
+  connectionString: databaseUrl(),
   ssl: { rejectUnauthorized: true },
   max: isLambda ? 2 : 10,
   idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 10_000,
+  connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? 10_000),
   options: '-c TimeZone=Asia/Kolkata',
 });
 
 pool.on('error', (err) => {
-  console.error('[db] idle client error', err);
+  const pgCode = (err as Error & { code?: string }).code;
+  const code = typeof pgCode === 'string' && /^[A-Z0-9]{5}$/.test(pgCode) ? pgCode : 'UNKNOWN';
+  console.error(JSON.stringify({ component: 'db', outcome: 'idle_client_error', code }));
 });
 
 export async function withTransaction<T>(fn: (client: import('pg').PoolClient) => Promise<T>): Promise<T> {

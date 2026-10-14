@@ -184,24 +184,50 @@ export const getAllLeads = async (): Promise<Inquiry[]> => {
 export const createLead = async (
   data: Omit<Inquiry, 'id' | 'createdAt' | 'status'>
 ): Promise<Inquiry> => {
+  const newLead: Inquiry = {
+    ...data,
+    id: `lead_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    createdAt: new Date().toISOString(),
+    status: 'pending',
+  };
+
+  try {
+    await createWebsiteLeadInCrm(data);
+    return newLead;
+  } catch (crmError) {
+    console.warn('CRM lead intake unavailable, falling back to S3:', crmError);
+  }
+
   try {
     const leads = await getAllLeads();
-
-    const newLead: Inquiry = {
-      ...data,
-      id: `lead_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-    };
-
     const updatedLeads = [...leads, newLead];
     await uploadJsonToS3(updatedLeads, 'leads.json');
-
     return newLead;
   } catch (error) {
     console.error('Error creating lead:', error);
     throw new Error('Failed to create lead');
   }
+};
+
+const createWebsiteLeadInCrm = async (data: Omit<Inquiry, 'id' | 'createdAt' | 'status'>): Promise<void> => {
+  const baseURL = import.meta.env.VITE_CRM_API_BASE_URL;
+  if (!baseURL) throw new Error('VITE_CRM_API_BASE_URL is not set');
+
+  const response = await fetch(`${baseURL.replace(/\/$/, '')}/public/leads`, {
+    method: 'POST',
+      signal: AbortSignal.timeout(10000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: data.name,
+      phone: data.phone,
+      email: data.email || null,
+      message: data.message || null,
+      project: data.propertyId || null,
+      leadType: data.type,
+    }),
+  });
+
+  if (!response.ok) throw new Error(`CRM lead intake responded ${response.status}`);
 };
 
 // Update lead status

@@ -6,7 +6,7 @@ export interface ParsedSheet {
   rows: RawRow[];
 }
 
-export type CrmSource = 'housing' | 'magicbricks' | '99acres' | 'personal';
+export type CrmSource = 'housing' | 'magicbricks' | '99acres' | 'personal' | 'website';
 
 export interface RowWarning {
   code: string;

@@ -32,3 +32,12 @@ export function formatAbsoluteDateTime(iso: string): string {
     minute: '2-digit',
   });
 }
+
+// A scheduled site visit is a calendar appointment — "in 3 days" (the
+// relative phrasing everywhere else) is the wrong frame for it, an admin
+// or field agent needs the actual date at a glance, not math. No year
+// (these are always near-future) and no hover/tooltip dependency, since
+// the list/card views this feeds have no hover affordance on touch.
+export function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
