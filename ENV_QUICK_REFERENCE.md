@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # 🔐 Environment Setup - Quick Reference Card
 
 ## Files Created
@@ -94,7 +96,7 @@ VITE_PRODUCTION              'true' or 'false'
 → Check credentials are copied correctly
 → Wait 5 minutes after creating IAM user
 
-### Error: "NoSuchBucket"  
+### Error: "NoSuchBucket"
 → Check bucket name matches exactly
 → Bucket names are case-sensitive
 

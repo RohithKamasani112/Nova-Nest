@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # 🎨 QUICK VISUAL GUIDE
 
 ## What You Get
@@ -254,7 +256,7 @@ Property Details Page:
 7. CONTACT SECTION
    Owner: John Doe
    Phone: +1-xxx-xxx-xxxx
-   
+
    [📞 Call] [💬 WhatsApp] [📧 Email]
 
 8. INQUIRY FORM

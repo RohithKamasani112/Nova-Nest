@@ -282,8 +282,6 @@ export interface Inquiry {
 export interface StorageConfig {
   isProduction: boolean;
   s3Config?: {
-    accessKeyId: string;
-    secretAccessKey: string;
     region: string;
     bucketName: string;
     folderName: string;

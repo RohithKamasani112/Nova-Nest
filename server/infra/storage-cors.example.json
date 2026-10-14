@@ -1,0 +1,15 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "https://novanest.co.in",
+        "https://www.novanest.co.in",
+        "https://YOUR_BRANCH.YOUR_APP_ID.amplifyapp.com"
+      ],
+      "AllowedMethods": ["GET", "HEAD", "POST"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 300
+    }
+  ]
+}

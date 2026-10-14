@@ -25,7 +25,7 @@ const regenerateSitemap = async (properties: Property[]): Promise<void> => {
 
 /**
  * Storage Service - Always uses S3
- * All data is persisted directly to AWS S3
+ * Data is persisted through the authenticated Lambda storage API
  * Selects the production or dummy folder from VITE_IS_PRODUCTION.
  */
 
@@ -47,8 +47,8 @@ export const getAllProperties = async (): Promise<Property[]> => {
   try {
     return await getJsonFromS3<Property[]>('properties.json');
   } catch (error) {
-    console.error('Error fetching properties:', error);
-    return [];
+    console.error('Error fetching properties:');
+    throw error;
   }
 };
 
@@ -191,22 +191,8 @@ export const createLead = async (
     status: 'pending',
   };
 
-  try {
-    await createWebsiteLeadInCrm(data);
-    return newLead;
-  } catch (crmError) {
-    console.warn('CRM lead intake unavailable, falling back to S3:', crmError);
-  }
-
-  try {
-    const leads = await getAllLeads();
-    const updatedLeads = [...leads, newLead];
-    await uploadJsonToS3(updatedLeads, 'leads.json');
-    return newLead;
-  } catch (error) {
-    console.error('Error creating lead:', error);
-    throw new Error('Failed to create lead');
-  }
+  await createWebsiteLeadInCrm(data);
+  return newLead;
 };
 
 const createWebsiteLeadInCrm = async (data: Omit<Inquiry, 'id' | 'createdAt' | 'status'>): Promise<void> => {
@@ -265,8 +251,8 @@ export const getAllBills = async (): Promise<Bill[]> => {
   try {
     return await getJsonFromS3<Bill[]>('invoices/bills.json');
   } catch (error) {
-    console.error('Error fetching bills:', error);
-    return [];
+    console.error('Error fetching bills:');
+    throw error;
   }
 };
 
@@ -290,8 +276,8 @@ export const getAllBillingDocs = async (): Promise<BillingDoc[]> => {
   try {
     return await getJsonFromS3<BillingDoc[]>('invoices/documents.json');
   } catch (error) {
-    console.error('Error fetching billing documents:', error);
-    return [];
+    console.error('Error fetching billing documents:');
+    throw error;
   }
 };
 

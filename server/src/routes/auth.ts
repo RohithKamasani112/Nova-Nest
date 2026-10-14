@@ -1,3 +1,4 @@
+import { loginRateLimiter } from '../middleware/rateLimiter';
 import { Router } from 'express';
 import { z } from 'zod';
 import {
@@ -17,6 +18,7 @@ const loginSchema = z.object({
 
 authRouter.post(
   '/login',
+  loginRateLimiter,
   asyncHandler(async (req, res) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {

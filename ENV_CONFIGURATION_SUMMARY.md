@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # 🔐 Environment Configuration - Files Created
 
 ## Summary
@@ -23,7 +25,7 @@ VITE_S3_FOLDER_NAME=properties
 # ... etc
 ```
 
-**What to do**: 
+**What to do**:
 - ✅ Safe to commit to git
 - ✅ Share with team members
 - ✅ Use as reference for required variables

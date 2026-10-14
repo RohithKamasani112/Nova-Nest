@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # ⚡ Quick Start - 3 Minutes to Running App
 
 ## Step 1: Setup (1 minute)

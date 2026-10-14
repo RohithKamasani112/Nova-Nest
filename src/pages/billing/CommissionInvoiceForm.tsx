@@ -1,3 +1,4 @@
+import { PrivateFileLink } from '../../app/components/PrivateFileLink';
 import React, { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { AlertTriangle, ArrowLeft, Download, Loader2, Receipt } from 'lucide-react';
@@ -220,14 +221,14 @@ export const CommissionInvoiceForm: React.FC<CommissionInvoiceFormProps> = ({
               </button>
             ) : (
               <>
-                <a
-                  href={savedDoc.pdfUrl}
+                <PrivateFileLink
+                  path={savedDoc.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary-dark"
                 >
                   <Download size={18} /> Download PDF
-                </a>
+                </PrivateFileLink>
                 <button onClick={handleNew} className="min-h-[44px] rounded-xl border border-gray-300 px-6 py-3 font-semibold text-text-primary transition-colors hover:bg-gray-50">
                   New Document
                 </button>

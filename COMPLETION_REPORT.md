@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # 🎉 COMPLETION REPORT - Real Estate Platform
 
 ## Executive Summary
@@ -117,7 +119,7 @@ VITE_DUMMY_DATA=true/false
 
 2. **QUICK_START.md** (1.3KB) - 3-minute setup
    - Installation
-   - Configuration  
+   - Configuration
    - Running the app
 
 3. **SETUP_GUIDE.md** (9.3KB) - Comprehensive guide

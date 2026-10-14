@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # AWS Amplify Deployment Guide
 
 Complete guide to deploying your PremiumEstate application to AWS Amplify with S3 storage and Cognito authentication.
@@ -45,7 +47,7 @@ Before you begin, ensure you have:
    ```
 
 4. **Create Initial Data Files**
-   
+
    Upload your JSON files using AWS CLI:
    ```bash
    aws s3 cp public/storage/properties.json s3://your-realestate-bucket/properties/properties.json
@@ -69,7 +71,7 @@ Before you begin, ensure you have:
    ```
 
 3. **Attach Policy**
-   
+
    Create a custom policy with these permissions:
    ```json
    {
@@ -116,7 +118,7 @@ Before you begin, ensure you have:
    cd your-project-directory
    amplify init
    ```
-   
+
    Configuration:
    ```
    Project name: realestate
@@ -134,7 +136,7 @@ Before you begin, ensure you have:
    ```bash
    amplify add auth
    ```
-   
+
    Configuration:
    ```
    Use default configuration: Default configuration
@@ -151,7 +153,7 @@ Before you begin, ensure you have:
    ```bash
    amplify status
    ```
-   
+
    Save the following:
    - User Pool ID
    - User Pool Client ID
@@ -166,23 +168,23 @@ Before you begin, ensure you have:
    Step 1: Configure sign-in experience
    - Provider types: Cognito user pool
    - Cognito user pool sign-in options: Email
-   
+
    Step 2: Configure security requirements
    - Password policy: Cognito defaults
    - MFA: No MFA
-   
+
    Step 3: Configure sign-up experience
    - Self-registration: Enabled
    - Required attributes: name, email
-   
+
    Step 4: Configure message delivery
    - Email: Send email with Cognito
-   
+
    Step 5: Integrate your app
    - User pool name: realestate-users
    - App client name: realestate-client
    - Don't generate a client secret
-   
+
    Step 6: Review and create
    ```
 
@@ -226,9 +228,9 @@ Before you begin, ensure you have:
    - Select branch: `main`
 
 3. **Configure Build Settings**
-   
+
    Amplify auto-detects Vite, but verify these settings:
-   
+
    ```yaml
    version: 1
    frontend:
@@ -250,13 +252,13 @@ Before you begin, ensure you have:
    ```
 
 4. **Add Environment Variables**
-   
+
    In Amplify Console → App settings → Environment variables:
-   
+
    | Key | Value | Example |
    |-----|-------|---------|
    | `VITE_PRODUCTION` | `true` | `true` |
-   | `VITE_AWS_ACCESS_KEY_ID` | Your IAM access key | `AKIAIOSFODNN7EXAMPLE` |
+   | `VITE_AWS_ACCESS_KEY_ID` | Your IAM access key | `REVOKED_ACCESS_KEY_ID` |
    | `VITE_AWS_SECRET_ACCESS_KEY` | Your IAM secret key | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
    | `VITE_AWS_REGION` | Your AWS region | `us-east-1` |
    | `VITE_S3_BUCKET_NAME` | Your S3 bucket name | `your-realestate-bucket` |
@@ -266,7 +268,7 @@ Before you begin, ensure you have:
    | `VITE_AWS_COGNITO_REGION` | Cognito region | `us-east-1` |
 
 5. **Advanced Settings (Optional)**
-   
+
    - **Custom Domain**: Add your custom domain if you have one
    - **Rewrites and redirects**: Add SPA redirect rule:
      ```
@@ -296,20 +298,20 @@ Before you begin, ensure you have:
    - Test admin panel (if you have admin user)
 
 3. **Common Issues**
-   
+
    **Build fails:**
    ```bash
    # Check Node version in build settings
    # Should be 18 or higher
    ```
-   
+
    **Images not loading:**
    ```bash
    # Verify S3 CORS configuration
    # Check AWS credentials in environment variables
    # Ensure bucket policy allows read access
    ```
-   
+
    **Authentication fails:**
    ```bash
    # Verify Cognito User Pool IDs
@@ -350,11 +352,11 @@ Amplify automatically sets up CI/CD:
    - Create a user account
 
 2. **Update User Role in S3**
-   
+
    ```bash
    # Download users.json
    aws s3 cp s3://your-realestate-bucket/properties/users.json users.json
-   
+
    # Edit users.json and change role to "admin"
    # Find your user and update:
    {
@@ -362,7 +364,7 @@ Amplify automatically sets up CI/CD:
      "email": "your@email.com",
      "role": "admin"  // Changed from "user"
    }
-   
+
    # Upload back to S3
    aws s3 cp users.json s3://your-realestate-bucket/properties/users.json
    ```

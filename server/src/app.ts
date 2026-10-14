@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { env } from './env';
 import { teamAccountsRouter } from './routes/teamAccounts';
+import { createStorageRouters } from './routes/storage';
 import { authRouter } from './routes/auth';
 import { importRouter, importsListHandler } from './routes/import';
 import { agentsRouter } from './routes/agents';
@@ -14,14 +15,19 @@ import { getFilterOptions } from './services/leadsService';
 
 export const app = express();
 
-// Reflects whatever Origin the browser sends, so every origin is allowed
-// while still supporting credentialed requests (wildcard '*' can't be used
-// together with credentials: true per the CORS spec).
-app.use(cors({ origin: true, credentials: true }));
+// Production origins are explicit Amplify/custom-domain origins. CORS is not
+// authorization: every private storage operation also requires an admin session.
+if (!(process.env.AWS_LAMBDA_FUNCTION_NAME && process.env.CORS_AT_FUNCTION_URL === 'true')) app.use(cors({ origin(origin, callback) {
+  const local = env.nodeEnv !== 'production' && !!origin && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  callback(null, !origin || env.allowedOrigins.includes(origin) || local);
+}, credentials: false, allowedHeaders: ['Authorization', 'Content-Type'], methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] }));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+const { storageRouter, publicStorageRouter } = createStorageRouters();
+app.use('/api/storage', storageRouter);
+app.use('/api/public/storage', publicStorageRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/team-accounts', teamAccountsRouter);
 app.use('/api/public/leads', publicLeadsRouter);
@@ -41,6 +47,7 @@ app.get(
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('[unhandled]', err);
+  const error = err as { name?: string; code?: string };
+  console.error(JSON.stringify({ component: 'api', outcome: 'request_failed', name: error?.name ?? 'Error', code: error?.code ?? 'UNKNOWN' }));
   res.status(500).json({ error: 'Internal server error.' });
 });

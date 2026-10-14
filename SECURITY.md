@@ -1,69 +1,33 @@
-# Security — AWS credential exposure
+# AWS credential exposure remediation
 
-## Summary of the incident
+The frontend previously initialized S3 with long-lived AWS credentials from
+VITE-prefixed environment variables. Those values were compiled into public
+JavaScript. A tracked deployment environment file also contained backend secrets.
 
-The app talks to AWS S3 **directly from the browser** using a long-lived IAM
-access key + secret key supplied via `VITE_AWS_ACCESS_KEY_ID` /
-`VITE_AWS_SECRET_ACCESS_KEY`.
+The current code moves storage operations into the existing CRM Lambda. The
+Lambda uses its execution role; the Amplify frontend receives listing data and
+short-lived scoped upload/download URLs, never AWS secret keys. Private storage
+routes require an admin session. Raw S3 data also needs appropriate bucket
+permissions; application authorization does not override a public bucket policy.
 
-Vite **inlines every `VITE_`-prefixed variable into the client JavaScript bundle
-at build time.** As a result the access key and secret key were shipped inside
-`dist/assets/index-*.js` in plaintext and were readable by anyone who opened the
-deployed site (DevTools → Sources → search `AKIA`). This — not git, not the
-build machine — is how the key was stolen. `.env` being gitignored does **not**
-protect a value that gets compiled into the frontend.
+Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md) for the exact
+credential rotation, Lambda configuration, S3 permissions/CORS, Amplify settings,
+deployment order and verification steps. No separate server is needed.
 
-**There is no configuration that makes a long-lived AWS secret safe in a
-client-side app.** If browser code can read the secret, the secret is public.
+Mandatory build checks:
 
-## Immediate remediation (do this in AWS now)
+- `scripts/check-client-env.mjs` rejects frontend-prefixed private credentials and
+  unsafe browser credential references before building.
+- `scripts/check-bundle-secrets.mjs` scans generated assets and fails on exposed
+  credentials without printing their values.
+- `npm run build` runs both checks. `npm run scan:secrets` scans an existing build.
+- `npm run test:security` validates the guards with synthetic canary secrets.
 
-1. **Deactivate/delete the leaked key** `AKIA6F76UB5BHOAXIOZW` in
-   IAM → Users → Security credentials.
-2. Review **CloudTrail** and **Billing** for unauthorized activity.
-3. Do **not** paste a fresh key into `.env` and rebuild for a public deploy — it
-   would be exposed again immediately.
+Code changes do not revoke already exposed credentials, remove downloaded copies
+or resolve an AWS account restriction. Revoke the exposed IAM key and rotate the
+database password/JWT signing secret. Update both the CRM and portal Lambdas when
+rotating their shared database connection. Review security findings and billing.
 
-## Guardrails added in this repo
-
-- **`scripts/check-bundle-secrets.mjs`** — scans `dist/` after every build for
-  AWS access-key patterns and **fails the build** if any are found. Wired into
-  `npm run build`; also runnable standalone via `npm run scan:secrets`.
-  During a rotation you can also fail on a specific string:
-  `SCAN_EXTRA_SECRETS="oldSecret1,oldSecret2" npm run scan:secrets`.
-- **Runtime guard** in `src/utils/s3Helper.ts` — logs a loud `[SECURITY]` error
-  if a production build initializes the S3 client with a real secret embedded.
-- **`.env.example`** — documents the exposure and the safe-usage rules.
-- The previously-built compromised `dist/` has been deleted.
-
-These catch the mistake; they do **not** make client-side keys safe.
-
-## "Can I just rename the vars without `VITE_` so they aren't stolen?"
-
-Half right. Non-`VITE_` variables are **not** inlined into the bundle, so the
-secret would no longer leak. **But** the browser then cannot read them either
-(`import.meta.env.THE_VAR` is `undefined` on the client), so the current
-in-browser S3 code would stop working. The only place a non-`VITE_` secret can
-be read is a **server-side** process. So renaming is the *first step* of the
-proper fix below — not a standalone solution.
-
-## The real fix (choose one when ready)
-
-Both keep the secret entirely off the client:
-
-### Option A — Serverless proxy (recommended)
-- **Reads:** make the S3 objects public-read (or front them with CloudFront).
-  The browser fetches JSON/images over plain HTTPS with **no credentials**.
-- **Writes (admin uploads / property saves):** a small backend function
-  (AWS Lambda + API Gateway, or a Vercel/Netlify function) holds the secret in a
-  **non-`VITE_`** server env var and either performs the S3 write or returns a
-  short-lived **pre-signed upload URL**. The browser never sees the secret.
-
-### Option B — Cognito Identity Pool
-- This app already references Cognito (`VITE_USER_POOL_ID`, etc.).
-- An authenticated admin exchanges their login for **temporary, scoped AWS
-  credentials** (valid ~1h) from a Cognito Identity Pool, used for the S3 write.
-- No long-lived `AKIA` key exists anywhere in the app.
-
-Until Option A or B is in place, treat any key in `.env` as **dev-only** and
-never deploy a build made with a real secret.
+Deployment-generated secret files and archives are untracked and ignored going
+forward. Earlier Git commits still need coordinated cleanup after revocation;
+history has not been rewritten or force-pushed by this change.

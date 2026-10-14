@@ -1,0 +1,40 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyNovaNestPrivateReadsExceptApprovedRoles",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+      "Resource": [
+        "arn:aws:s3:::YOUR_BUCKET/YOUR_SITE_FOLDER/properties.json",
+        "arn:aws:s3:::YOUR_BUCKET/YOUR_SITE_FOLDER/leads.json",
+        "arn:aws:s3:::YOUR_BUCKET/YOUR_SITE_FOLDER/invoices/*",
+        "arn:aws:s3:::YOUR_BUCKET/YOUR_SITE_FOLDER/property-shares/*"
+      ],
+      "Condition": {
+        "ArnNotEquals": {
+          "aws:PrincipalArn": [
+            "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_EXISTING_CRM_LAMBDA_ROLE",
+            "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ADMIN_MAINTENANCE_ROLE"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "DenyNovaNestWritesExceptApprovedRoles",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": ["s3:PutObject", "s3:DeleteObject", "s3:DeleteObjectVersion", "s3:PutObjectAcl"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET/YOUR_SITE_FOLDER/*",
+      "Condition": {
+        "ArnNotEquals": {
+          "aws:PrincipalArn": [
+            "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_EXISTING_CRM_LAMBDA_ROLE",
+            "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ADMIN_MAINTENANCE_ROLE"
+          ]
+        }
+      }
+    }
+  ]
+}

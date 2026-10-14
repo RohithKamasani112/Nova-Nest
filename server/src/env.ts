@@ -28,4 +28,7 @@ export const env = {
   // own plain env var here.
   s3BucketName: required('S3_BUCKET_NAME'),
   awsRegion: process.env.AWS_REGION ?? 'us-east-1',
+  s3Region: process.env.S3_REGION ?? process.env.AWS_REGION ?? 'us-east-1',
+  s3Folder: process.env.S3_FOLDER ?? '',
+  allowedOrigins: (process.env.ALLOWED_ORIGINS ?? '').split(',').map(value => value.trim()).filter(Boolean),
 };

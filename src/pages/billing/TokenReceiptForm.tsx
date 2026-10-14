@@ -1,3 +1,4 @@
+import { getSignedS3Url } from '../../utils/s3Helper';
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import toast from 'react-hot-toast';
@@ -194,7 +195,7 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack, onSa
   const handleDownloadAgain = async () => {
     if (!savedDoc) return;
     try {
-      const response = await fetch(savedDoc.pdfUrl);
+      const response = await fetch(await getSignedS3Url(savedDoc.pdfUrl));
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

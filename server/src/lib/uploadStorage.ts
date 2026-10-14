@@ -10,7 +10,7 @@ import { env } from '../env';
 // depending on which container happened to handle which request. S3 is
 // visible to every instance identically, so this works the same way
 // regardless of deployment target.
-const s3 = new S3Client({ region: env.awsRegion });
+const s3 = new S3Client({ region: env.s3Region });
 const PREFIX = 'crm-import-staging';
 
 function objectKey(batchId: string, fileName: string): string {

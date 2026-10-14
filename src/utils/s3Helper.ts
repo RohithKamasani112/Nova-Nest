@@ -1,242 +1,94 @@
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { crmApi } from '../services/crmApi';
 import { config } from './config';
 
-// Initialize S3 Client
-let s3Client: S3Client | null = null;
-
-const trimSlashes = (value: string): string => value.replace(/^\/+|\/+$/g, '');
-
-const getObjectKey = (path: string): string => {
-  if (/^https?:\/\//i.test(path)) {
-    const url = new URL(path);
-    return decodeURIComponent(url.pathname.replace(/^\/+/, ''));
-  }
-
-  const cleanPath = trimSlashes(path);
-  const folderName = trimSlashes(config.aws.s3.folderName);
-
-  // Safety: never write/read at the bucket root. An empty folder name means the
-  // environment is misconfigured (VITE_S3_FOLDER_DUMMY / _PROD not loaded) — fail
-  // loudly instead of silently scattering objects into the bucket root.
-  if (!folderName) {
-    throw new Error(
-      'S3 folder name is empty. Set VITE_S3_FOLDER_DUMMY / VITE_S3_FOLDER_PROD in .env and restart the dev server.'
-    );
-  }
-
-  if (cleanPath === folderName || cleanPath.startsWith(`${folderName}/`)) {
-    return cleanPath;
-  }
-
-  return `${folderName}/${cleanPath}`;
+const apiBase = () => {
+  const base = crmApi.defaults.baseURL;
+  if (!base) throw new Error('The CRM API URL is not configured.');
+  return base.replace(/\/$/, '');
+};
+const isAdmin = () => {
+  try { return JSON.parse(localStorage.getItem('estate_auth_user') ?? 'null')?.role === 'admin'; }
+  catch { return false; }
 };
 
-const getS3Client = (): S3Client => {
-  if (!s3Client) {
-    // SECURITY: these credentials come from VITE_* env vars, which Vite inlines
-    // into the client bundle at build time. A long-lived AWS secret used here is
-    // therefore visible to anyone who loads the site. This is only acceptable for
-    // local/dev use — a production build must NOT ship a real secret. Warn loudly
-    // if that happens so it can't pass silently. See SECURITY.md for the fix
-    // (move S3 writes behind a backend/Cognito so no secret reaches the browser).
-    if (import.meta.env.PROD && config.aws.secretAccessKey) {
-      console.error(
-        '[SECURITY] A real AWS secret key is embedded in this production bundle ' +
-          'and is publicly readable. Remove VITE_AWS_SECRET_ACCESS_KEY from the ' +
-          'build and route S3 writes through a backend. See SECURITY.md.'
-      );
-    }
-    s3Client = new S3Client({
-      region: config.aws.region,
-      credentials: {
-        accessKeyId: config.aws.accessKeyId,
-        secretAccessKey: config.aws.secretAccessKey,
-      },
-    });
-  }
-  return s3Client;
+// This is a public redirect through Lambda for listing media only. The backend
+// validates the bucket, configured prefix and assets/ scope before signing.
+export const publicAssetUrl = (path: string): string => `${apiBase()}/public/storage/asset?${new URLSearchParams({ path })}`;
+const listingMediaUrl = (value: unknown): unknown => {
+  if (typeof value !== 'string') return value;
+  if (value.startsWith('assets/') || (config.aws.s3.folderName && value.startsWith(`${config.aws.s3.folderName}/assets/`))) return publicAssetUrl(value);
+  // Lambda canonicalizes owned S3 images to assets/...; external URLs stay
+  // unchanged and are never signed with this site's execution role.
+  return value;
+};
+const listingMedia = (input: unknown): unknown => {
+  if (!Array.isArray(input)) return input;
+  return input.map(row => ({ ...row,
+    images: Array.isArray(row.images) ? row.images.map(listingMediaUrl) : [],
+    videos: Array.isArray(row.videos) ? row.videos.map(listingMediaUrl) : [],
+    ...(row.brochure ? { brochure: listingMediaUrl(row.brochure) } : {}),
+  }));
+};
+const isPropertyCollection = (path: string) => path === 'properties.json' || path === `${config.aws.s3.folderName}/properties.json`;
+
+export const uploadToS3 = async (file: Blob, path: string): Promise<string> => {
+  const extension = path.split('.').pop()?.toLowerCase();
+  const fallbackTypes: Record<string, string> = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', avif: 'image/avif', heic: 'image/heic', mp4: 'video/mp4', webm: 'video/webm' };
+  const contentType = file.type || fallbackTypes[extension ?? ''] || 'application/octet-stream';
+  const { data } = await crmApi.post<{ url: string; fields: Record<string, string>; path: string }>('/storage/upload', { path, contentType, size: file.size });
+  const form = new FormData();
+  Object.entries(data.fields).forEach(([key, value]) => form.append(key, value));
+  form.append('file', file);
+  // No AWS SDK, AWS secret, or CRM bearer token is sent to S3. The short-lived
+  // POST policy is restricted by Lambda to one exact key, MIME and byte count.
+  const response = await fetch(data.url, { method: 'POST', body: form });
+  if (!response.ok) throw new Error(`Upload failed (${response.status}).`);
+  return data.path.startsWith('assets/') ? publicAssetUrl(data.path) : data.path;
 };
 
-// Upload file to S3. Accepts any Blob (a File is a Blob, so existing image
-// upload callers are unaffected) — this also lets non-file data like a
-// generated PDF Blob go through the same path.
-export const uploadToS3 = async (
-  file: Blob,
-  path: string
-): Promise<string> => {
-  try {
-    const client = getS3Client();
-    const key = getObjectKey(path);
-    const fileBody = new Uint8Array(await file.arrayBuffer());
-
-    const command = new PutObjectCommand({
-      Bucket: config.aws.s3.bucketName,
-      Key: key,
-      Body: fileBody,
-      ContentType: file.type,
-    });
-
-    await client.send(command);
-
-    // Return the S3 URL
-    return `https://${config.aws.s3.bucketName}.s3.${config.aws.region}.amazonaws.com/${key}`;
-  } catch (error) {
-    console.error('Error uploading to S3:', error);
-    throw new Error('Failed to upload file to S3');
-  }
-};
-
-// Get file from S3
 export const getFromS3 = async (path: string): Promise<string> => {
-  try {
-    const client = getS3Client();
-    const key = getObjectKey(path);
-
-    const command = new GetObjectCommand({
-      Bucket: config.aws.s3.bucketName,
-      Key: key,
-    });
-
-    const response = await client.send(command);
-    
-    // Handle response body for browser compatibility
-    if (response.Body === null || response.Body === undefined) {
-      return '';
-    }
-    
-    // If Body is a Blob (browser), use text() method
-    if (typeof response.Body.text === 'function') {
-      return await response.Body.text();
-    }
-    
-    // Otherwise use transformToString (Node.js compatibility)
-    const bodyContents = await response.Body.transformToString();
-    return bodyContents || '';
-  } catch (error) {
-    console.error('Error getting from S3:', error);
-    throw new Error('Failed to get file from S3');
+  if (isPropertyCollection(path) && !isAdmin()) {
+    const { data } = await crmApi.get('/public/storage/properties');
+    return JSON.stringify(listingMedia(data));
   }
+  const { data } = await crmApi.get<{ content: string }>('/storage/object', { params: { path } });
+  return isPropertyCollection(path) ? JSON.stringify(listingMedia(JSON.parse(data.content))) : data.content;
 };
 
-// Get signed URL for private files
-export const getSignedS3Url = async (
-  path: string,
-  expiresIn: number = 3600
-): Promise<string> => {
-  try {
-    const client = getS3Client();
-    const key = getObjectKey(path);
-
-    const command = new GetObjectCommand({
-      Bucket: config.aws.s3.bucketName,
-      Key: key,
-    });
-
-    const signedUrl = await getSignedUrl(client, command, { expiresIn });
-    return signedUrl;
-  } catch (error) {
-    console.error('Error generating signed URL:', error);
-    throw new Error('Failed to generate signed URL');
-  }
+export const getSignedS3Url = async (path: string, _expiresIn = 300): Promise<string> => {
+  const { data } = await crmApi.post<{ url: string }>('/storage/download', { path });
+  return data.url;
 };
 
-// Delete file from S3
 export const deleteFromS3 = async (path: string): Promise<void> => {
+  // Uploaded listing URLs are stable Lambda redirects; send their logical key.
   try {
-    const client = getS3Client();
-    const key = getObjectKey(path);
-
-    const command = new DeleteObjectCommand({
-      Bucket: config.aws.s3.bucketName,
-      Key: key,
-    });
-
-    await client.send(command);
-  } catch (error) {
-    console.error('Error deleting from S3:', error);
-    throw new Error('Failed to delete file from S3');
-  }
+    const url = new URL(path);
+    if (url.origin === new URL(apiBase()).origin && url.pathname.endsWith('/public/storage/asset')) path = url.searchParams.get('path') ?? path;
+  } catch { /* Relative object key. */ }
+  await crmApi.delete('/storage/object', { params: { path } });
 };
 
-// List files in S3 folder
 export const listS3Files = async (prefix: string): Promise<string[]> => {
-  try {
-    const client = getS3Client();
-    const key = getObjectKey(prefix);
-
-    const command = new ListObjectsV2Command({
-      Bucket: config.aws.s3.bucketName,
-      Prefix: key,
-    });
-
-    const response = await client.send(command);
-    return response.Contents?.map((item) => item.Key || '') || [];
-  } catch (error) {
-    console.error('Error listing S3 files:', error);
-    throw new Error('Failed to list S3 files');
-  }
+  const { data } = await crmApi.get<{ keys: string[] }>('/storage/list', { params: { prefix } });
+  return data.keys;
 };
 
-// Upload JSON data to S3
-export const uploadJsonToS3 = async (
-  data: any,
-  path: string
-): Promise<void> => {
-  try {
-    const client = getS3Client();
-    const key = getObjectKey(path);
-
-    const command = new PutObjectCommand({
-      Bucket: config.aws.s3.bucketName,
-      Key: key,
-      Body: JSON.stringify(data, null, 2),
-      ContentType: 'application/json',
-    });
-
-    await client.send(command);
-  } catch (error) {
-    console.error('Error uploading JSON to S3:', error);
-    throw new Error('Failed to upload JSON to S3');
-  }
+export const uploadJsonToS3 = async (data: unknown, path: string): Promise<void> => {
+  await crmApi.put('/storage/object', { path, content: JSON.stringify(data), contentType: 'application/json' });
 };
 
-// Upload a plain-text/other file (e.g. sitemap.xml) to S3. `contentType`
-// controls how the object is served; `publicRead` requests public readability
-// so files like the sitemap can be fetched by crawlers.
-export const uploadTextToS3 = async (
-  content: string,
-  path: string,
-  contentType: string = 'text/plain'
-): Promise<string> => {
-  const client = getS3Client();
-  const key = getObjectKey(path);
-
-  const command = new PutObjectCommand({
-    Bucket: config.aws.s3.bucketName,
-    Key: key,
-    Body: content,
-    ContentType: contentType,
-    CacheControl: 'public, max-age=300',
-  });
-
-  await client.send(command);
-  return `https://${config.aws.s3.bucketName}.s3.${config.aws.region}.amazonaws.com/${key}`;
+export const uploadTextToS3 = async (content: string, path: string, contentType = 'text/plain'): Promise<string> => {
+  await crmApi.put('/storage/object', { path, content, contentType });
+  return path;
 };
 
-// Get JSON data from S3
 export const getJsonFromS3 = async <T>(path: string): Promise<T> => {
-  try {
-    const jsonString = await getFromS3(path);
-    return JSON.parse(jsonString) as T;
-  } catch (error) {
-    console.error('Error getting JSON from S3:', error);
-    throw new Error('Failed to get JSON from S3');
+  try { return JSON.parse(await getFromS3(path)) as T; }
+  catch (error: any) {
+    // Only an explicitly missing collection is initially empty. Auth/network
+    // failures must never become [] and overwrite existing saved records.
+    if (error?.response?.status === 404 && ['properties.json', 'leads.json', 'invoices/bills.json', 'invoices/documents.json'].includes(path)) return [] as T;
+    throw error;
   }
 };

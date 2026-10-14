@@ -1,3 +1,4 @@
+import { PrivateFileLink } from '../app/components/PrivateFileLink';
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Download, Search, X } from 'lucide-react';
@@ -250,15 +251,15 @@ export const GenerateBillPage: React.FC = () => {
                       <td className="py-3 pr-4 text-gray-700">{new Date(row.createdAt).toLocaleDateString('en-IN')}</td>
                       <td className="py-3 pr-4">
                         <div className="flex items-center justify-end gap-2">
-                          <a
-                            href={row.pdfUrl}
+                          <PrivateFileLink
+                            path={row.pdfUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors hover:bg-primary/20"
                             aria-label={`Download ${row.number}`}
                           >
                             <Download size={16} />
-                          </a>
+                          </PrivateFileLink>
                         </div>
                       </td>
                     </tr>

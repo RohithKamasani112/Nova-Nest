@@ -1,21 +1,7 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { uploadJsonToS3 } from '../utils/s3Helper';
 import { Property } from '../types/index';
 
-// AWS S3 Configuration
-const s3Client = new S3Client({
-  region: import.meta.env.VITE_AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY || '',
-  },
-});
-
 const isProd = import.meta.env.VITE_IS_PRODUCTION === 'true';
-const BUCKET_NAME = import.meta.env.VITE_S3_BUCKET_NAME;
-const FOLDER_NAME = isProd
-  ? import.meta.env.VITE_S3_FOLDER_PROD
-  : import.meta.env.VITE_S3_FOLDER_DUMMY;
-
 // Dummy property data
 const dummyProperties: Omit<Property, 'id' | 'createdAt'>[] = [
   {
@@ -211,15 +197,7 @@ export const seedDummyData = async () => {
     }));
 
     // Upload to S3
-    const propertiesKey = `${FOLDER_NAME}/properties.json`;
-    const uploadParams = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: propertiesKey,
-      Body: JSON.stringify(propertiesWithMetadata, null, 2),
-      ContentType: 'application/json',
-    });
-
-    await s3Client.send(uploadParams);
+    await uploadJsonToS3(propertiesWithMetadata, 'properties.json');
     console.log(`✅ Successfully seeded ${propertiesWithMetadata.length} dummy properties to S3`);
     console.log('Properties:', propertiesWithMetadata.map(p => p.title));
   } catch (error) {
@@ -227,12 +205,3 @@ export const seedDummyData = async () => {
     throw error;
   }
 };
-
-// Export for CLI usage
-if (typeof window === 'undefined') {
-  // Running in Node.js environment (build script)
-  seedDummyData().catch(err => {
-    console.error('Seed script failed:', err);
-    process.exit(1);
-  });
-}

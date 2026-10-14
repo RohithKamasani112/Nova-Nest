@@ -19,3 +19,8 @@ export const publicLeadRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many requests. Please wait a few minutes and try again.' },
 });
+
+/** Best-effort per-instance protection; use WAF/API Gateway for shared limits. */
+export const loginRateLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' } });

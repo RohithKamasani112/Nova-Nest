@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # Environment Setup Guide
 
 This guide will help you set up your environment variables for local development and production.
@@ -57,8 +59,8 @@ aws s3api put-bucket-cors \
 
 ```env
 # AWS S3 (REQUIRED)
-VITE_AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-VITE_AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+VITE_AWS_ACCESS_KEY_ID=REVOKED_ACCESS_KEY_ID
+VITE_AWS_SECRET_ACCESS_KEY=REMOVED_SECRET_DO_NOT_USE_IN_FRONTEND
 VITE_AWS_REGION=us-east-1
 VITE_S3_BUCKET_NAME=property-app-dev
 VITE_S3_FOLDER_NAME=dev

@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # 🚀 Complete Installation & Run Guide
 
 ## Table of Contents
@@ -83,7 +85,7 @@ npm install
 # - Tailwind CSS
 # - AWS SDK
 # - All other packages listed in package.json
-# 
+#
 # Takes 2-5 minutes depending on internet speed
 ```
 
@@ -143,8 +145,8 @@ Open `.env` file and replace the values:
 
 ```env
 # AWS S3 Configuration (REQUIRED)
-VITE_AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-VITE_AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENGbPxRfiCYEXAMPLEKEY
+VITE_AWS_ACCESS_KEY_ID=REVOKED_ACCESS_KEY_ID
+VITE_AWS_SECRET_ACCESS_KEY=REMOVED_SECRET_DO_NOT_USE_IN_FRONTEND
 VITE_AWS_REGION=us-east-1
 VITE_S3_BUCKET_NAME=property-app-dev
 VITE_S3_FOLDER_NAME=properties

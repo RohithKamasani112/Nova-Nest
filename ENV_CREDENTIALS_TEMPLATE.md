@@ -1,6 +1,8 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # Development Environment - Sample Credentials
 
-This file shows example values for environment variables. 
+This file shows example values for environment variables.
 **DO NOT use these in production!**
 
 ## Development Setup
@@ -13,11 +15,11 @@ Create a `.env` file in the project root with the following format:
 # ==========================================
 # Your AWS Access Key ID
 # Get from: AWS Console → IAM → Users → Your User → Security Credentials
-VITE_AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+VITE_AWS_ACCESS_KEY_ID=REVOKED_ACCESS_KEY_ID
 
 # Your AWS Secret Access Key
 # Get from: AWS Console → IAM → Users → Your User → Security Credentials
-VITE_AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+VITE_AWS_SECRET_ACCESS_KEY=REMOVED_SECRET_DO_NOT_USE_IN_FRONTEND
 
 # AWS Region
 # Common values: us-east-1, us-west-2, eu-west-1, ap-south-1

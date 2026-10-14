@@ -1,0 +1,9 @@
+#!/bin/sh
+if command -v node >/dev/null 2>&1; then
+  node scripts/check-staged-secrets.mjs
+elif [ -x "C:/Program Files/nodejs/node.exe" ]; then
+  "C:/Program Files/nodejs/node.exe" scripts/check-staged-secrets.mjs
+else
+  echo "Commit blocked: Node.js is required to scan staged files for secrets." >&2
+  exit 1
+fi

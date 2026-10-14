@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const winGit = path.join(process.env.ProgramFiles || 'C:/Program Files', 'Git/cmd/git.exe');
+const git = process.env.GIT_BIN || (process.platform === 'win32' && fs.existsSync(winGit) ? winGit : 'git');
+fs.chmodSync(path.join(root, '.githooks/pre-commit'), 0o755);
+execFileSync(git, ['config', '--local', 'core.hooksPath', '.githooks'], { cwd: root, stdio: 'inherit' });
+execFileSync(git, ['add', '--chmod=+x', '--', '.githooks/pre-commit'], { cwd: root, stdio: 'inherit' });
+console.log('Local pre-commit secret scan enabled. The executable hook is staged for version control.');

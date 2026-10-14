@@ -1,3 +1,5 @@
+> Security update: frontend AWS credentials are no longer supported. Follow [Amplify + Lambda security setup](AMPLIFY_LAMBDA_SECURITY.md); do not follow legacy credential examples below.
+
 # PremiumEstate - Modern Real Estate Platform
 
 A premium, full-featured real estate web application built with React, TypeScript, Tailwind CSS, AWS Amplify, and S3. Features an Airbnb-inspired UI with advanced property search, filtering, authentication, and admin capabilities.

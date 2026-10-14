@@ -1,3 +1,4 @@
+import { createLead as createCrmWebsiteLead } from './storageService';
 import { Property, Inquiry } from '../types';
 import {
   getJsonFromS3,
@@ -6,11 +7,11 @@ import {
 
 /**
  * Storage Service - Always uses S3 with Dual Folder Structure
- * 
+ *
  * Folder Logic:
  * - VITE_IS_PRODUCTION=false -> Uses VITE_S3_FOLDER_DUMMY
  * - VITE_IS_PRODUCTION=true -> Uses VITE_S3_FOLDER_PROD
- * 
+ *
  * All data is persisted directly to AWS S3
  */
 
@@ -26,14 +27,14 @@ const getS3FolderPath = (): string => {
 export const getAllProperties = async (): Promise<Property[]> => {
   try {
     const filePath = 'properties.json';
-    
+
     console.log(`📂 Loading properties from: ${filePath}`);
-    
+
     const properties = await getJsonFromS3<Property[]>(filePath);
     return properties || [];
   } catch (error) {
-    console.error('Error fetching properties:', error);
-    return [];
+    console.error('Could not load properties.');
+    throw error;
   }
 };
 
@@ -64,7 +65,7 @@ export const createProperty = async (
     };
 
     const updatedProperties = [...properties, newProperty];
-    
+
     await uploadJsonToS3(updatedProperties, 'properties.json');
 
     return newProperty;
@@ -94,7 +95,7 @@ export const updateProperty = async (
     };
 
     properties[index] = updatedProperty;
-    
+
     await uploadJsonToS3(properties, 'properties.json');
 
     return updatedProperty;
@@ -139,25 +140,7 @@ export const getAllInquiries = async (): Promise<Inquiry[]> => {
 export const createInquiry = async (
   inquiry: Omit<Inquiry, 'id' | 'createdAt'>
 ): Promise<Inquiry> => {
-  try {
-    const inquiries = await getAllInquiries();
-
-    const newInquiry: Inquiry = {
-      ...inquiry,
-      id: `inquiry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-    };
-
-    const updatedInquiries = [...inquiries, newInquiry];
-    
-    await uploadJsonToS3(updatedInquiries, 'leads.json');
-
-    return newInquiry;
-  } catch (error) {
-    console.error('Error creating inquiry:', error);
-    throw new Error('Failed to create inquiry');
-  }
+  return createCrmWebsiteLead(inquiry);
 };
 
 // Update inquiry
@@ -179,7 +162,7 @@ export const updateInquiry = async (
     };
 
     inquiries[index] = updatedInquiry;
-    
+
     await uploadJsonToS3(inquiries, 'leads.json');
 
     return updatedInquiry;

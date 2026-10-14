@@ -2,10 +2,10 @@
 
 /**
  * Seed Script - Generate and upload dummy data to AWS S3
- * 
+ *
  * Usage:
  *   npm run seed
- * 
+ *
  * This script will:
  * 1. Generate 8 dummy property listings
  * 2. Upload them to your dummy S3 bucket
@@ -27,8 +27,6 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const VITE_AWS_REGION = process.env.VITE_AWS_REGION || 'us-east-1';
-const VITE_AWS_ACCESS_KEY_ID = process.env.VITE_AWS_ACCESS_KEY_ID || '';
-const VITE_AWS_SECRET_ACCESS_KEY = process.env.VITE_AWS_SECRET_ACCESS_KEY || '';
 const isProd = process.env.VITE_IS_PRODUCTION === 'true';
 const SELECTED_S3_BUCKET = process.env.VITE_S3_BUCKET_NAME;
 const SELECTED_S3_FOLDER = isProd
@@ -219,13 +217,6 @@ async function seedData() {
     return;
   }
 
-  // Validate credentials
-  if (!VITE_AWS_ACCESS_KEY_ID || !VITE_AWS_SECRET_ACCESS_KEY) {
-    console.error('❌ Error: AWS credentials not found in .env');
-    console.error('   Please set VITE_AWS_ACCESS_KEY_ID and VITE_AWS_SECRET_ACCESS_KEY');
-    process.exit(1);
-  }
-
   if (!SELECTED_S3_BUCKET) {
     console.error('❌ Error: S3 bucket name not found in .env');
     console.error('   Please set VITE_S3_BUCKET_NAME');
@@ -242,10 +233,6 @@ async function seedData() {
     // Initialize S3 client
     const s3Client = new S3Client({
       region: VITE_AWS_REGION,
-      credentials: {
-        accessKeyId: VITE_AWS_ACCESS_KEY_ID,
-        secretAccessKey: VITE_AWS_SECRET_ACCESS_KEY,
-      },
     });
 
     // Create property objects with IDs and timestamps

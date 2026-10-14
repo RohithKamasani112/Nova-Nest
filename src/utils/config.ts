@@ -11,8 +11,6 @@ export const config = {
 
   // AWS S3 Configuration
   aws: {
-    accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY || '',
     region: import.meta.env.VITE_AWS_REGION || 'us-east-1',
     s3: {
       bucketName: import.meta.env.VITE_S3_BUCKET_NAME || '',
@@ -51,15 +49,13 @@ if (typeof window !== 'undefined') {
 export const validateConfig = () => {
   if (config.isProduction) {
     const required = [
-      config.aws.accessKeyId,
-      config.aws.secretAccessKey,
       config.aws.s3.bucketName,
       config.aws.s3.folderName,
     ];
 
     if (required.some((val) => !val)) {
       console.warn(
-        'Production mode enabled but AWS credentials are missing. Please check your environment variables.'
+        'Production storage metadata is missing. Check your backend API and folder configuration.'
       );
       return false;
     }

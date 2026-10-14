@@ -1,225 +1,116 @@
 #!/usr/bin/env node
-// Backend deployment file for AWS Lambda. Run with `npm run deploy:lambda`
-// from inside server/. Builds, packages production-only dependencies,
-// zips, and creates-or-updates the Lambda function + its public Function
-// URL. Requires the AWS CLI installed and authenticated (`aws configure`)
-// — this script shells out to it rather than re-implementing the AWS API
-// calls, so its behavior matches whatever you'd get running the same `aws`
-// commands by hand.
-import { execSync } from 'node:child_process';
+// Updates the EXISTING main CRM Lambda. Nothing here runs a permanent server.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import archiver from 'archiver';
 import dotenv from 'dotenv';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SERVER_ROOT = path.resolve(__dirname, '..');
-const REPO_ROOT = path.resolve(SERVER_ROOT, '..');
-
-dotenv.config({ path: path.join(REPO_ROOT, '.env') });
-
-const FUNCTION_NAME = process.env.LAMBDA_FUNCTION_NAME || 'nova-nest-crm-backend';
-const REGION = process.env.AWS_REGION || 'us-east-1';
-const ROLE_NAME = `${FUNCTION_NAME}-role`;
-
-function run(cmd, opts = {}) {
-  console.log(`\n$ ${cmd}`);
-  execSync(cmd, { stdio: 'inherit', cwd: SERVER_ROOT, ...opts });
+const SERVER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+dotenv.config({ path: path.join(SERVER_ROOT, '../.env') });
+const FUNCTION_NAME = process.env.LAMBDA_FUNCTION_NAME;
+const REGION = process.env.AWS_REGION;
+let temp;
+const privateValues = new Set();
+const redact = value => {
+  let text = String(value);
+  for (const [key, secret] of Object.entries(process.env)) {
+    if (/SECRET|PASSWORD|DATABASE_URL|ACCESS_KEY|TOKEN|API_KEY/i.test(key) && secret && secret.length > 5) privateValues.add(secret);
+  }
+  for (const secret of privateValues) text = text.split(secret).join('[REDACTED]');
+  return text.replace(/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, '[REDACTED_ACCESS_KEY]')
+    .replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[REDACTED_DATABASE_URL]');
+};
+function aws(args) {
+  try {
+    const data = execFileSync('aws', [...args, '--region', REGION, '--no-cli-pager', '--output', 'json'],
+      { cwd: SERVER_ROOT, stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim();
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    // Never print stdout: Lambda configuration responses include secret values.
+    throw new Error(`AWS ${args[0]} ${args[1]} failed. ${redact(error.stderr?.toString() || 'Check AWS credentials, permissions and region.').slice(0, 1200)}`);
+  }
 }
-
-function runCapture(cmd) {
-  return execSync(cmd, { cwd: SERVER_ROOT, stdio: ['pipe', 'pipe', 'pipe'] }).toString().trim();
+function jsonFile(name, data) {
+  const file = path.join(temp, name);
+  fs.writeFileSync(file, JSON.stringify(data), { mode: 0o600 });
+  return `file://${file}`;
 }
-
-function zipDirectory(sourceDir, outPath) {
-  return new Promise((resolve, reject) => {
-    const output = fs.createWriteStream(outPath);
+async function zip(source, target) {
+  await new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(target, { mode: 0o600 });
     const archive = archiver('zip', { zlib: { level: 9 } });
-    output.on('close', resolve);
-    archive.on('error', reject);
-    archive.pipe(output);
-    archive.directory(sourceDir, false);
-    archive.finalize();
+    output.on('close', resolve); output.on('error', reject); archive.on('error', reject);
+    archive.pipe(output); archive.directory(source, false); archive.finalize();
   });
 }
-
 async function main() {
-  console.log('=== Nova Nest CRM backend — Lambda deploy ===');
-
-  // 1. Preconditions
-  try {
-    const identity = runCapture('aws sts get-caller-identity');
-    console.log(`AWS identity: ${identity}`);
-  } catch (err) {
-    console.error('\nAWS CLI check failed. Real error below (not swallowed) — this is what actually failed:\n');
-    console.error(err.stderr?.toString() || err.stdout?.toString() || err.message);
-    console.error('\nIf that says something like "command not found" (not an auth error), `aws` was found by your');
-    console.error('interactive shell but not by this script — usually a PATH difference between an interactive');
-    console.error('shell (reads ~/.bashrc) and a non-interactive one (does not). Try: `which aws` and `which node`');
-    console.error('in the same terminal you ran this from, and confirm both paths make sense together (e.g. both');
-    console.error('under WSL\'s own filesystem, not one of them resolving to a Windows .exe via WSL interop).');
-    process.exit(1);
+  if (!FUNCTION_NAME || !REGION) throw new Error('Set LAMBDA_FUNCTION_NAME and AWS_REGION to the EXISTING main CRM Lambda. No default function will be created.');
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(FUNCTION_NAME)) throw new Error('LAMBDA_FUNCTION_NAME must be the existing function name, not an ARN.');
+  const origins = (process.env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
+  if (!origins.length || origins.some(value => { try { return new URL(value).origin !== value || !value.startsWith('https://'); } catch { return true; } })) {
+    throw new Error('Set ALLOWED_ORIGINS to exact HTTPS Amplify/custom-domain origins, comma-separated, without trailing slashes.');
   }
-  const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'S3_BUCKET_NAME'];
-  const missing = requiredEnvVars.filter((k) => !process.env[k]);
-  if (missing.length) {
-    console.error(`\nMissing required variable(s) in the repo-root .env: ${missing.join(', ')}`);
-    console.error('S3_BUCKET_NAME is new — see the deployment guide for what it needs to be.');
-    process.exit(1);
+  console.log(`Updating existing CRM Lambda ${FUNCTION_NAME} in ${REGION}. AWS responses and secret values are not printed.`);
+  aws(['sts', 'get-caller-identity']);
+  const existing = aws(['lambda', 'get-function-configuration', '--function-name', FUNCTION_NAME]);
+  const url = aws(['lambda', 'get-function-url-config', '--function-name', FUNCTION_NAME]);
+  if (url.AuthType !== 'NONE') throw new Error('This deployment expects the existing public Function URL with application JWT authentication.');
+  const previous = existing.Environment?.Variables ?? {};
+  for (const [key, value] of Object.entries(previous)) if (/SECRET|PASSWORD|DATABASE_URL|ACCESS_KEY|TOKEN|API_KEY/i.test(key) && value && value.length > 5) privateValues.add(value);
+  const folder = (process.env.S3_FOLDER || previous.S3_FOLDER ||
+    (process.env.VITE_IS_PRODUCTION === 'true' ? process.env.VITE_S3_FOLDER_PROD : process.env.VITE_S3_FOLDER_DUMMY) || '').replace(/^\/+|\/+$/g, '');
+  const bucket = process.env.S3_BUCKET_NAME || previous.S3_BUCKET_NAME;
+  if (!bucket || !/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket) || !folder || !/^[a-zA-Z0-9_./ -]+$/.test(folder) || folder.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('Set S3_BUCKET_NAME and S3_FOLDER to the existing site bucket and folder. Storage at the bucket root is prohibited.');
+  const variables = { ...previous, S3_BUCKET_NAME: bucket, S3_FOLDER: folder,
+    S3_REGION: process.env.S3_REGION || previous.S3_REGION || process.env.VITE_AWS_REGION || REGION,
+    ALLOWED_ORIGINS: origins.join(','), CORS_AT_FUNCTION_URL: 'true', NODE_ENV: 'production' };
+  for (const name of ['DATABASE_URL', 'JWT_SECRET']) {
+    if (process.env[name]) variables[name] = process.env[name];
+    if (!variables[name]) throw new Error(`Missing backend ${name}. Configure it in Lambda or the backend .env.`);
   }
-
-  // 2. Build
-  console.log('\n--- Building TypeScript ---');
-  run('npm run build');
-
-  // 3. Package: dist/ + production-only node_modules in a clean staging dir
-  console.log('\n--- Installing production dependencies for the package ---');
-  const PKG_DIR = path.join(SERVER_ROOT, '.lambda-package');
-  fs.rmSync(PKG_DIR, { recursive: true, force: true });
-  fs.mkdirSync(PKG_DIR, { recursive: true });
-  fs.cpSync(path.join(SERVER_ROOT, 'dist'), path.join(PKG_DIR, 'dist'), { recursive: true });
-  fs.copyFileSync(path.join(SERVER_ROOT, 'package.json'), path.join(PKG_DIR, 'package.json'));
-  fs.copyFileSync(path.join(SERVER_ROOT, 'package-lock.json'), path.join(PKG_DIR, 'package-lock.json'));
-  run('npm ci --omit=dev', { cwd: PKG_DIR });
-
-  console.log('\n--- Zipping ---');
-  const ZIP_PATH = path.join(SERVER_ROOT, 'lambda-deploy.zip');
-  fs.rmSync(ZIP_PATH, { force: true });
-  await zipDirectory(PKG_DIR, ZIP_PATH);
-  const sizeMb = (fs.statSync(ZIP_PATH).size / 1024 / 1024).toFixed(1);
-  console.log(`Package size: ${sizeMb} MB`);
-  if (Number(sizeMb) > 50) {
-    console.warn('Package exceeds the 50 MB direct-upload limit — this script does not handle the S3-staged upload path for larger packages.');
-  }
-
-  // 4. IAM execution role (create once, reuse on every later deploy)
-  console.log('\n--- IAM execution role ---');
-  let roleArn;
-  try {
-    roleArn = runCapture(`aws iam get-role --role-name ${ROLE_NAME} --query Role.Arn --output text`);
-    console.log(`Using existing role: ${roleArn}`);
-  } catch {
-    console.log(`Role ${ROLE_NAME} doesn't exist yet — creating it.`);
-    const trustPolicyPath = path.join(SERVER_ROOT, '.lambda-trust-policy.json');
-    fs.writeFileSync(
-      trustPolicyPath,
-      JSON.stringify({
-        Version: '2012-10-17',
-        Statement: [{ Effect: 'Allow', Principal: { Service: 'lambda.amazonaws.com' }, Action: 'sts:AssumeRole' }],
-      })
-    );
-    roleArn = runCapture(
-      `aws iam create-role --role-name ${ROLE_NAME} --assume-role-policy-document file://${trustPolicyPath} --query Role.Arn --output text`
-    );
-    run(`aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole`);
-
-    // Scoped to the import-staging prefix only — this function never needs
-    // any other S3 access (property images/listings are handled entirely
-    // client-side, see src/utils/s3Helper.ts, unrelated to this backend).
-    const s3PolicyPath = path.join(SERVER_ROOT, '.lambda-s3-policy.json');
-    fs.writeFileSync(
-      s3PolicyPath,
-      JSON.stringify({
-        Version: '2012-10-17',
-        Statement: [
-          {
-            Effect: 'Allow',
-            Action: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
-            Resource: `arn:aws:s3:::${process.env.S3_BUCKET_NAME}/crm-import-staging/*`,
-          },
-        ],
-      })
-    );
-    run(`aws iam put-role-policy --role-name ${ROLE_NAME} --policy-name ${ROLE_NAME}-s3 --policy-document file://${s3PolicyPath}`);
-    fs.rmSync(trustPolicyPath);
-    fs.rmSync(s3PolicyPath);
-
-    console.log('Waiting ~10s for IAM role propagation before first use...');
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-  }
-
-  // 5. Create or update the function
-  console.log('\n--- Lambda function ---');
-  const envVarsPath = path.join(SERVER_ROOT, '.lambda-env.json');
-  fs.writeFileSync(
-    envVarsPath,
-    JSON.stringify({
-      Variables: {
-        DATABASE_URL: process.env.DATABASE_URL,
-        JWT_SECRET: process.env.JWT_SECRET,
-        S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
-        NODE_ENV: 'production',
-      },
-    })
-  );
-
-  let functionExists = true;
-  try {
-    runCapture(`aws lambda get-function --function-name ${FUNCTION_NAME} --region ${REGION}`);
-  } catch {
-    functionExists = false;
-  }
-
-  if (!functionExists) {
-    console.log(`Creating function ${FUNCTION_NAME}...`);
-    run(
-      `aws lambda create-function --function-name ${FUNCTION_NAME} ` +
-        `--runtime nodejs20.x --handler dist/lambda.handler --role ${roleArn} ` +
-        `--zip-file fileb://${ZIP_PATH} --timeout 30 --memory-size 512 ` +
-        `--environment file://${envVarsPath} --region ${REGION}`
-    );
-    console.log('Waiting for the function to become active...');
-    run(`aws lambda wait function-active --function-name ${FUNCTION_NAME} --region ${REGION}`);
-  } else {
-    console.log(`Updating code for ${FUNCTION_NAME}...`);
-    run(`aws lambda update-function-code --function-name ${FUNCTION_NAME} --zip-file fileb://${ZIP_PATH} --region ${REGION}`);
-    run(`aws lambda wait function-updated --function-name ${FUNCTION_NAME} --region ${REGION}`);
-    console.log('Updating configuration...');
-    run(
-      `aws lambda update-function-configuration --function-name ${FUNCTION_NAME} ` +
-        `--environment file://${envVarsPath} --timeout 30 --memory-size 512 --region ${REGION}`
-    );
-    run(`aws lambda wait function-updated --function-name ${FUNCTION_NAME} --region ${REGION}`);
-  }
-  fs.rmSync(envVarsPath);
-
-  // 6. Public Function URL, with CORS the Express app's own `cors`
-  // middleware doesn't need to duplicate — permissive here, actual
-  // per-request CORS headers still come from the app itself.
-  console.log('\n--- Function URL ---');
-  let functionUrl;
-  try {
-    functionUrl = runCapture(
-      `aws lambda get-function-url-config --function-name ${FUNCTION_NAME} --query FunctionUrl --output text --region ${REGION}`
-    );
-    console.log('Function URL already configured.');
-  } catch {
-    console.log('Creating Function URL...');
-    run(
-      `aws lambda create-function-url-config --function-name ${FUNCTION_NAME} ` +
-        `--auth-type NONE --cors AllowOrigins=*,AllowMethods=*,AllowHeaders=*,MaxAge=86400 --region ${REGION}`
-    );
-    run(
-      `aws lambda add-permission --function-name ${FUNCTION_NAME} --statement-id FunctionURLAllowPublicAccess ` +
-        `--action lambda:InvokeFunctionUrl --principal "*" --function-url-auth-type NONE --region ${REGION}`
-    );
-    functionUrl = runCapture(
-      `aws lambda get-function-url-config --function-name ${FUNCTION_NAME} --query FunctionUrl --output text --region ${REGION}`
-    );
-  }
-
-  // Cleanup
-  fs.rmSync(PKG_DIR, { recursive: true, force: true });
-  fs.rmSync(ZIP_PATH, { force: true });
-
-  console.log('\n=== Done ===');
-  console.log(`Function URL:  ${functionUrl}`);
-  console.log(`Frontend value for VITE_CRM_API_BASE_URL:  ${functionUrl}api`);
-  console.log('\nSet that in the Amplify console → Environment variables, then trigger a redeploy so the built bundle picks it up.');
+  if (variables.JWT_SECRET.length < 32 || /REPLACE|YOUR_|CHANGE_ME/i.test(variables.JWT_SECRET)) throw new Error('Use a rotated JWT_SECRET of at least 32 characters (openssl rand -hex 32).');
+  try { if (!/^postgres(?:ql)?:$/.test(new URL(variables.DATABASE_URL).protocol)) throw new Error(); }
+  catch { throw new Error('Configure the rotated PostgreSQL DATABASE_URL in Lambda or the private local .env.'); }
+  // Frontend-prefixed settings and static IAM keys must never be Lambda config.
+  for (const name of Object.keys(variables)) if (name.startsWith('VITE_') || /^(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|AWS_SESSION_TOKEN)$/.test(name)) delete variables[name];
+  temp = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-nest-deploy-'));
+  fs.chmodSync(temp, 0o700);
+  console.log('Building backend…');
+  execFileSync('npm', ['run', 'build'], { cwd: SERVER_ROOT, stdio: 'inherit' });
+  const pkg = path.join(temp, 'package'); fs.mkdirSync(pkg);
+  fs.cpSync(path.join(SERVER_ROOT, 'dist'), path.join(pkg, 'dist'), { recursive: true,
+    filter: source => !path.relative(path.join(SERVER_ROOT, 'dist'), source).split(path.sep).includes('test') });
+  for (const name of ['package.json', 'package-lock.json']) fs.copyFileSync(path.join(SERVER_ROOT, name), path.join(pkg, name));
+  execFileSync('npm', ['ci', '--omit=dev', '--ignore-scripts'], { cwd: pkg, stdio: 'inherit' });
+  const archive = path.join(temp, 'lambda.zip'); await zip(pkg, archive);
+  if (fs.statSync(archive).size > 50 * 1024 * 1024) throw new Error('Package exceeds the direct Lambda upload limit. Use S3-staged deployment.');
+  const roleName = existing.Role.split('/').pop();
+  const policy = { Version: '2012-10-17', Statement: [
+    { Effect: 'Allow', Action: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject'], Resource: [`arn:aws:s3:::${bucket}/${folder}/*`, `arn:aws:s3:::${bucket}/crm-import-staging/*`] },
+    { Effect: 'Allow', Action: ['s3:ListBucket'], Resource: [`arn:aws:s3:::${bucket}`], Condition: { StringLike: { 's3:prefix': [`${folder}/*`, 'crm-import-staging/*'] } } },
+  ] };
+  console.log('Applying folder-scoped S3 permissions to the existing Lambda execution role…');
+  aws(['iam', 'put-role-policy', '--role-name', roleName, '--policy-name', `${FUNCTION_NAME}-storage`, '--policy-document', jsonFile('storage-policy.json', policy)]);
+  aws(['lambda', 'update-function-code', '--function-name', FUNCTION_NAME, '--zip-file', `fileb://${archive}`]);
+  aws(['lambda', 'wait', 'function-updated', '--function-name', FUNCTION_NAME]);
+  aws(['lambda', 'update-function-configuration', '--function-name', FUNCTION_NAME,
+    '--environment', jsonFile('environment.json', { Variables: variables }), '--timeout', '30', '--memory-size', '512']);
+  aws(['lambda', 'wait', 'function-updated', '--function-name', FUNCTION_NAME]);
+  // One CORS owner: Function URL handles browser headers; Express handles CORS
+  // only for local development/API Gateway installations that do not set this flag.
+  aws(['lambda', 'update-function-url-config', '--function-name', FUNCTION_NAME, '--cors', jsonFile('cors.json', {
+    AllowOrigins: origins, AllowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    AllowHeaders: ['authorization', 'content-type'], AllowCredentials: false, MaxAge: 300,
+  })]);
+  console.log('Deployment complete. Existing function name, execution role and Function URL retained.');
+  console.log(`Amplify VITE_CRM_API_BASE_URL=${url.FunctionUrl.replace(/\/$/, '')}/api`);
+  console.log('Configure S3 CORS for your exact website origins before testing uploads. See AMPLIFY_LAMBDA_SECURITY.md.');
 }
-
-main().catch((err) => {
-  console.error('\nDeploy failed:', err.message || err);
-  process.exit(1);
-});
+try { await main(); }
+catch (error) { console.error(redact(error.message || 'Deployment failed.')); process.exitCode = 1; }
+finally {
+  if (temp && path.dirname(temp) === path.resolve(os.tmpdir()) && path.basename(temp).startsWith('nova-nest-deploy-')) fs.rmSync(temp, { recursive: true, force: true });
+}
