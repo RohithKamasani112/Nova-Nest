@@ -10,7 +10,6 @@ import { PropertyDetailsPage } from '../pages/PropertyDetailsPage';
 import { SalesHomePage } from '../pages/SalesHomePage';
 import { SalesLeadsPage } from '../pages/SalesLeadsPage';
 import { SettingsPage } from '../pages/SettingsPage';
-import { SALES_VIEW_AGENT_KEY } from '../utils/salesView';
 import { LoginPage } from '../pages/LoginPage';
 import { AdminPage } from '../pages/AdminPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
@@ -280,15 +279,12 @@ const AppContent: React.FC<{
   renderAdminContent,
 }) => {
   const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
-  const isSalesPage = currentPage === 'sales-home' || currentPage === 'sales-leads';
-  const salesLanding = localStorage.getItem(SALES_VIEW_AGENT_KEY) ? 'sales-leads' : 'sales-home';
+  const isCrmOnly = user?.role !== 'admin';
   useEffect(() => {
     if (authLoading || !isAdminPage) return;
     if (!isAuthenticated) handleNavigate('admin-login');
-    else if (user?.role === 'sales' && !isSalesPage) handleNavigate(salesLanding);
-    else if (user?.role === 'sales' && currentPage === 'sales-leads' && !localStorage.getItem(SALES_VIEW_AGENT_KEY)) handleNavigate('sales-home');
-    else if (user?.role !== 'sales' && isSalesPage) handleNavigate('crm');
-  }, [authLoading, isAuthenticated, isAdminPage, user?.role, isSalesPage, salesLanding, currentPage]);
+    else if (isCrmOnly && currentPage !== 'crm') handleNavigate('crm');
+  }, [authLoading, isAuthenticated, isAdminPage, isCrmOnly, currentPage]);
   const reduce = useReducedMotion();
   const floatingWhatsappUrl = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi, I am interested in your properties')}`;
   // Capture the visitor's number as a lead before sending them to WhatsApp.
@@ -331,7 +327,7 @@ const AppContent: React.FC<{
   // briefly false before authLoading flips to false — redirecting on that
   // transient state would kick an already-logged-in admin straight back out
   // to the login page every time they reload.
-  if (isAdminPage && (authLoading || !isAuthenticated || (user?.role === 'sales' && !isSalesPage) || (user?.role !== 'sales' && isSalesPage))) {
+  if (isAdminPage && (authLoading || !isAuthenticated || (isCrmOnly && currentPage !== 'crm'))) {
     return <div className="p-6">Loading your workspace...</div>;
   }
 
@@ -349,7 +345,7 @@ const AppContent: React.FC<{
 
       {isAdminPage ? (
         <div className="min-h-screen bg-surface">
-          {!isSalesPage && <AdminSidebar
+          {!isCrmOnly && <AdminSidebar
             currentPage={currentPage}
             onNavigate={handleNavigate}
             onLogout={async () => {
@@ -357,7 +353,7 @@ const AppContent: React.FC<{
               handleNavigate('home');
             }}
           />}
-          <div className={isSalesPage ? 'min-h-screen bg-surface' : `${currentPage === 'crm' ? 'crm-admin-content' : 'bg-surface'} min-h-screen px-3 py-5 pb-12 pt-16 sm:px-5 md:ml-64 md:p-8 md:pt-8`}>
+          <div className={isCrmOnly ? 'min-h-screen bg-surface px-3 py-5 sm:px-5' : `${currentPage === 'crm' ? 'crm-admin-content' : 'bg-surface'} min-h-screen px-3 py-5 pb-12 pt-16 sm:px-5 md:ml-64 md:p-8 md:pt-8`}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentPage}

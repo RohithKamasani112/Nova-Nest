@@ -1,3 +1,4 @@
+import { accessSql, crmIdentity, visibleSources, teamAccessSql, enquiryAccessSql } from '../lib/crmAccess';
 import { pool, withTransaction } from '../db/pool';
 import { cleanCell, collapseWhitespace } from '../lib/textUtils';
 import { normalizeEmail, normalizeName, normalizeNameKey, normalizePhone } from '../lib/valueNormalize';
@@ -57,6 +58,7 @@ function buildWhere(filters: LeadFilters): { where: string; params: unknown[] } 
     return `$${params.length}`;
   };
 
+  clauses.push(accessSql(params, 'l'));
   if (filters.source?.length) clauses.push(`l.source = ANY(${p(filters.source)})`);
 
   if (filters.agentId?.length) {
@@ -163,13 +165,15 @@ export async function listLeads(
   const sortCol = SORT_COLUMN[sort.sortBy ?? 'created_at'] ?? 'l.created_at';
   const sortDir = sort.sortDir === 'asc' ? 'ASC' : 'DESC';
 
-  const listParams = [...params, pageSize, (page - 1) * pageSize];
+  const listParams = [...params];
+  const enquiryAccess = enquiryAccessSql(listParams);
+  listParams.push(pageSize, (page - 1) * pageSize);
   const listQuery = `
     SELECT l.id, l.source, l.name, l.phone, l.phone_raw, l.email, l.project_name, l.locality, l.city,
            l.property_type, l.listing_type, l.configuration,
            l.price_value, l.agent_id, a.name AS agent_name, l.status, l.lead_date, l.next_follow_up_at,
            la.occurred_at AS last_activity_at, la.type AS last_activity_type, l.updated_at,
-           (SELECT count(*)::int FROM lead_duplicates ld WHERE ld.existing_lead_id = l.id AND ld.matched_on = 'phone') AS other_interest_count
+           (SELECT count(*)::int FROM lead_duplicates ld WHERE ld.existing_lead_id = l.id AND ld.matched_on = 'phone' AND ${enquiryAccess}) AS other_interest_count
     FROM leads l
     LEFT JOIN agents a ON a.id = l.agent_id
     LEFT JOIN LATERAL (
@@ -202,6 +206,8 @@ export interface ChipCounts {
 }
 
 export async function getChipCounts(): Promise<ChipCounts> {
+  const values: unknown[] = [];
+  const access = accessSql(values);
   const { rows } = await pool.query<Record<keyof ChipCounts, string>>(
     `SELECT
        count(*) FILTER (WHERE status = 'new' AND first_contacted_at IS NULL) AS "needsContact",
@@ -213,7 +219,7 @@ export async function getChipCounts(): Promise<ChipCounts> {
        count(*) FILTER (WHERE status = 'converted') AS converted,
        count(*) FILTER (WHERE status = 'closed_lost') AS lost,
        count(*) FILTER (WHERE status = 'site_visit_scheduled') AS "siteVisitScheduled"
-     FROM leads WHERE deleted_at IS NULL`
+     FROM leads WHERE deleted_at IS NULL AND ${access}`, values
   );
   const r = rows[0];
   return {
@@ -291,7 +297,7 @@ export interface FilterOptions {
 
 // Static enums — rendered regardless of what's in the DB, so Source/Status
 // still show their full option list on an empty table.
-export const SOURCE_VALUES = ['housing', 'magicbricks', '99acres', 'personal'];
+export const SOURCE_VALUES = ['housing', 'magicbricks', '99acres', 'personal', 'website'];
 export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'new', label: 'New' },
   { value: 'contacted', label: 'Contacted' },
@@ -309,45 +315,50 @@ const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
 
 async function loadFilterOptions(): Promise<FilterOptions> {
+  const values: unknown[] = [];
+  const access = accessSql(values);
+  const joinedValues: unknown[] = [];
+  const joinedAccess = accessSql(joinedValues, 'l');
+  const teamAccess = teamAccessSql(joinedValues);
   const [statusCounts, agents, cities, localities, projects, propertyTypes, bhk] = await Promise.all([
     pool.query<{ status: string; count: string }>(
-      `SELECT status, count(*) FROM leads WHERE deleted_at IS NULL GROUP BY status`
+      `SELECT status, count(*) FROM leads WHERE deleted_at IS NULL AND ${access} GROUP BY status`, values
     ),
     pool.query<{ id: string; name: string; count: string }>(
       `SELECT a.id, a.name, count(l.id) AS count
        FROM agents a
-       LEFT JOIN leads l ON l.agent_id = a.id AND l.deleted_at IS NULL
-       WHERE a.is_active = true
+       LEFT JOIN leads l ON l.agent_id = a.id AND l.deleted_at IS NULL AND ${joinedAccess}
+       WHERE a.is_active = true AND ${teamAccess}
        GROUP BY a.id, a.name
        ORDER BY a.name
-       LIMIT 1000`
+       LIMIT 1000`, joinedValues
     ),
     pool.query<{ value: string; count: string }>(
-      `SELECT city AS value, count(*) FROM leads WHERE city IS NOT NULL AND deleted_at IS NULL
-       GROUP BY city ORDER BY count(*) DESC LIMIT 1000`
+      `SELECT city AS value, count(*) FROM leads WHERE city IS NOT NULL AND deleted_at IS NULL AND ${access}
+       GROUP BY city ORDER BY count(*) DESC LIMIT 1000`, values
     ),
     pool.query<{ value: string; count: string }>(
-      `SELECT locality AS value, count(*) FROM leads WHERE locality IS NOT NULL AND deleted_at IS NULL
-       GROUP BY locality ORDER BY count(*) DESC LIMIT 1000`
+      `SELECT locality AS value, count(*) FROM leads WHERE locality IS NOT NULL AND deleted_at IS NULL AND ${access}
+       GROUP BY locality ORDER BY count(*) DESC LIMIT 1000`, values
     ),
     pool.query<{ value: string; count: string }>(
-      `SELECT project_name AS value, count(*) FROM leads WHERE project_name IS NOT NULL AND deleted_at IS NULL
-       GROUP BY project_name ORDER BY count(*) DESC LIMIT 1000`
+      `SELECT project_name AS value, count(*) FROM leads WHERE project_name IS NOT NULL AND deleted_at IS NULL AND ${access}
+       GROUP BY project_name ORDER BY count(*) DESC LIMIT 1000`, values
     ),
     pool.query<{ value: string; count: string }>(
-      `SELECT property_type AS value, count(*) FROM leads WHERE property_type IS NOT NULL AND deleted_at IS NULL
-       GROUP BY property_type ORDER BY count(*) DESC LIMIT 1000`
+      `SELECT property_type AS value, count(*) FROM leads WHERE property_type IS NOT NULL AND deleted_at IS NULL AND ${access}
+       GROUP BY property_type ORDER BY count(*) DESC LIMIT 1000`, values
     ),
     pool.query<{ configuration: string; count: string }>(
-      `SELECT configuration, count(*) FROM leads WHERE configuration IS NOT NULL AND deleted_at IS NULL
-       GROUP BY configuration ORDER BY count(*) DESC LIMIT 50`
+      `SELECT configuration, count(*) FROM leads WHERE configuration IS NOT NULL AND deleted_at IS NULL AND ${access}
+       GROUP BY configuration ORDER BY count(*) DESC LIMIT 50`, values
     ),
   ]);
 
   const statusCountMap = new Map(statusCounts.rows.map((r) => [r.status, Number(r.count)]));
 
   return {
-    sources: SOURCE_VALUES,
+    sources: visibleSources(),
     statuses: STATUS_OPTIONS.map((s) => ({ ...s, count: statusCountMap.get(s.value) ?? 0 })),
     agents: agents.rows.map((r) => ({ id: r.id, name: r.name, count: Number(r.count) })),
     cities: cities.rows.map((r) => ({ value: r.value, count: Number(r.count) })),
@@ -360,6 +371,7 @@ async function loadFilterOptions(): Promise<FilterOptions> {
 }
 
 export async function getFilterOptions(): Promise<FilterOptions> {
+  if (crmIdentity.getStore()?.role !== 'admin') return loadFilterOptions();
   if (filterOptionsCache && filterOptionsCache.expiresAt > Date.now()) {
     return filterOptionsCache.data;
   }
@@ -378,14 +390,18 @@ export class LeadNotFoundError extends Error {
 }
 
 export async function getLeadDetail(id: string) {
-  const { rows } = await pool.query('SELECT l.*, a.name AS agent_name FROM leads l LEFT JOIN agents a ON a.id = l.agent_id WHERE l.id = $1 AND l.deleted_at IS NULL', [id]);
+  const values: unknown[] = [id];
+  const access = accessSql(values, 'l');
+  const { rows } = await pool.query(`SELECT l.*, a.name AS agent_name FROM leads l LEFT JOIN agents a ON a.id = l.agent_id WHERE l.id = $1 AND l.deleted_at IS NULL AND ${access}`, values);
   if (!rows[0]) throw new LeadNotFoundError();
 
+  const enquiryValues: unknown[] = [id];
+  const enquiryAccess = enquiryAccessSql(enquiryValues);
   const [crossPortal, activities] = await Promise.all([
     pool.query(
       `SELECT ld.incoming_source, ld.matched_on, ld.created_at, ld.incoming_payload
-       FROM lead_duplicates ld WHERE ld.existing_lead_id = $1 ORDER BY ld.created_at DESC`,
-      [id]
+       FROM lead_duplicates ld WHERE ld.existing_lead_id = $1 AND ${enquiryAccess} ORDER BY ld.created_at DESC`,
+      enquiryValues
     ),
     pool.query(
       `SELECT id, type, from_status, to_status, content, occurred_at, created_by
@@ -423,11 +439,14 @@ export interface LeadInterest {
 
 /** Detail behind the multi-interest badge — fetched lazily on click, not on every list row. */
 export async function getLeadInterests(leadId: string): Promise<LeadInterest[]> {
+  await getLeadDetail(leadId);
+  const enquiryValues: unknown[] = [leadId];
+  const enquiryAccess = enquiryAccessSql(enquiryValues, 'lead_duplicates');
   const { rows } = await pool.query<{ incoming_source: string; created_at: Date; incoming_payload: Record<string, unknown> }>(
     `SELECT incoming_source, created_at, incoming_payload
-     FROM lead_duplicates WHERE existing_lead_id = $1 AND matched_on = 'phone'
+     FROM lead_duplicates WHERE existing_lead_id = $1 AND matched_on = 'phone' AND ${enquiryAccess}
      ORDER BY created_at DESC LIMIT 20`,
-    [leadId]
+    enquiryValues
   );
   return rows.map((r) => ({
     source: r.incoming_source,
@@ -476,9 +495,10 @@ export async function checkDuplicateContact(phone?: string, email?: string) {
   }
   if (clauses.length === 0) return null;
 
+  const access = accessSql(params, 'l');
   const { rows } = await pool.query(
     `SELECT l.id, l.name, l.source, l.created_at FROM leads l
-     WHERE deleted_at IS NULL AND is_duplicate = false AND (${clauses.join(' OR ')})
+     WHERE deleted_at IS NULL AND is_duplicate = false AND ${access} AND (${clauses.join(' OR ')})
      ORDER BY created_at DESC LIMIT 1`,
     params
   );
@@ -553,13 +573,15 @@ export async function createPersonalLead(input: PersonalLeadInput) {
   const phoneResult = normalizePhone(input.phone);
   const emailResult = input.email ? normalizeEmail(input.email) : { email: null };
 
+  const matches = await pool.query('SELECT id FROM leads WHERE deleted_at IS NULL AND is_duplicate = false AND (($1::text IS NOT NULL AND phone = $1) OR ($2::text IS NOT NULL AND email = $2)) LIMIT 1', [phoneResult.phone, emailResult.email]);
+  const primary = matches.rows[0];
   const { rows } = await pool.query(
     `INSERT INTO leads (
        source, name, name_normalized, phone, phone_raw, alt_phone, email, lead_date,
        listing_type, property_type, configuration, city, locality, project_name,
-       notes, next_follow_up_at, agent_id, status, source_status, raw_data
+       notes, next_follow_up_at, agent_id, status, source_status, raw_data, is_duplicate, duplicate_of_id
      ) VALUES (
-       'personal', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+       'personal', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
      ) RETURNING id`,
     [
       name,
@@ -585,6 +607,7 @@ export async function createPersonalLead(input: PersonalLeadInput) {
         priceMax: input.priceMax ?? null,
         overrideDuplicateReason: input.overrideDuplicateReason ?? null,
       }),
+      !!primary, primary?.id ?? null,
     ]
   );
   return rows[0].id as string;
@@ -613,7 +636,9 @@ export async function updateLead(id: string, patch: LeadUpdateInput) {
       await client.query('SELECT set_config($1, $2, true)', ['app.current_user_id', patch.userId]);
     }
 
-    const { rows: existingRows } = await client.query('SELECT * FROM leads WHERE id = $1 AND deleted_at IS NULL', [id]);
+    const scopeValues: unknown[] = [id];
+    const access = accessSql(scopeValues);
+    const { rows: existingRows } = await client.query(`SELECT * FROM leads WHERE id = $1 AND deleted_at IS NULL AND ${access} FOR UPDATE`, scopeValues);
     if (!existingRows[0]) throw new LeadNotFoundError();
     const existing = existingRows[0];
 
@@ -648,6 +673,9 @@ export async function updateLead(id: string, patch: LeadUpdateInput) {
 
     params.push(id);
     const { rows } = await client.query(`UPDATE leads SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+    if (patch.agentId !== undefined && patch.agentId !== existing.agent_id) {
+      await client.query(`INSERT INTO lead_activities (lead_id, type, content, created_by) VALUES ($1, 'assignment', $2, $3)`, [id, patch.agentId ? `Assigned to team member ${patch.agentId}` : 'Assignment removed', patch.userId]);
+    }
     await client.query('COMMIT');
     return rows[0];
   } catch (err) {
@@ -673,20 +701,16 @@ export async function addLeadActivity(
   // follow-up date" from the drawer) rather than two separate requests.
   nextFollowUpAt?: string | null
 ) {
-  if (nextFollowUpAt === undefined) {
-    const { rows } = await pool.query(
-      `INSERT INTO lead_activities (lead_id, type, content, created_by) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [leadId, type, content, userId]
-    );
-    return rows[0];
-  }
-
   return withTransaction(async (client) => {
+    const scopeValues: unknown[] = [leadId];
+    const access = accessSql(scopeValues);
+    const existing = await client.query(`SELECT id FROM leads WHERE id = $1 AND deleted_at IS NULL AND ${access} FOR UPDATE`, scopeValues);
+    if (!existing.rowCount) throw new LeadNotFoundError();
     const { rows } = await client.query(
       `INSERT INTO lead_activities (lead_id, type, content, created_by) VALUES ($1, $2, $3, $4) RETURNING *`,
       [leadId, type, content, userId]
     );
-    await client.query(`UPDATE leads SET next_follow_up_at = $1 WHERE id = $2`, [nextFollowUpAt, leadId]);
+    if (nextFollowUpAt !== undefined) await client.query('UPDATE leads SET next_follow_up_at = $1 WHERE id = $2', [nextFollowUpAt, leadId]);
     return rows[0];
   });
 }
@@ -704,9 +728,10 @@ export async function bulkAction(input: BulkActionInput): Promise<{ affected: nu
   if (input.ids.length === 0) return { affected: 0 };
 
   if (input.action === 'assign_agent') {
+    const values: unknown[] = [input.payload?.agentId ?? null, input.ids];
+    const access = accessSql(values);
     const { rowCount } = await pool.query(
-      'UPDATE leads SET agent_id = $1 WHERE id = ANY($2) AND deleted_at IS NULL',
-      [input.payload?.agentId ?? null, input.ids]
+      `UPDATE leads SET agent_id = $1 WHERE id = ANY($2) AND deleted_at IS NULL AND ${access}`, values
     );
     return { affected: rowCount ?? 0 };
   }
@@ -744,8 +769,10 @@ export async function bulkAction(input: BulkActionInput): Promise<{ affected: nu
         }
       }
       params.push(input.ids);
+      const idsIndex = params.length;
+      const access = accessSql(params);
       const { rowCount } = await client.query(
-        `UPDATE leads SET ${sets.join(', ')} WHERE id = ANY($${params.length}) AND deleted_at IS NULL`,
+        `UPDATE leads SET ${sets.join(', ')} WHERE id = ANY($${idsIndex}) AND deleted_at IS NULL AND ${access}`,
         params
       );
       await client.query('COMMIT');

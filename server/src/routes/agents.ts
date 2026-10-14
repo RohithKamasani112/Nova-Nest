@@ -1,7 +1,8 @@
+import { teamAccessSql } from '../lib/crmAccess';
 import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireAdmin } from '../middleware/requireAuth';
 import { asyncHandler } from '../lib/asyncHandler';
 import {
   AgentNameConflictError,
@@ -20,11 +21,13 @@ agentsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     const includeInactive = req.query.includeInactive === 'true';
+    const values: unknown[] = [includeInactive];
+    const access = teamAccessSql(values, 'agents');
     const { rows } = await pool.query(
       `SELECT id, name, email, phone, is_active, created_at FROM agents
-       WHERE ($1 OR is_active = true)
+       WHERE ($1 OR is_active = true) AND ${access}
        ORDER BY name ASC`,
-      [includeInactive]
+      values
     );
     res.json({ agents: rows });
   })
@@ -32,6 +35,7 @@ agentsRouter.get(
 
 agentsRouter.get(
   '/stats',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const includeInactive = req.query.includeInactive === 'true';
     const agents = await listAgentsWithStats(includeInactive);
@@ -47,6 +51,7 @@ const createAgentSchema = z.object({
 
 agentsRouter.post(
   '/',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const parsed = createAgentSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -71,6 +76,7 @@ const updateAgentSchema = z.object({
 
 agentsRouter.patch(
   '/:id',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const parsed = updateAgentSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -94,6 +100,7 @@ const deactivateSchema = z.object({
 
 agentsRouter.post(
   '/:id/deactivate',
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const parsed = deactivateSchema.safeParse(req.body);
     if (!parsed.success) {

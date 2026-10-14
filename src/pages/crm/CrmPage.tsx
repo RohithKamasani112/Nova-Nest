@@ -1,3 +1,4 @@
+import { useAuth } from '../../contexts/AuthContext';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useReducedMotion } from 'motion/react';
@@ -121,6 +122,9 @@ interface CrmPageProps {
 }
 
 export const CrmPage: React.FC<CrmPageProps> = ({ onShareProperties }) => {
+  const { user, logout } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const canAdd = isAdmin || user?.role === 'agent' || user?.source_scope?.includes('personal');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [personalFormOpen, setPersonalFormOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -154,17 +158,18 @@ export const CrmPage: React.FC<CrmPageProps> = ({ onShareProperties }) => {
         <div>
           <p className="crm-eyebrow mb-2">NOVA NEST · SALES WORKSPACE</p>
           <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Customer relationships</h1>
-          <p className="text-gray-600">Your leads, conversations and next steps. All in one place.</p>
+          <p className="text-gray-600">{isAdmin ? 'Your leads, conversations and next steps. All in one place.' : `${user?.name} · ${user?.role === 'agent' ? 'Assigned leads' : user?.source_scope?.includes('housing') ? 'Housing + Custom' : user?.source_scope?.includes('magicbricks') ? 'MagicBricks' : '99acres'}`}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setPersonalFormOpen(true)}>
+          {canAdd && <Button variant="outline" onClick={() => setPersonalFormOpen(true)}>
             <UserPlus size={18} />
             Add lead
-          </Button>
-          <Button onClick={() => setUploadOpen(true)}>
+          </Button>}
+          {isAdmin && <Button onClick={() => setUploadOpen(true)}>
             <UploadCloud size={18} />
             Import leads
-          </Button>
+          </Button>}
+          {!isAdmin && <Button variant="outline" onClick={() => void logout()}>Sign out</Button>}
         </div>
       </div>
 
@@ -180,8 +185,8 @@ export const CrmPage: React.FC<CrmPageProps> = ({ onShareProperties }) => {
           <TabsList className="crm-main-tabs">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="leads">Lead inbox</TabsTrigger>
-            <TabsTrigger value="agents">Agents</TabsTrigger>
-            <TabsTrigger value="history">Import History</TabsTrigger>
+            {isAdmin && <TabsTrigger value="agents">Team</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="history">Import History</TabsTrigger>}
           </TabsList>
         </div>
         <TabsContent value="dashboard" className="mt-4">
@@ -191,16 +196,16 @@ export const CrmPage: React.FC<CrmPageProps> = ({ onShareProperties }) => {
           <CrmLeadsPage
             key={`${refreshKey}-${JSON.stringify(leadsInitialFilters)}`}
             initialFilters={leadsInitialFilters}
-            onUploadClick={() => setUploadOpen(true)}
-            onShareProperties={onShareProperties}
+            onUploadClick={isAdmin ? () => setUploadOpen(true) : undefined}
+            onShareProperties={isAdmin ? onShareProperties : undefined}
           />
         </TabsContent>
-        <TabsContent value="agents" className="mt-4">
+        {isAdmin && <TabsContent value="agents" className="mt-4">
           <CrmAgentsPage />
-        </TabsContent>
-        <TabsContent value="history" className="mt-4">
+        </TabsContent>}
+        {isAdmin && <TabsContent value="history" className="mt-4">
           <ImportHistoryTab refreshKey={refreshKey} />
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
 
       <UploadModal

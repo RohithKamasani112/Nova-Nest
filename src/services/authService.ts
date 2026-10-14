@@ -5,12 +5,13 @@ import { crmApi } from './crmApi';
 // hardcoded ADMIN_EMAIL/ADMIN_PASSWORD check now that the CRM's Postgres
 // `users` table is the actual source of truth for admin credentials.
 export const login = async (credentials: LoginCredentials): Promise<AuthUser> => {
-  const { data } = await crmApi.post<{ user: { id: string; email: string; name: string; role: string }; token: string }>(
+  const { data } = await crmApi.post<{ user: Omit<AuthUser, 'accessToken'>; token: string }>(
     '/auth/login',
     { email: credentials.email, password: credentials.password }
   );
 
   const authUser: AuthUser = {
+    ...data.user,
     id: data.user.id,
     email: data.user.email,
     name: data.user.name,

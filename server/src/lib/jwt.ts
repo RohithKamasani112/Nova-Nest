@@ -5,6 +5,7 @@ export interface AuthTokenPayload {
   sub: string; // user id
   email: string;
   role: string;
+  sessionVersion?: number;
 }
 
 const EXPIRES_IN = '7d';

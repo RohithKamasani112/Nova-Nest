@@ -7,9 +7,9 @@ scheduled-visit and source filters, mobile filter sheets, agent management,
 import previews/history, dashboard improvements, and website enquiries.
 
 Admins retain Nova Nest's property management, sharing, and billing pages.
-Settings now manages one shared sales login. Sales users pick an agent (or
-All leads) per device and get the simplified lead workspace. The agent picker
-is a view preference for a shared account, not individual account isolation.
+Team logins now manages individual credentials and fixed portal/assignment
+access. See [CRM team access](TEAM_CRM_ACCESS.md) for the current role model and
+deployment steps. The earlier shared sales login has been retired.
 
 Before deployment
 -----------------
@@ -21,7 +21,8 @@ Before deployment
    remove that enum value automatically.
 3. If no admin exists, configure ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME and run
    `npm run seed` from server/. Existing admin credentials remain in PostgreSQL.
-4. Sign in as admin, open Settings, and configure the shared sales credentials.
+4. Apply the team-role migration and follow TEAM_CRM_ACCESS.md to configure
+   portal telecallers and individual team logins as admin.
 5. Deploy the server and rebuild/deploy the frontend together.
 
 Website forms submit to POST /api/public/leads without a login. If that service

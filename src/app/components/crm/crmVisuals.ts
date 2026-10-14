@@ -14,8 +14,8 @@ export const SOURCE_LABELS: Record<string, string> = {
   magicbricks: 'MagicBricks',
   housing: 'Housing',
   '99acres': '99acres',
-  personal: 'Personal',
-  website: 'Website',
+  personal: 'Custom · Manual',
+  website: 'Custom · Website',
 };
 
 export const STATUS_DOT_VAR: Record<string, string> = {

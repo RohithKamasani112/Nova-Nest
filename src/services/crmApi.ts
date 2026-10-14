@@ -25,6 +25,14 @@ const baseURL = import.meta.env.VITE_CRM_API_BASE_URL ?? 'http://localhost:4001/
 
 export const crmApi = axios.create({ baseURL });
 
+crmApi.interceptors.response.use(response => response, error => {
+  if (error.response?.status === 401 && !error.config?.url?.endsWith('/auth/login')) {
+    localStorage.removeItem('estate_auth_user');
+    window.dispatchEvent(new Event('crm-session-expired'));
+  }
+  return Promise.reject(error);
+});
+
 crmApi.interceptors.request.use((config) => {
   const raw = localStorage.getItem('estate_auth_user');
   if (raw) {

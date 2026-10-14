@@ -1,3 +1,4 @@
+import { accessSql, teamAccessSql } from '../lib/crmAccess';
 import { pool } from '../db/pool';
 
 export interface KpiParams {
@@ -14,14 +15,14 @@ function dateCol(dateField: 'lead_date' | 'created_at'): string {
 
 function scopeClause(params: KpiParams, from: string, to: string): { where: string; values: unknown[] } {
   const values: unknown[] = [from, to];
-  let where = `deleted_at IS NULL AND ${dateCol(params.dateField)} BETWEEN $1 AND $2`;
+  let where = `deleted_at IS NULL AND ${dateCol(params.dateField)} BETWEEN $1 AND $2 AND ${accessSql(values)}`;
   if (params.agentId) {
     values.push(params.agentId);
     where += ` AND agent_id = $${values.length}`;
   }
   if (params.source) {
-    values.push(params.source);
-    where += ` AND source = $${values.length}`;
+    values.push(params.source === 'custom' ? ['website', 'personal'] : params.source);
+    where += params.source === 'custom' ? ` AND source::text = ANY($${values.length}::text[])` : ` AND source = $${values.length}`;
   }
   return { where, values };
 }
@@ -71,10 +72,10 @@ async function fetchScorecards(params: KpiParams, from: string, to: string): Pro
 
 async function fetchDuplicatesBlocked(params: KpiParams, from: string, to: string): Promise<number> {
   const values: unknown[] = [from, to];
-  let where = 'ld.created_at BETWEEN $1 AND $2';
+  let where = `ld.created_at BETWEEN $1 AND $2 AND EXISTS (SELECT 1 FROM leads l WHERE l.id = ld.existing_lead_id AND l.deleted_at IS NULL AND ${accessSql(values, 'l')})`;
   if (params.source) {
-    values.push(params.source);
-    where += ` AND ld.incoming_source = $${values.length}`;
+    values.push(params.source === 'custom' ? ['website', 'personal'] : params.source);
+    where += params.source === 'custom' ? ` AND ld.incoming_source::text = ANY($${values.length}::text[])` : ` AND ld.incoming_source = $${values.length}`;
   }
   const { rows } = await pool.query<{ count: string }>(`SELECT count(*) FROM lead_duplicates ld WHERE ${where}`, values);
   return Number(rows[0].count);
@@ -82,14 +83,14 @@ async function fetchDuplicatesBlocked(params: KpiParams, from: string, to: strin
 
 async function fetchFollowUpCounts(params: KpiParams): Promise<{ pending: number; overdue: number }> {
   const values: unknown[] = [];
-  let extra = '';
+  let extra = ` AND ${accessSql(values)}`;
   if (params.agentId) {
     values.push(params.agentId);
     extra += ` AND agent_id = $${values.length}`;
   }
   if (params.source) {
-    values.push(params.source);
-    extra += ` AND source = $${values.length}`;
+    values.push(params.source === 'custom' ? ['website', 'personal'] : params.source);
+    extra += params.source === 'custom' ? ` AND source::text = ANY($${values.length}::text[])` : ` AND source = $${values.length}`;
   }
   const { rows } = await pool.query<{ pending: string; overdue: string }>(
     `SELECT
@@ -301,12 +302,13 @@ export async function getKpis(params: KpiParams) {
 
 export async function getAgentLeaderboard(params: Omit<KpiParams, 'agentId'>) {
   const values: unknown[] = [params.from, params.to];
-  let where = `l.deleted_at IS NULL AND l.${dateCol(params.dateField)} BETWEEN $1 AND $2`;
+  let where = `l.deleted_at IS NULL AND l.${dateCol(params.dateField)} BETWEEN $1 AND $2 AND ${accessSql(values, 'l')}`;
   if (params.source) {
-    values.push(params.source);
-    where += ` AND l.source = $${values.length}`;
+    values.push(params.source === 'custom' ? ['website', 'personal'] : params.source);
+    where += params.source === 'custom' ? ` AND l.source::text = ANY($${values.length}::text[])` : ` AND l.source = $${values.length}`;
   }
 
+  const teamAccess = teamAccessSql(values);
   const { rows } = await pool.query(
     `SELECT
        a.id AS agent_id, a.name AS agent_name,
@@ -321,7 +323,7 @@ export async function getAgentLeaderboard(params: Omit<KpiParams, 'agentId'>) {
        sum(l.deal_value) FILTER (WHERE l.status = 'converted') AS deal_value
      FROM agents a
      LEFT JOIN leads l ON l.agent_id = a.id AND ${where}
-     WHERE a.is_active = true
+     WHERE a.is_active = true AND ${teamAccess}
      GROUP BY a.id, a.name
      ORDER BY total DESC`,
     values
@@ -343,18 +345,25 @@ export async function getAgentLeaderboard(params: Omit<KpiParams, 'agentId'>) {
   }));
 }
 
-export async function getAgentSourceCrosstab(params: Omit<KpiParams, 'agentId' | 'source'>) {
+export async function getAgentSourceCrosstab(params: Omit<KpiParams, 'agentId'>) {
+  const values: unknown[] = [params.from, params.to];
+  let access = accessSql(values, 'l');
+  if (params.source) {
+    values.push(params.source === 'custom' ? ['website', 'personal'] : [params.source]);
+    access += ` AND l.source::text = ANY($${values.length}::text[])`;
+  }
+  const teamAccess = teamAccessSql(values);
   const { rows } = await pool.query(
     `SELECT
        a.id AS agent_id, a.name AS agent_name, l.source,
        count(l.id) AS total,
        count(l.id) FILTER (WHERE l.status = 'converted') AS converted
      FROM agents a
-     JOIN leads l ON l.agent_id = a.id AND l.deleted_at IS NULL AND l.${dateCol(params.dateField)} BETWEEN $1 AND $2
-     WHERE a.is_active = true
+     JOIN leads l ON l.agent_id = a.id AND l.deleted_at IS NULL AND l.${dateCol(params.dateField)} BETWEEN $1 AND $2 AND ${access}
+     WHERE a.is_active = true AND ${teamAccess}
      GROUP BY a.id, a.name, l.source
      ORDER BY a.name, l.source`,
-    [params.from, params.to]
+    values
   );
   return rows.map((r) => ({
     agentId: r.agent_id,

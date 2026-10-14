@@ -529,7 +529,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                   Lead
                 </div>
               </th>
-              {['Property', 'BHK', 'Agent / Status', 'Follow-up'].map((label, i) => (
+              {['Property', 'BHK', 'Team / Status', 'Follow-up'].map((label, i) => (
                 <th
                   key={label}
                   style={{

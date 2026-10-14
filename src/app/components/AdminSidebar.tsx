@@ -29,7 +29,7 @@ const menuItems = [
   { id: 'crm', label: 'CRM', icon: Contact },
   { id: 'generate-bill', label: 'Generate Bill', icon: Receipt },
   { id: 'share-properties', label: 'Share Properties', icon: Share2 },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'settings', label: 'Team logins', icon: Settings },
 ];
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({

@@ -12,7 +12,7 @@ const querySchema = z.object({
   to: z.string(),
   dateField: z.enum(['lead_date', 'created_at']).default('lead_date'),
   agentId: z.string().uuid().optional(),
-  source: z.enum(['housing', 'magicbricks', '99acres', 'personal']).optional(),
+  source: z.enum(['housing', 'magicbricks', '99acres', 'personal', 'website', 'custom']).optional(),
 });
 
 function parseQuery(q: unknown) {

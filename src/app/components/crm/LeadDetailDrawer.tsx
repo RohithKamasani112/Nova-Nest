@@ -1,3 +1,5 @@
+import { useCrmRefresh } from './useCrmRefresh';
+import { useAuth } from '../../../contexts/AuthContext';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../ui/sheet';
@@ -35,6 +37,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   const [lead, setLead] = useState<LeadDetail | null>(null);
   const [interests, setInterests] = useState<LeadInterest[]>([]);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const canAssign = isAdmin || user?.role === 'telecaller';
   const [agents, setAgents] = useState<CrmAgent[]>([]);
   const [noteText, setNoteText] = useState('');
   const [noteFollowUp, setNoteFollowUp] = useState<string | null>(null);
@@ -45,20 +50,22 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   const [loading, setLoading] = useState(false);
   const [addAgentOpen, setAddAgentOpen] = useState(false);
 
-  const load = () => {
+  const load = (background = false) => {
     if (!leadId) return;
-    setLoading(true);
+    if (!background) setLoading(true);
     getLeadDetail(leadId)
       .then((d) => {
         setLead(d.lead);
         setActivities(d.activities);
       })
-      .catch(() => toast.error('Could not load lead details.'))
+      .catch((error) => { if (error?.response?.status === 404) { setLead(null); onClose(); } else if (!background) toast.error('Could not load lead details.'); })
       .finally(() => setLoading(false));
     getLeadInterests(leadId)
       .then((r) => setInterests(r.interests))
       .catch(() => setInterests([]));
   };
+
+  useCrmRefresh(() => load(true), !!leadId);
 
   useEffect(() => {
     // This drawer is one persistent component instance whose `leadId` prop
@@ -129,11 +136,11 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
     if (!lead) return;
     try {
       await updateLead(lead.id, { agentId: agentId === '__unassigned__' ? null : agentId });
-      toast.success('Agent reassigned.');
+      toast.success('Team member reassigned.');
       load();
       onChanged();
     } catch {
-      toast.error('Could not reassign agent.');
+      toast.error('Could not reassign team member.');
     }
   };
 
@@ -361,8 +368,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                 )}
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Agent</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Team</label>
                 <Select
+                  disabled={!canAssign}
                   value={lead.agent_id ?? '__unassigned__'}
                   onValueChange={(v) => (v === ADD_NEW_AGENT ? setAddAgentOpen(true) : handleReassign(v))}
                 >
@@ -376,7 +384,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                         {a.name}
                       </SelectItem>
                     ))}
-                    <SelectItem value={ADD_NEW_AGENT} className="text-primary">+ Add new agent</SelectItem>
+                    {isAdmin && <SelectItem value={ADD_NEW_AGENT} className="text-primary">+ Add new team member</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>

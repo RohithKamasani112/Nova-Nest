@@ -309,6 +309,9 @@ export interface PaginatedResponse<T> {
 
 // Auth Types
 export interface AuthUser {
+  username?: string | null;
+  source_scope?: string[];
+  agent_id?: string | null;
   role: string;
   id: string;
   email: string;

@@ -56,12 +56,12 @@ export const FilterFieldsContent: React.FC<FilterFieldsProps> = ({
         emptyLabel="No statuses yet"
       />
       <MultiSelect
-        label="Agent"
+        label="Team"
         options={agentOptions}
         selected={filters.agentId ?? []}
         onChange={(v) => onChange({ agentId: v })}
         loading={loading}
-        emptyLabel="No agents yet"
+        emptyLabel="No team members yet"
       />
       <MultiSelect
         label="City"

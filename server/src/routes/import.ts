@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireAdmin } from '../middleware/requireAuth';
 import { uploadRateLimiter } from '../middleware/rateLimiter';
 import { asyncHandler } from '../lib/asyncHandler';
 import {
@@ -33,7 +33,7 @@ const upload = multer({
 const SOURCES: CrmSource[] = ['housing', 'magicbricks', '99acres', 'personal'];
 const sourceSchema = z.enum(SOURCES as [CrmSource, ...CrmSource[]]);
 
-importRouter.use(requireAuth);
+importRouter.use(requireAuth, requireAdmin);
 
 importRouter.post(
   '/preview',

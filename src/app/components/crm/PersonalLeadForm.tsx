@@ -1,3 +1,4 @@
+import { useAuth } from '../../../contexts/AuthContext';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
@@ -46,6 +47,7 @@ const emptyForm = (): PersonalLeadInput => ({
 });
 
 export const PersonalLeadForm: React.FC<PersonalLeadFormProps> = ({ open, onClose, onCreated }) => {
+  const { user } = useAuth();
   const [form, setForm] = useState<PersonalLeadInput>(emptyForm());
   const [agents, setAgents] = useState<CrmAgent[]>([]);
   const [saving, setSaving] = useState(false);
@@ -54,7 +56,7 @@ export const PersonalLeadForm: React.FC<PersonalLeadFormProps> = ({ open, onClos
 
   useEffect(() => {
     if (open) {
-      setForm(emptyForm());
+      setForm({ ...emptyForm(), agentId: user?.role === 'agent' ? user.agent_id ?? null : null });
       setDuplicate(null);
       setOverrideDuplicate(false);
       listAgents().then(setAgents).catch(() => setAgents([]));
@@ -78,7 +80,6 @@ export const PersonalLeadForm: React.FC<PersonalLeadFormProps> = ({ open, onClos
   const handleSubmit = async () => {
     if (!form.name.trim()) return toast.error('Name is required.');
     if (!form.phone.trim()) return toast.error('Phone is required.');
-    if (!form.agentId) return toast.error('Please assign an agent.');
     if (duplicate && !overrideDuplicate) {
       return toast.error('This number already exists. Check the box to add anyway, or cancel.');
     }
@@ -104,7 +105,7 @@ export const PersonalLeadForm: React.FC<PersonalLeadFormProps> = ({ open, onClos
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Personal Lead</DialogTitle>
+          <DialogTitle>Add Custom lead</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -166,12 +167,13 @@ export const PersonalLeadForm: React.FC<PersonalLeadFormProps> = ({ open, onClos
           </div>
 
           <div>
-            <Label className="mb-1.5 block">Agent *</Label>
-            <Select value={form.agentId ?? ''} onValueChange={(v) => set('agentId', v)}>
+            <Label className="mb-1.5 block">Team</Label>
+            <Select disabled={user?.role === 'agent'} value={form.agentId ?? '__unassigned__'} onValueChange={(v) => set('agentId', v === '__unassigned__' ? null : v)}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select agent" />
+                <SelectValue placeholder="Select team member" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__unassigned__">Unassigned</SelectItem>
                 {agents.map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.name}

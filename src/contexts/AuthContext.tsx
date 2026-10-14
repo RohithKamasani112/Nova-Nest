@@ -30,6 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Check for existing session on mount
   useEffect(() => {
     checkAuth();
+    const expire = () => { clearSalesView(); setUser(null); };
+    window.addEventListener('crm-session-expired', expire);
+    return () => window.removeEventListener('crm-session-expired', expire);
   }, []);
 
   const checkAuth = async () => {
@@ -71,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = async () => {
     try {
       await authLogout();
-      clearSalesView(); // shared sales login — next login shows the "who's this?" picker again
+      clearSalesView(); // Remove legacy device preferences as well as the session.
       setUser(null);
       toast.success('Logged out successfully');
     } catch (error: any) {

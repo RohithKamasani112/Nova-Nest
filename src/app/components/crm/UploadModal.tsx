@@ -424,7 +424,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ open, onClose, onImpor
                         {a.name}
                       </SelectItem>
                     ))}
-                    <SelectItem value="__add_new__" className="text-primary">+ Add new agent</SelectItem>
+                    <SelectItem value="__add_new__" className="text-primary">+ Add new team member</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

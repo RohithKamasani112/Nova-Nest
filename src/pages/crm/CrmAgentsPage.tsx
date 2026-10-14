@@ -30,7 +30,7 @@ export const CrmAgentsPage: React.FC = () => {
     setLoading(true);
     listAgentsWithStats(showInactive)
       .then(setAgents)
-      .catch(() => toast.error('Could not load agents.'))
+      .catch(() => toast.error('Could not load team.'))
       .finally(() => setLoading(false));
   };
 
@@ -55,7 +55,7 @@ export const CrmAgentsPage: React.FC = () => {
       toast.success(`${agent.name} reactivated.`);
       load();
     } catch {
-      toast.error('Could not reactivate agent.');
+      toast.error('Could not reactivate team member.');
     }
   };
 
@@ -72,7 +72,7 @@ export const CrmAgentsPage: React.FC = () => {
         setReassignTarget('__unassigned__');
         return;
       }
-      toast.error(data?.error ?? 'Could not deactivate agent.');
+      toast.error(data?.error ?? 'Could not deactivate team member.');
     }
   };
 
@@ -89,7 +89,7 @@ export const CrmAgentsPage: React.FC = () => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Agents</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Team</h2>
           <p className="text-sm text-muted-foreground">Manage who leads get assigned to.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -98,7 +98,7 @@ export const CrmAgentsPage: React.FC = () => {
             Show inactive
           </label>
           <Button onClick={openCreate}>
-            <UserPlus size={16} /> Add Agent
+            <UserPlus size={16} /> Add team member
           </Button>
         </div>
       </div>
@@ -110,7 +110,7 @@ export const CrmAgentsPage: React.FC = () => {
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-gray-100" />)
         ) : agents.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-muted-foreground">No agents yet.</p>
+          <p className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-muted-foreground">No team members yet.</p>
         ) : (
           agents.map((a) => (
             <AgentCard
@@ -145,7 +145,7 @@ export const CrmAgentsPage: React.FC = () => {
             {loading ? (
               <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">Loading...</TableCell></TableRow>
             ) : agents.length === 0 ? (
-              <TableRow><TableCell colSpan={10} className="py-10 text-center text-muted-foreground">No agents yet.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="py-10 text-center text-muted-foreground">No team members yet.</TableCell></TableRow>
             ) : (
               agents.map((a) => (
                 <TableRow key={a.id}>

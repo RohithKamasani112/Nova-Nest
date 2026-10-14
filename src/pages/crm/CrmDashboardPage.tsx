@@ -1,3 +1,4 @@
+import { useCrmRefresh } from '../../app/components/crm/useCrmRefresh';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
@@ -62,11 +63,11 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<CrmSource[] | undefined>();
 
-  useEffect(() => {
-    setLoading(true);
+  const loadDashboard = (background = false) => {
+    if (!background) setLoading(true);
     Promise.all([
-      getKpis({ ...period, dateField, source: source?.[0] }),
-      getAgentLeaderboard({ ...period, dateField, source: source?.[0] }),
+      getKpis({ ...period, dateField, source: source?.length === 2 && source.includes('website') ? 'custom' : source?.[0] }),
+      getAgentLeaderboard({ ...period, dateField, source: source?.length === 2 && source.includes('website') ? 'custom' : source?.[0] }),
     ])
       .then(([kpis, agents]) => {
         setData(kpis);
@@ -74,7 +75,9 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
       })
       .catch(() => toast.error('Could not load dashboard data.'))
       .finally(() => setLoading(false));
-  }, [period.from, period.to, dateField, source]);
+  };
+  useEffect(() => { loadDashboard(); }, [period.from, period.to, dateField, source]);
+  useCrmRefresh(() => loadDashboard(true));
 
   const drill = (extra: LeadFiltersState) => onDrillDown({ source, dateField, ...(rangeState.preset === 'all' ? {} : { dateFrom: period.from, dateTo: period.to }), ...extra });
 
@@ -89,7 +92,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
       <DateRangePicker state={rangeState} range={period} onUpdate={updateRange} />
       <SourceQuickFilters source={source} onChange={setSource} />
 
-      <TodaysCallsPanel sourceScope={source?.[0]} onViewAll={filters => onDrillDown({ ...filters, source })} />
+      <TodaysCallsPanel sourceScope={source} onViewAll={filters => onDrillDown({ ...filters, source })} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <StatCard label="Total Leads" value={current.totalLeads} metricKey="totalLeads" delta={rangeState.preset === 'all' ? null : deltas.totalLeads} onClick={() => drill({})} />
@@ -215,7 +218,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Agent Leaderboard</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-900">Team performance</h2>
 
         {/* Mobile — below md: reads like a ranking (rank, name, headline
             metric), not a horizontally-scrolled 11-column table. Tap a row
@@ -231,7 +234,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Agent</TableHead>
+                <TableHead>Team</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>New</TableHead>
                 <TableHead>Contacted</TableHead>

@@ -23,7 +23,8 @@
     "package:portals": "npm run package:magicbricks",
     "package:magicbricks": "npm run build && node scripts/package-magicbricks.mjs",
     "dev:magicbricks": "npm run build && node scripts/test-magicbricks-local.mjs",
-    "deploy:lambda": "node scripts/deploy-lambda.mjs"
+    "deploy:lambda": "node scripts/deploy-lambda.mjs",
+    "test:team-access:db": "npm run build && node --test dist/test/teamAccessDb.test.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.629.0",

@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff, Home } from 'lucide-react';
 import companyLogo from '../assets/companyLogo.png';
-import { SALES_VIEW_AGENT_KEY } from '../utils/salesView';
 
 interface LoginPageProps {
   onNavigate: (page: string) => void;
@@ -21,14 +20,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
     setIsLoading(true);
 
     try {
-      const authUser = await login({ email, password });
-      if (authUser.role === 'sales') {
-        // Straight to the leads view if this device already has a stored
-        // "who am I" choice, otherwise the picker first.
-        onNavigate(localStorage.getItem(SALES_VIEW_AGENT_KEY) ? 'sales-leads' : 'sales-home');
-      } else {
-        onNavigate('crm');
-      }
+      await login({ email: email.trim(), password });
+      onNavigate('crm');
     } catch (error) {
       // Error already handled by context
     } finally {
@@ -100,7 +93,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             </div>
 
             <div className="mt-12 pt-8 border-t border-gray-700">
-              <p className="text-xs text-gray-400">Secure admin access only</p>
+              <p className="text-xs text-gray-400">Secure access for your team</p>
             </div>
           </motion.div>
         </div>
@@ -113,23 +106,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             transition={{ duration: 0.6 }}
             className="w-full max-w-md"
           >
-            <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:text-3xl">Admin Login</h2>
-            <p className="text-gray-600 mb-8">Enter your secure admin details to continue</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:text-3xl">Team Login</h2>
+            <p className="text-gray-600 mb-8">Use the credentials provided by your administrator</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
+                  Email or username
                 </label>
                 <div className="relative">
                   <Mail size={18} className="absolute left-3 top-3 text-gray-400" />
                   <input
-                    type="email"
+                    type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                    placeholder="Email address"
+                    placeholder="Email or username"
                   />
                 </div>
               </div>

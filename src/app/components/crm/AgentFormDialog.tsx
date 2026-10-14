@@ -39,11 +39,11 @@ export const AgentFormDialog: React.FC<AgentFormDialogProps> = ({ open, onClose,
       const saved = agent
         ? await updateAgent(agent.id, { name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, isActive })
         : await createAgent({ name: name.trim(), email: email.trim() || null, phone: phone.trim() || null });
-      toast.success(agent ? 'Agent updated.' : 'Agent added.');
+      toast.success(agent ? 'Team member updated.' : 'Team member added.');
       onSaved(saved);
       onClose();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error ?? 'Could not save agent.');
+      toast.error(err?.response?.data?.error ?? 'Could not save team member.');
     } finally {
       setSaving(false);
     }
@@ -53,7 +53,7 @@ export const AgentFormDialog: React.FC<AgentFormDialogProps> = ({ open, onClose,
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{agent ? 'Edit agent' : 'Add agent'}</DialogTitle>
+          <DialogTitle>{agent ? 'Edit team member' : 'Add team member'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>

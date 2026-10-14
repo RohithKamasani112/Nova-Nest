@@ -1,3 +1,5 @@
+import { useCrmRefresh } from '../../app/components/crm/useCrmRefresh';
+import { useAuth } from '../../contexts/AuthContext';
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -63,6 +65,9 @@ interface CrmLeadsPageProps {
 }
 
 export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUploadClick, onShareProperties }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const canAssign = isAdmin || user?.role === 'telecaller';
   const [rangeState, updateRange, period] = useDateRangeState();
   const [filters, setFilters] = useState<LeadFiltersState>({ page: 1, pageSize: 50, ...initialFilters });
   const [searchInput, setSearchInput] = useState(initialFilters?.search ?? '');
@@ -112,8 +117,8 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refresh = () => {
-    setLoading(true);
+  const refresh = (background = false) => {
+    if (!background) setLoading(true);
     listLeads(filters)
       .then((r) => {
         setLeads(r.leads);
@@ -130,6 +135,8 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
     setMobileDraft(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  useCrmRefresh(() => refresh(true), mobileLoadedPage === 1 && selectedIds.size === 0);
 
   const loadMoreMobile = async () => {
     const nextPage = mobileLoadedPage + 1;
@@ -216,7 +223,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
   const filterLabels: Record<FilterListKey, string> = {
     source: 'Source',
     status: 'Status',
-    agentId: 'Agent',
+    agentId: 'Team',
     city: 'City',
     locality: 'Locality',
     project: 'Project',
@@ -421,10 +428,10 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
           onValueChange={(v) => setFilters((p) => ({ ...p, agentId: v === '__all__' ? undefined : [v], page: 1 }))}
         >
           <SelectTrigger className="h-9 w-auto gap-1.5 whitespace-nowrap">
-            <SelectValue placeholder="Agent" />
+            <SelectValue placeholder="Team" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All agents</SelectItem>
+            <SelectItem value="__all__">All team members</SelectItem>
             {agentOptions.map((a) => (
               <SelectItem key={a.value} value={a.value}>
                 {a.label}
@@ -566,14 +573,14 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
                 {statusOptions.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select onValueChange={(v) => (v === '__add_new__' ? setAddAgentOpen(true) : handleBulkAgent(v))}>
-              <SelectTrigger className="h-9 w-44"><SelectValue placeholder="Reassign agent..." /></SelectTrigger>
+            {canAssign && <Select onValueChange={(v) => (v === '__add_new__' ? setAddAgentOpen(true) : handleBulkAgent(v))}>
+              <SelectTrigger className="h-9 w-44"><SelectValue placeholder="Assign team member..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__unassigned__">Unassigned</SelectItem>
                 {options.agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                <SelectItem value="__add_new__" className="text-primary">+ Add new agent</SelectItem>
+                {isAdmin && <SelectItem value="__add_new__" className="text-primary">+ Add new team member</SelectItem>}
               </SelectContent>
-            </Select>
+            </Select>}
             <Button variant="ghost" className="h-9 gap-1.5 text-muted-foreground" onClick={() => setSelectedIds(new Set())}>
               <XCircle size={14} /> Clear
             </Button>
@@ -593,7 +600,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
         onToggleAll={toggleAll}
         allSelected={allSelected}
         onRowClick={setOpenLeadId}
-        onChanged={refresh}
+        onChanged={() => refresh()}
         density={density}
         visibleColumns={visibleColumns}
         hasActiveFilters={hasActiveFilters}
@@ -682,7 +689,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
       <LeadDetailDrawer
         leadId={openLeadId}
         onClose={() => setOpenLeadId(null)}
-        onChanged={refresh}
+        onChanged={() => refresh()}
         onShareProperties={onShareProperties}
       />
       <AgentFormDialog

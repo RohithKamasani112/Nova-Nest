@@ -1,3 +1,4 @@
+import { leadAccess } from '../middleware/leadAccess';
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/requireAuth';
@@ -21,7 +22,7 @@ import {
 } from '../services/leadsService';
 
 export const leadsRouter = Router();
-leadsRouter.use(requireAuth);
+leadsRouter.use(requireAuth, leadAccess);
 
 function parseArrayParam(value: unknown): string[] | undefined {
   if (value === undefined || value === null || value === '') return undefined;

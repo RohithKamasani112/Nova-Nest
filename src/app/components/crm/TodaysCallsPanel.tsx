@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useCrmRefresh } from './useCrmRefresh';
 import toast from 'react-hot-toast';
 import { StickyNote, CalendarClock, Check, PhoneCall, MoreHorizontal, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -119,7 +120,7 @@ interface TodaysCallsPanelProps {
    * to all agents.
    */
   agentScope?: string;
-  sourceScope?: CrmSource;
+  sourceScope?: CrmSource | CrmSource[];
 }
 
 export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll, agentScope, sourceScope }) => {
@@ -136,17 +137,19 @@ export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll, a
     listAgents().then(setAgents).catch(() => setAgents([]));
   }, [agentScope]);
 
-  const load = () => {
-    setLoading(true);
+  const load = (background = false) => {
+    if (!background) setLoading(true);
     setLoadError(false);
     getTodaysCalls(agentId === '__all__' ? undefined : agentId)
       .then((r) => {
-        setOverdue(r.overdue.filter(lead => !sourceScope || lead.source === sourceScope));
-        setDueToday(r.dueToday.filter(lead => !sourceScope || lead.source === sourceScope));
+        setOverdue(r.overdue.filter(lead => !sourceScope || (Array.isArray(sourceScope) ? sourceScope.includes(lead.source as CrmSource) : lead.source === sourceScope)));
+        setDueToday(r.dueToday.filter(lead => !sourceScope || (Array.isArray(sourceScope) ? sourceScope.includes(lead.source as CrmSource) : lead.source === sourceScope)));
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   };
+
+  useCrmRefresh(() => load(true));
 
   useEffect(() => {
     load();
@@ -170,7 +173,7 @@ export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll, a
     return <div className="crm-calls-panel rounded-xl border bg-white p-4 text-sm text-muted-foreground">Loading today's calls...</div>;
   }
 
-  if (loadError) return <div className="crm-calls-panel crm-reminder-error" role="alert"><span>Could not load daily reminders.</span><Button variant="outline" onClick={load}>Retry</Button></div>;
+  if (loadError) return <div className="crm-calls-panel crm-reminder-error" role="alert"><span>Could not load daily reminders.</span><Button variant="outline" onClick={() => load()}>Retry</Button></div>;
 
   if (total === 0) {
     return (
@@ -192,7 +195,7 @@ export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll, a
             <Select value={agentId} onValueChange={setAgentId}>
               <SelectTrigger aria-label="Reminder agent" className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All agents</SelectItem>
+                <SelectItem value="__all__">All team members</SelectItem>
                 {agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
