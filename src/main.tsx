@@ -2,6 +2,8 @@
   import { createRoot } from "react-dom/client";
   import App from "./app/App.tsx";
   import "./styles/index.css";
+  import { installDemoMode } from './utils/demoMode';
+  installDemoMode();
 
   // Prevent the mouse wheel from changing the value of a focused number input.
   // Blurring on wheel lets the page keep scrolling normally without nudging the field.

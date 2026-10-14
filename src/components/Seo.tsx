@@ -72,7 +72,7 @@ export const Seo: FC<SeoProps> = ({
 
     document.title = title;
     upsertMeta('name', 'description', description);
-    upsertMeta('name', 'robots', noindex ? 'noindex, follow' : 'index, follow');
+    upsertMeta('name', 'robots', import.meta.env.VITE_DEMO_MODE === 'true' ? 'noindex, nofollow' : noindex ? 'noindex, follow' : 'index, follow');
     upsertLink('canonical', url);
 
     // Open Graph

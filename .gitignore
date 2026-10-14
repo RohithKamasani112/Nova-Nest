@@ -59,3 +59,4 @@ server/lambda-deploy.zip
 server/awscliv2.zip
 .env.*
 !.env.example
+.demo/

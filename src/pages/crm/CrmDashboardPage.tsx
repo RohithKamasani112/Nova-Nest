@@ -48,8 +48,8 @@ const StatCard: React.FC<{
     className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-shadow sm:p-4 ${onClick ? 'cursor-pointer hover:shadow-md' : 'cursor-default'} ${danger ? 'border-red-200 bg-red-50' : 'bg-white'}`}
   >
     <span className="break-words text-xs font-medium text-muted-foreground">{label}</span>
-    <div className="flex items-baseline gap-2">
-      <span className="text-2xl font-bold text-gray-900">{value}</span>
+    <div className="flex min-w-0 flex-wrap items-baseline gap-2">
+      <span className="min-w-0 break-words text-xl font-bold text-gray-900 sm:text-2xl" style={{ overflowWrap: 'anywhere' }}>{value}</span>
       {metricKey && <DeltaBadge metric={metricKey} delta={delta ?? null} />}
     </div>
   </button>

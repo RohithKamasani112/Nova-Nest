@@ -25,7 +25,7 @@ try {
   for (const name of names) {
     const base = path.posix.basename(name);
     const forbidden = (base === '.env' || base.startsWith('.env.') && base !== '.env.example') ||
-      /^server\/(?:\.lambda-env\.json|\.lambda-package\/|lambda-deploy\.zip|awscliv2\.zip)/.test(name) || /(^|\/)\.aws\/credentials$/.test(name);
+      /^server\/(?:\.lambda-env\.json|\.lambda-package\/|lambda-deploy\.zip|awscliv2\.zip)/.test(name) || /^\.demo\//.test(name) || /(^|\/)\.aws\/credentials$/.test(name);
     if (forbidden) { flagged.push(name); continue; }
     if (!/\.(?:[cm]?[jt]sx?|json|md|txt|ya?ml|toml|pem|key|html|xml)$/.test(name)) continue;
     const content = execFileSync(git, ['show', `:${name}`], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 15 * 1024 * 1024 });

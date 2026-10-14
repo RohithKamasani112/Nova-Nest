@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { isDemo } from '../utils/demoMode';
 import { Property, Inquiry } from '../types';
 import { createLead, getAllProperties } from '../services/storageService';
 import { trackWhatsAppClick, trackPhoneClick } from '../utils/analytics';
@@ -268,6 +269,7 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
   const handleCall = () => {
     trackPhoneClick('property_detail', { property_id: property.id, property_name: property.title });
     saveQuickLead('Call', 'contact-owner');
+    if (isDemo) { toast('Demo property call simulated. No real call was placed.'); return; }
     window.location.href = `tel:+${contactNumber}`;
   };
 
