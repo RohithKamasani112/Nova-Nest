@@ -16,8 +16,25 @@ function figmaAssetResolver() {
   }
 }
 
+// Apply neutral branding only to the separate demo build.
+function demoBranding() {
+  const enabled = process.env.VITE_DEMO_MODE === 'true'
+  return {
+    name: 'demo-branding',
+    enforce: 'pre' as const,
+    resolveId(id: string) {
+      if (enabled && (id.endsWith('/companyLogo.png') || id.endsWith('/first_page_image.png'))) return path.resolve(__dirname, 'src/assets/demoLogo.png')
+    },
+    transform(source: string, id: string) {
+      if (!enabled || !id.includes('/src/') || !/\.[jt]sx?$/.test(id)) return null
+      return source.replace(/nova nest/gi, 'Estate CRM Demo').replace(/\bNova\b/g, 'Estate').replace(/\bNest\b/g, 'Demo')
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
+    demoBranding(),
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them

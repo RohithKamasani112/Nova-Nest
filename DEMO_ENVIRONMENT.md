@@ -4,6 +4,14 @@ Live website: https://demo.dabsn60w9rjm8.amplifyapp.com
 
 Client guide: https://demo.dabsn60w9rjm8.amplifyapp.com/demo-notes.html
 
+The client-facing brand is **Estate CRM Demo**, including a neutral logo.
+Demo builds apply this branding through a Vite plugin; production builds retain
+their existing identity. Six illustrative stock property/interior photos from
+Unsplash are used across three-image galleries and restored by nightly reset.
+Download the assets with `node server/scripts/download-demo-photos.mjs` before
+a release; `refresh-demo-photos.mjs` updates only the seeded property galleries.
+Photo license: https://unsplash.com/license.
+
 The demo runs in a separate Amplify app, Lambda, private S3 bucket and PostgreSQL
 database with its own restricted login. It shares the existing Neon compute
 service, but does not copy or modify production tables. It is a shared client
