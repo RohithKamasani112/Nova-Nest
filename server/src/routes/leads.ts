@@ -210,6 +210,8 @@ leadsRouter.get(
 );
 
 const updateSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  phone: z.string().trim().max(30).optional(),
   status: z.string().optional(),
   agentId: z.string().uuid().nullable().optional(),
   notes: z.string().nullable().optional(),
@@ -234,6 +236,8 @@ leadsRouter.patch(
       if (err instanceof Error && err.message === 'LOST_REASON_REQUIRED') {
         return res.status(400).json({ error: 'A lost reason is required when marking a lead closed_lost.' });
       }
+      if (err instanceof Error && err.message === 'INVALID_PHONE') return res.status(400).json({ error: 'Enter a valid Indian mobile number, optionally with +91.' });
+      if (err instanceof Error && err.message === 'INVALID_NAME') return res.status(400).json({ error: 'Name is required.' });
       if (err instanceof Error && err.message === 'INVALID_STATUS') {
         return res.status(400).json({ error: 'Invalid status value.' });
       }

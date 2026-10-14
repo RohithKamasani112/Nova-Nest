@@ -618,6 +618,8 @@ export async function createPersonalLead(input: PersonalLeadInput) {
 const STATUS_VALUES = STATUS_OPTIONS.map((s) => s.value);
 
 export interface LeadUpdateInput {
+  name?: string;
+  phone?: string;
   status?: string;
   agentId?: string | null;
   notes?: string | null;
@@ -649,6 +651,18 @@ export async function updateLead(id: string, patch: LeadUpdateInput) {
       sets.push(`${col} = $${params.length}`);
     };
 
+    if (patch.name !== undefined) {
+      const name = normalizeName(patch.name);
+      if (!name) throw new Error('INVALID_NAME');
+      add('name', name);
+      add('name_normalized', normalizeNameKey(name));
+    }
+    if (patch.phone !== undefined) {
+      const normalized = normalizePhone(patch.phone);
+      if (!normalized.phone || !/^[+\d\s().-]+$/.test(patch.phone) || patch.phone.replace(/\D/g, '').length > 12) throw new Error('INVALID_PHONE');
+      add('phone', normalized.phone);
+      add('phone_raw', normalized.phoneRaw);
+    }
     if (patch.status !== undefined) {
       if (!STATUS_VALUES.includes(patch.status)) throw new Error('INVALID_STATUS');
       add('status', patch.status);
@@ -673,6 +687,9 @@ export async function updateLead(id: string, patch: LeadUpdateInput) {
 
     params.push(id);
     const { rows } = await client.query(`UPDATE leads SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+    if ((patch.name !== undefined && rows[0].name !== existing.name) || (patch.phone !== undefined && rows[0].phone !== existing.phone)) {
+      await client.query(`INSERT INTO lead_activities (lead_id, type, content, created_by) VALUES ($1, 'note', $2, $3)`, [id, 'Lead contact details updated.', patch.userId]);
+    }
     if (patch.agentId !== undefined && patch.agentId !== existing.agent_id) {
       await client.query(`INSERT INTO lead_activities (lead_id, type, content, created_by) VALUES ($1, 'assignment', $2, $3)`, [id, patch.agentId ? `Assigned to team member ${patch.agentId}` : 'Assignment removed', patch.userId]);
     }

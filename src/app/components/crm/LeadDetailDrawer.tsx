@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../ui/sheet';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { CalendarDays, Mail, ExternalLink, Share2, MessageSquareText } from 'lucide-react';
@@ -49,6 +50,10 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   const [lostReason, setLostReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [addAgentOpen, setAddAgentOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState(false);
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [savingContact, setSavingContact] = useState(false);
 
   const load = (background = false) => {
     if (!leadId) return;
@@ -83,6 +88,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
     setEditingFollowUp(false);
     setPromptNextFollowUp(false);
     setFollowUpPromptLabel('Set the next follow-up date:');
+    setEditingContact(false);
     setLostReason('');
     setAddAgentOpen(false);
     load();
@@ -226,6 +232,32 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               </div>
             </SheetHeader>
           <div className="crm-record-body min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
+
+            <section className="rounded-lg border p-3" aria-label="Edit contact details">
+              {!editingContact ? (
+                <Button variant="outline" size="sm" onClick={() => { setContactName(lead.name ?? ''); setContactPhone(lead.phone ?? ''); setEditingContact(true); }}>Edit name / mobile</Button>
+              ) : (
+                <form className="space-y-3" onSubmit={async (event) => {
+                  event.preventDefault();
+                  if (savingContact) return;
+                  setSavingContact(true);
+                  try {
+                    await updateLead(lead.id, { name: contactName.trim(), ...(contactPhone.trim() ? { phone: contactPhone.trim() } : {}) });
+                    setEditingContact(false);
+                    toast.success('Contact details updated.');
+                    load();
+                    onChanged();
+                  } catch (error: any) {
+                    toast.error(error?.response?.data?.error ?? 'Could not update contact details.');
+                  } finally { setSavingContact(false); }
+                }}>
+                  <label className="block text-sm">Name<Input required maxLength={200} value={contactName} onChange={event => setContactName(event.target.value)} disabled={savingContact} /></label>
+                  <label className="block text-sm">Mobile number<Input type="tel" inputMode="tel" maxLength={30} placeholder="e.g. +91 98765 43210" value={contactPhone} onChange={event => setContactPhone(event.target.value)} disabled={savingContact} /></label>
+                  <p className="text-xs text-muted-foreground">Leave mobile blank to keep the existing number.</p>
+                  <div className="flex flex-wrap gap-2"><Button type="submit" size="sm" disabled={savingContact}>{savingContact ? 'Saving...' : 'Save changes'}</Button><Button type="button" variant="outline" size="sm" disabled={savingContact} onClick={() => setEditingContact(false)}>Cancel</Button></div>
+                </form>
+              )}
+            </section>
 
             {lead.message && (
               <section className="crm-enquiry" aria-label="Original enquiry">
