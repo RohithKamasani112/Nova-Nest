@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowUpRight, Star, StickyNote, UploadCloud } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
 import { LeadContactActions } from './LeadContactActions';
 import { Checkbox } from '../ui/checkbox';
 import { Button } from '../ui/button';
@@ -362,7 +363,22 @@ interface LeadsTableProps {
   hasActiveFilters: boolean;
   onClearFilters: () => void;
   onUploadClick?: () => void;
+  teamOptions?: { value: string; label: string }[];
 }
+
+const ManagedBy: React.FC<{ lead: LeadListItem; options: {value: string; label: string}[]; canAssign: boolean; onChanged: () => void }> = ({lead, options, canAssign, onChanged}) => {
+  const [saving, setSaving] = useState(false);
+  if (!canAssign) return <span className="text-sm">{lead.agent_name || 'Unassigned'}</span>;
+  return <Select value={lead.agent_id || 'unassigned'} disabled={saving} onValueChange={async value => {
+    setSaving(true);
+    try { await updateLead(lead.id, {agentId: value === 'unassigned' ? null : value}); onChanged(); toast.success('Managed by updated.'); }
+    catch (error: any) { toast.error(error?.response?.data?.error || 'Could not update team member.'); }
+    finally { setSaving(false); }
+  }}>
+    <SelectTrigger className="h-9 w-full min-w-0 text-xs" aria-label={`Managed by for ${lead.name}`}><SelectValue placeholder="Select team member" /></SelectTrigger>
+    <SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{lead.agent_id && !options.some(o => o.value === lead.agent_id) && <SelectItem value={lead.agent_id}>{lead.agent_name || 'Assigned member'}</SelectItem>}{options.filter(o => o.value !== 'unassigned').map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+  </Select>;
+};
 
 const ACTIONS_COL_WIDTH = 152;
 
@@ -380,7 +396,10 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
   hasActiveFilters,
   onClearFilters,
   onUploadClick,
+  teamOptions = [],
 }) => {
+  const { user } = useAuth();
+  const canAssign = user?.role === 'admin' || user?.role === 'telecaller';
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scrolledX, setScrolledX] = useState(false);
 
@@ -446,7 +465,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
     }
   };
 
-  const colCount = 5 + optionalCols.length + 1;
+  const colCount = 6 + optionalCols.length + 1;
 
   if (!loading && leads.length === 0) {
     return (
@@ -492,13 +511,14 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
           borderRadius: 16,
         }}
       >
-        <table className="crm-lead-table" style={{ width: '100%', minWidth: 1050 + optionalCols.length * 130, tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: 14 }}>
+        <table className="crm-lead-table" style={{ width: '100%', minWidth: 1260 + optionalCols.length * 130, tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: 14 }}>
           <colgroup>
             <col style={{ width: 240 }} />
             <col style={{ width: 260 }} />
             <col style={{ width: 70 }} />
             <col style={{ width: 180 }} />
-            <col style={{ width: 130 }} />
+            <col style={{ width: 180 }} />
+            <col style={{ width: 230 }} />
             {optionalCols.map((c) => (
               <col key={c} style={{ width: 130 }} />
             ))}
@@ -529,7 +549,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                   Lead
                 </div>
               </th>
-              {['Property', 'BHK', 'Team / Status', 'Follow-up'].map((label, i) => (
+              {['Property', 'BHK', 'Managed by', 'Status', 'Follow-up / Latest note'].map((label, i) => (
                 <th
                   key={label}
                   style={{
@@ -703,23 +723,16 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                         {lead.configuration ? <span className="tabular-nums text-sm">{lead.configuration}</span> : <Empty />}
                       </td>
 
-                      <td className={cellPad}>
-                        <div className="min-w-0">
-                          {lead.agent_name ? (
-                            <Truncated className="text-sm">{lead.agent_name}</Truncated>
-                          ) : (
-                            <span className="text-sm italic" style={{ color: 'var(--crm-text-muted)' }}>
-                              Unassigned
-                            </span>
-                          )}
-                          <div className="mt-0.5">
-                            <InlineStatusSelect lead={lead} onChanged={onChanged} onStatusUpdated={handleStatusUpdated} />
-                          </div>
-                        </div>
+                      <td className={cellPad} onClick={event => event.stopPropagation()}>
+                        <ManagedBy lead={lead} options={teamOptions} canAssign={canAssign} onChanged={onChanged} />
                       </td>
-
+                      <td className={cellPad}>
+                        <InlineStatusSelect lead={lead} onChanged={onChanged} onStatusUpdated={handleStatusUpdated} />
+                      </td>
                       <td className={cellPad}>
                         <RelativeCell value={followUp} tooltip={followUpTooltip} />
+                        {lead.next_follow_up_at && <p className="truncate text-xs text-muted-foreground">{formatAbsoluteDateTime(lead.next_follow_up_at)}</p>}
+                        {lead.latest_note && <p className="mt-1 truncate text-xs text-muted-foreground" title={lead.latest_note}>{lead.latest_note.replace(/\s+/g, ' ')}</p>}
                       </td>
 
                       {optionalCols.map((c) => (
@@ -768,6 +781,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                         <span>{compactStage}</span>
                       </span>
                     </span>
+                    {(lead.next_follow_up_at || lead.latest_note) && <span className="block truncate text-[11px] text-muted-foreground" title={lead.latest_note ?? undefined}>{lead.next_follow_up_at ? formatShortDate(lead.next_follow_up_at) + ' ? ' : ''}{lead.latest_note?.replace(/\s+/g, ' ') || 'Follow-up scheduled'}</span>}
                   </button>
                   <button type="button" className="crm-mobile-context" onClick={() => onRowClick(lead.id)} aria-label={'View property and follow-up for ' + lead.name}>
                     <span title={lead.project_name ?? lead.locality ?? ''}>{lead.project_name ?? lead.locality ?? 'No property set'}</span>

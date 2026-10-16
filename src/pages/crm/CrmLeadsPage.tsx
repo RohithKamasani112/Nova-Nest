@@ -593,6 +593,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
       <ContactStatusChips filters={filters} onChange={setFilters} />
 
       <LeadsTable
+        teamOptions={agentOptions}
         leads={leads}
         loading={loading}
         selectedIds={selectedIds}

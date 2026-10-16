@@ -101,6 +101,8 @@ export interface LeadListItem {
   next_follow_up_at: string | null;
   last_activity_at: string | null;
   last_activity_type: string | null;
+  latest_note?: string | null;
+  latest_note_at?: string | null;
   other_interest_count: number;
   updated_at: string;
 }

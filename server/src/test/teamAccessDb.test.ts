@@ -127,6 +127,19 @@ test('CRM role access and shared lead workflow (isolated PostgreSQL)', { skip: !
         assert.equal(detail.lead.notes, 'Qualified by member');
         assert(detail.activities.some((activity: any) => activity.content === 'Call complete'));
       }
+      for (const token of [adminToken, tokens['magic.calls'], tokens['team.one']]) {
+        const list = await call('/crm/leads', token);
+        const row = list.leads.find((lead: any) => lead.id === leadIds.magicbricks);
+        assert.equal(row.latest_note, 'Call complete');
+        assert(row.latest_note_at);
+        assert.equal(new Date(row.next_follow_up_at).toISOString(), '2030-01-01T04:30:00.000Z');
+      }
+      const longNote = 'Detailed follow-up note '.repeat(40);
+      await call(`/crm/leads/${leadIds.magicbricks}/activities`, tokens['team.one'], 'POST', { type: 'note', content: longNote }, 201);
+      const preview = (await call('/crm/leads', tokens['team.one'])).leads.find((lead: any) => lead.id === leadIds.magicbricks);
+      assert.equal(preview.latest_note, longNote.slice(0, 240));
+      const full = await call(`/crm/leads/${leadIds.magicbricks}`, tokens['team.one']);
+      assert(full.activities.some((activity: any) => activity.content === longNote));
       const memberKpis = await call('/crm/kpis' + period, tokens['team.one']);
       assert.equal(memberKpis.scorecards.current.totalLeads, 1);
       const leaderboard = await call('/crm/kpis/agents' + period, tokens['team.one']);

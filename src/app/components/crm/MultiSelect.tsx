@@ -34,7 +34,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   };
 
   return (
-    <Popover>
+    <Popover modal>
       <PopoverTrigger asChild>
         {/* h-11 below md for a 44px tap target (this trigger is exposed on
             mobile via CrmLeadsPage's Filters sheet, not just the desktop
@@ -48,9 +48,9 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
           <ChevronDown size={14} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-0" align="start">
+      <PopoverContent className="z-[80] w-64 max-w-[calc(100vw-2rem)] p-0" align="start" onOpenAutoFocus={event => event.preventDefault()}>
         <Command>
-          <CommandInput placeholder={`Search ${label.toLowerCase()}...`} />
+          <CommandInput aria-label={`Search ${label.toLowerCase()}`} placeholder={`Search ${label.toLowerCase()}...`} />
           <CommandList className="max-h-72">
             {loading ? (
               <div className="space-y-1 p-2">

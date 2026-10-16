@@ -151,6 +151,8 @@ export interface LeadListItem {
   next_follow_up_at: Date | null;
   last_activity_at: Date | null;
   last_activity_type: string | null;
+  latest_note?: string | null;
+  latest_note_at?: Date | null;
   other_interest_count: number;
   updated_at: Date;
 }
@@ -173,12 +175,18 @@ export async function listLeads(
            l.property_type, l.listing_type, l.configuration,
            l.price_value, l.agent_id, a.name AS agent_name, l.status, l.lead_date, l.next_follow_up_at,
            la.occurred_at AS last_activity_at, la.type AS last_activity_type, l.updated_at,
+           LEFT(COALESCE(ln.content, NULLIF(l.notes, '')), 240) AS latest_note, ln.occurred_at AS latest_note_at,
            (SELECT count(*)::int FROM lead_duplicates ld WHERE ld.existing_lead_id = l.id AND ld.matched_on = 'phone' AND ${enquiryAccess}) AS other_interest_count
     FROM leads l
     LEFT JOIN agents a ON a.id = l.agent_id
     LEFT JOIN LATERAL (
       SELECT occurred_at, type FROM lead_activities WHERE lead_id = l.id ORDER BY occurred_at DESC LIMIT 1
     ) la ON true
+    LEFT JOIN LATERAL (
+      SELECT content, occurred_at FROM lead_activities
+      WHERE lead_id = l.id AND type = 'note' AND NULLIF(trim(content), '') IS NOT NULL
+      ORDER BY occurred_at DESC, created_at DESC, id DESC LIMIT 1
+    ) ln ON true
     WHERE ${where}
     ORDER BY ${sortCol} ${sortDir} NULLS LAST
     LIMIT $${listParams.length - 1} OFFSET $${listParams.length}
