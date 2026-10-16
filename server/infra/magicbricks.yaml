@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Nova Nest Magicbricks and Housing push integrations using the existing CRM PostgreSQL database
+Description: Nova Nest Magicbricks, Housing and 99acres push integrations using the existing CRM PostgreSQL database
 Parameters:
   DatabaseSecretArn:
     Type: String
@@ -53,6 +53,17 @@ Resources:
         GenerateStringKey: active
         PasswordLength: 48
         ExcludePunctuation: true
+  Acres99Key:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Independently rotating 99acres API keys; active is current and keys contains overlap keys
+      GenerateSecretString:
+        SecretStringTemplate: '{"keys":[]}'
+        GenerateStringKey: active
+        PasswordLength: 48
+        ExcludePunctuation: true
   HttpLogs:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -81,6 +92,7 @@ Resources:
           DATABASE_URL: !Sub '{{resolve:secretsmanager:${DatabaseSecretArn}:SecretString:DATABASE_URL}}'
           MAGICBRICKS_API_KEY_SECRET_ARN: !Ref IntegrationKey
           HOUSING_API_KEY_SECRET_ARN: !Ref HousingKey
+          ACRES99_API_KEY_SECRET_ARN: !Ref Acres99Key
           MAGICBRICKS_DEDUPE_RULE: !Ref DedupeRule
           DB_CONNECTION_TIMEOUT_MS: '2000'
           NODE_ENV: production
@@ -89,7 +101,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action: secretsmanager:GetSecretValue
-              Resource: [!Ref IntegrationKey, !Ref HousingKey]
+              Resource: [!Ref IntegrationKey, !Ref HousingKey, !Ref Acres99Key]
       Events:
         GetLead:
           Type: HttpApi
@@ -103,6 +115,13 @@ Resources:
           Properties:
             ApiId: !Ref Api
             Path: /api/leads/create
+            Method: POST
+            PayloadFormatVersion: '2.0'
+        Acres99Lead:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/leads/create/99acres
             Method: POST
             PayloadFormatVersion: '2.0'
         HousingLead:
@@ -184,5 +203,9 @@ Outputs:
     Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.${AWS::URLSuffix}/api/leads/create/magicbricks'
   HousingApiKeySecretArn:
     Value: !Ref HousingKey
+  Acres99Endpoint:
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.${AWS::URLSuffix}/api/leads/create/99acres'
+  Acres99ApiKeySecretArn:
+    Value: !Ref Acres99Key
   FunctionName:
     Value: !Ref Integration

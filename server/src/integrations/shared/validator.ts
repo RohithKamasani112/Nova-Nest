@@ -1,4 +1,4 @@
-import { normalizeEmail, normalizeNameKey } from '../../lib/valueNormalize';
+import { normalizeEmail, normalizeNameKey, normalizePrice } from '../../lib/valueNormalize';
 import { InputError, NormalizedLead } from './types';
 
 const clean = (value: string) => value.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').trim();
@@ -37,7 +37,18 @@ export function validateLead(payload: Record<string, string>, received = new Dat
   } else if (time && (Number(time.slice(0, 2)) > 23 || Number(time.slice(2, 4)) > 59 || Number(time.slice(4, 6)) > 59)) throw new InputError('Invalid time');
   const source = field('source');
   if (source && normalizeNameKey(source).replace(/\s/g, '') !== provider) throw new InputError('Invalid source');
+  const propertyFields: Partial<NormalizedLead> = {};
+  if (provider === '99acres') {
+    const price = normalizePrice(field('price'));
+    if (price.priceRaw && (price.priceValue === null || !Number.isFinite(price.priceValue) || price.priceValue < 0 || price.priceValue >= 1e12)) throw new InputError('Invalid property price');
+    const bedrooms = field('bedrooms');
+    if (bedrooms && !/^\d{1,2}(?:\s*bhk)?$/i.test(bedrooms)) throw new InputError('Invalid bedroom number');
+    propertyFields.price_raw = price.priceRaw;
+    propertyFields.price_value = price.priceValue;
+    propertyFields.bedrooms = bedrooms ? parseInt(bedrooms, 10) : null;
+    propertyFields.configuration = bedrooms ? (propertyFields.bedrooms === 0 ? 'STUDIO' : `${propertyFields.bedrooms} BHK`) : null;
+  }
   const raw: Record<string, string> = Object.create(null);
   for (const [key, value] of Object.entries(payload)) if (!PRIVATE_FIELDS.test(key)) raw[key] = clean(value);
-  return { source: provider, name, mobile, country_code: countryCode, email, project, city: field('city') || null, message: provider === 'housing' ? field('comments') : field('msg', 'comments') || null, raw_isd: isd && !/^\+?\d+$/.test(isd) ? isd : null, lead_dt: leadDate, received_at: received.toISOString(), raw_payload: raw };
+  return { source: provider, name, mobile, country_code: countryCode, email, project, city: field('city') || null, message: provider === 'housing' ? field('comments') : field('msg', 'comments') || null, raw_isd: isd && !/^\+?\d+$/.test(isd) ? isd : null, lead_dt: leadDate, received_at: received.toISOString(), raw_payload: raw, ...propertyFields };
 }

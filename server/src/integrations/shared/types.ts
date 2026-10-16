@@ -12,7 +12,7 @@ export interface PushEvent {
   requestContext?: { requestId?: string; http?: { method?: string; path?: string } };
 }
 export interface NormalizedLead {
-  source: 'magicbricks' | 'housing';
+  source: 'magicbricks' | 'housing' | '99acres';
   name: string;
   mobile: string;
   country_code: string;
@@ -24,6 +24,10 @@ export interface NormalizedLead {
   lead_dt: string;
   received_at: string;
   raw_payload: Record<string, string>;
+  price_raw?: string | null;
+  price_value?: number | null;
+  bedrooms?: number | null;
+  configuration?: string | null;
 }
 export interface LeadRepository {
   save(lead: NormalizedLead): Promise<'created' | 'duplicate'>;

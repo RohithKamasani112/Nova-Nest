@@ -48,6 +48,13 @@ test('real PostgreSQL: parallel retries, distinct projects, rollback, and existi
     const stored=(await pool.query("SELECT source,city,message FROM leads WHERE phone='9876543222'")).rows;
     assert.deepEqual(stored,[{source:'housing',city:'Hyderabad',message:''}]);
     assert.equal(await repository.save({...housingLead,project:'HOUSING PROJECT'}),'duplicate');
+    const acresLead = {...lead, source:'99acres' as const, mobile:'9876543233', project:'99acres project', price_raw:'85 lakh', price_value:8500000, bedrooms:3, configuration:'3 BHK'};
+    const acresResults=await Promise.all(Array.from({length:8},()=>repository.save(acresLead)));
+    assert.equal(acresResults.filter(x=>x==='created').length,1);
+    assert.equal(acresResults.filter(x=>x==='duplicate').length,7);
+    const acresStored=(await pool.query("SELECT source,price_raw,price_value::text,bedrooms,configuration FROM leads WHERE phone='9876543233'")).rows[0];
+    assert.deepEqual(acresStored,{source:'99acres',price_raw:'85 lakh',price_value:'8500000.00',bedrooms:3,configuration:'3 BHK'});
+    assert.equal(await repository.save({...acresLead,project:'99ACRES PROJECT'}),'duplicate');
     const claim=(await pool.query("SELECT count(*)::int AS n FROM integration_lead_dedupe WHERE provider='housing'")).rows[0].n;
     assert.equal(claim,2);
   }finally{

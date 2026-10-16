@@ -18,14 +18,14 @@ interface ProviderOptions {
   map?: (payload: Record<string, string>) => Record<string, string>;
 }
 export function createLeadHandler(deps: LeadHandlerDependencies, options: ProviderOptions) {
-  const housing = options.provider === 'housing';
+  const jsonPortal = options.provider !== 'magicbricks';
   return async (event: PushEvent, context?: { awsRequestId?: string }) => {
     const requestId = context?.awsRequestId ?? randomUUID();
     const log = deps.log ?? (entry => console.log(JSON.stringify(entry)));
     let maskedMobile: string | undefined;
     const finish = (statusCode: number, message: string, outcome: string) => {
       log({ requestId, provider: options.provider, outcome, status: statusCode, ...(maskedMobile ? { mobile: maskedMobile } : {}) });
-      if (!housing) return response(statusCode, message);
+      if (!jsonPortal) return response(statusCode, message);
       const result = response(statusCode, JSON.stringify({ status: outcome === 'created' ? 'success' : 'failure', message: message.replace(/^(Success|Failure): /, '') }));
       result.headers['Content-Type'] = 'application/json; charset=utf-8';
       return result;
@@ -33,10 +33,10 @@ export function createLeadHandler(deps: LeadHandlerDependencies, options: Provid
     try {
       const method = event.requestContext?.http?.method ?? event.httpMethod;
       const route = event.rawPath ?? event.path ?? event.requestContext?.http?.path;
-      if (housing) log({ requestId, provider: 'housing', outcome: 'incoming_request', method, route, ...redactedRequest(event) });
-      if (!(housing ? ['POST'] : ['GET', 'POST']).includes(method ?? '') || !options.routes.includes(route ?? '')) return finish(404, 'Failure: Not found', 'not_found');
-      const payload = parsePayload(event, housing);
-      const key = suppliedKey(event, payload, housing);
+      if (jsonPortal) log({ requestId, provider: options.provider, outcome: 'incoming_request', method, route, ...redactedRequest(event) });
+      if (!(jsonPortal ? ['POST'] : ['GET', 'POST']).includes(method ?? '') || !options.routes.includes(route ?? '')) return finish(404, 'Failure: Not found', 'not_found');
+      const payload = parsePayload(event, jsonPortal);
+      const key = suppliedKey(event, payload, jsonPortal);
       if (!key || !matchesKey(key, await deps.keys())) return finish(401, MESSAGES.unauthorized, 'unauthorized');
       const lead = validateLead(options.map ? options.map(payload) : payload, deps.now?.() ?? new Date(), options.provider);
       maskedMobile = '******' + lead.mobile.slice(-4);
