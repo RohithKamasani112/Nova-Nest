@@ -20,4 +20,5 @@ export const SOURCE_COLOR: Record<string, string> = {
   magicbricks: CATEGORICAL[1],
   '99acres': CATEGORICAL[2],
   personal: CATEGORICAL[3],
+  website: CATEGORICAL[6],
 };

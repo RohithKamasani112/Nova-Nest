@@ -99,6 +99,7 @@ export const FilterFieldsContent: React.FC<FilterFieldsProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="__any__">Any follow-up</SelectItem>
+          <SelectItem value="pending">All pending follow-ups</SelectItem>
           <SelectItem value="due_today">Due today</SelectItem>
           <SelectItem value="overdue">Overdue</SelectItem>
           <SelectItem value="this_week">This week</SelectItem>

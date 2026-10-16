@@ -1,5 +1,5 @@
 import { useCrmRefresh } from '../../app/components/crm/useCrmRefresh';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
@@ -13,21 +13,25 @@ import { CATEGORICAL, SEQUENTIAL, STATUS, SOURCE_COLOR } from '../../app/compone
 import { SourceQuickFilters } from '../../app/components/crm/SourceQuickFilters';
 import { TodaysCallsPanel } from '../../app/components/crm/TodaysCallsPanel';
 import { DateRangePicker } from '../../app/components/crm/DateRangePicker';
+import { Button } from '../../app/components/ui/button';
+import { SOURCE_LABELS } from '../../app/components/crm/crmVisuals';
 import { useDateRangeState } from '../../app/components/crm/useDateRangeState';
 
 interface CrmDashboardPageProps {
   onDrillDown: (filters: LeadFiltersState) => void;
 }
 
-const GOOD_UP = new Set(['totalLeads', 'contacted', 'siteVisitsDone', 'converted', 'totalDealValue']);
-const GOOD_DOWN = new Set(['closedLost', 'junk', 'duplicatesBlocked']);
+const GOOD_UP = new Set(['totalLeads', 'newLeads', 'contacted', 'siteVisitsDone', 'converted', 'totalDealValue']);
+const GOOD_DOWN = new Set(['closedLost', 'junk']);
+
+const compactRupees = (value: number) => value >= 10000000 ? `₹${(value / 10000000).toLocaleString('en-IN', {maximumFractionDigits: 2})} Cr` : value >= 100000 ? `₹${(value / 100000).toLocaleString('en-IN', {maximumFractionDigits: 2})} L` : `₹${value.toLocaleString('en-IN')}`;
 
 const DeltaBadge: React.FC<{ metric: string; delta: number | null }> = ({ metric, delta }) => {
   if (delta === null) return null;
   const isGoodDirection = GOOD_UP.has(metric) ? delta >= 0 : GOOD_DOWN.has(metric) ? delta <= 0 : delta >= 0;
-  const color = isGoodDirection ? STATUS.good : STATUS.critical;
+  const color = GOOD_UP.has(metric) || GOOD_DOWN.has(metric) ? (isGoodDirection ? STATUS.good : STATUS.critical) : '#64748b';
   return (
-    <span className="inline-flex items-center gap-0.5 text-xs font-medium" style={{ color }}>
+    <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-medium" title="Compared with the previous period" style={{ color }}>
       {delta >= 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
       {Math.abs(delta)}%
     </span>
@@ -43,13 +47,14 @@ const StatCard: React.FC<{
   danger?: boolean;
 }> = ({ label, value, metricKey, delta, onClick, danger }) => (
   <button
+    type="button"
     onClick={onClick}
     disabled={!onClick}
-    className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-shadow sm:p-4 ${onClick ? 'cursor-pointer hover:shadow-md' : 'cursor-default'} ${danger ? 'border-red-200 bg-red-50' : 'bg-white'}`}
+    className={`flex min-w-0 flex-col gap-1 rounded-xl border p-3 text-left transition-shadow sm:p-4 ${onClick ? 'cursor-pointer hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : 'cursor-default'} ${danger ? 'border-red-200 bg-red-50' : 'bg-white'}`}
   >
     <span className="break-words text-xs font-medium text-muted-foreground">{label}</span>
-    <div className="flex items-baseline gap-2">
-      <span className="text-2xl font-bold text-gray-900">{value}</span>
+    <div className="flex min-w-0 flex-wrap items-baseline gap-2">
+      <span className="min-w-0 text-xl font-bold text-gray-900 sm:text-2xl" style={{overflowWrap: 'anywhere'}}>{value}</span>
       {metricKey && <DeltaBadge metric={metricKey} delta={delta ?? null} />}
     </div>
   </button>
@@ -61,26 +66,34 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
   const [data, setData] = useState<KpiResponse | null>(null);
   const [leaderboard, setLeaderboard] = useState<AgentLeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const requestVersion = useRef(0);
   const [source, setSource] = useState<CrmSource[] | undefined>();
 
   const loadDashboard = (background = false) => {
+    const version = ++requestVersion.current;
+    if (!background) setLoadError(false);
     if (!background) setLoading(true);
     Promise.all([
       getKpis({ ...period, dateField, source: source?.length === 2 && source.includes('website') ? 'custom' : source?.[0] }),
       getAgentLeaderboard({ ...period, dateField, source: source?.length === 2 && source.includes('website') ? 'custom' : source?.[0] }),
     ])
       .then(([kpis, agents]) => {
+        if (version !== requestVersion.current) return;
+        setLoadError(false);
         setData(kpis);
         setLeaderboard(agents.leaderboard);
       })
-      .catch(() => toast.error('Could not load dashboard data.'))
-      .finally(() => setLoading(false));
+      .catch(() => { if (version === requestVersion.current) { setLoadError(true); toast.error('Could not load dashboard data.'); } })
+      .finally(() => { if (version === requestVersion.current) setLoading(false); });
   };
   useEffect(() => { loadDashboard(); }, [period.from, period.to, dateField, source]);
   useCrmRefresh(() => loadDashboard(true));
+  useEffect(() => () => { requestVersion.current++; }, []);
 
-  const drill = (extra: LeadFiltersState) => onDrillDown({ source, dateField, ...(rangeState.preset === 'all' ? {} : { dateFrom: period.from, dateTo: period.to }), ...extra });
+  const drill = (extra: LeadFiltersState) => onDrillDown({ source, dateField, ...(rangeState.preset === 'all' || extra.followUp === 'overdue' || extra.followUp === 'pending' ? {} : { dateFrom: period.from, dateTo: period.to }), ...extra });
 
+  if (loadError) return <div role="alert" className="rounded-xl border border-red-100 bg-red-50 p-5"><p className="font-semibold">Dashboard could not be loaded</p><p className="mb-3 mt-1 text-sm text-muted-foreground">Try again to load the selected period and source.</p><Button variant="outline" onClick={() => loadDashboard()}>Retry dashboard</Button></div>;
   if (loading || !data) {
     return <div className="py-16 text-center text-muted-foreground">Loading dashboard...</div>;
   }
@@ -92,25 +105,28 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
       <DateRangePicker state={rangeState} range={period} onUpdate={updateRange} />
       <SourceQuickFilters source={source} onChange={setSource} />
 
+      <p className="text-xs text-muted-foreground">Daily reminders cover all active follow-ups. Performance figures and charts use the selected period.{rangeState.preset !== 'all' && ' Percentage changes compare with the previous period.'}</p>
       <TodaysCallsPanel sourceScope={source} onViewAll={filters => onDrillDown({ ...filters, source })} />
 
+      <section aria-label="Performance overview"><h2 className="mb-3 text-base font-semibold">Performance overview</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <StatCard label="Total Leads" value={current.totalLeads} metricKey="totalLeads" delta={rangeState.preset === 'all' ? null : deltas.totalLeads} onClick={() => drill({})} />
-        <StatCard label="New Leads" value={current.newLeads} metricKey="newLeads" delta={deltas.newLeads} onClick={() => drill({ status: ['new'] })} />
-        <StatCard label="Contacted" value={current.contacted} metricKey="contacted" delta={deltas.contacted} onClick={() => drill({})} />
-        <StatCard label="Site Visits Done" value={current.siteVisitsDone} metricKey="siteVisitsDone" delta={deltas.siteVisitsDone} onClick={() => drill({ status: ['site_visit_done'] })} />
-        <StatCard label="Converted" value={`${current.converted} (${current.conversionRate}%)`} metricKey="converted" delta={deltas.converted} onClick={() => drill({ status: ['converted'] })} />
-        <StatCard label="Closed / Lost" value={`${current.closedLost} (${current.lossRate}%)`} metricKey="closedLost" delta={deltas.closedLost} onClick={() => drill({ status: ['closed_lost'] })} />
-        <StatCard label="Junk" value={current.junk} metricKey="junk" delta={deltas.junk} onClick={() => drill({ status: ['junk'] })} />
-        <StatCard label="Duplicates Blocked" value={current.duplicatesBlocked} metricKey="duplicatesBlocked" delta={deltas.duplicatesBlocked} onClick={() => drill({ isDuplicate: true })} />
-        <StatCard label="Total Deal Value" value={`₹${current.totalDealValue.toLocaleString('en-IN')}`} metricKey="totalDealValue" delta={deltas.totalDealValue} onClick={() => drill({ status: ['converted'] })} />
+        <StatCard label="New Leads" value={current.newLeads} metricKey="newLeads" delta={rangeState.preset === 'all' ? null : deltas.newLeads} onClick={() => drill({ status: ['new'] })} />
+        <StatCard label="Contacted" value={current.contacted} metricKey="contacted" delta={rangeState.preset === 'all' ? null : deltas.contacted} onClick={() => drill({ contacted: true })} />
+        <StatCard label="Site Visits Done" value={current.siteVisitsDone} metricKey="siteVisitsDone" delta={rangeState.preset === 'all' ? null : deltas.siteVisitsDone} onClick={() => drill({ status: ['site_visit_done'] })} />
+        <StatCard label="Converted" value={`${current.converted} (${current.conversionRate}%)`} metricKey="converted" delta={rangeState.preset === 'all' ? null : deltas.converted} onClick={() => drill({ status: ['converted'] })} />
+        <StatCard label="Closed / Lost" value={`${current.closedLost} (${current.lossRate}%)`} metricKey="closedLost" delta={rangeState.preset === 'all' ? null : deltas.closedLost} onClick={() => drill({ status: ['closed_lost'] })} />
+        <StatCard label="Junk" value={current.junk} metricKey="junk" delta={rangeState.preset === 'all' ? null : deltas.junk} onClick={() => drill({ status: ['junk'] })} />
+        <StatCard label="Repeat enquiries" value={current.duplicatesBlocked} metricKey="duplicatesBlocked" delta={rangeState.preset === 'all' ? null : deltas.duplicatesBlocked} />
+        <StatCard label="Total Deal Value" value={<span title={`₹${current.totalDealValue.toLocaleString('en-IN')}`}><span className="sm:hidden" aria-label={`₹${current.totalDealValue.toLocaleString('en-IN')}`}>{compactRupees(current.totalDealValue)}</span><span className="hidden sm:inline">₹{current.totalDealValue.toLocaleString('en-IN')}</span></span>} metricKey="totalDealValue" delta={rangeState.preset === 'all' ? null : deltas.totalDealValue} onClick={() => drill({ status: ['converted'] })} />
         <StatCard label="Avg. Response Time" value={current.avgResponseHours !== null ? `${current.avgResponseHours}h` : '—'} />
-        <StatCard label="Pending Follow-ups" value={followUps.pending} onClick={() => drill({ followUp: 'this_week' })} />
+        <StatCard label="Pending Follow-ups" value={followUps.pending} onClick={() => drill({ followUp: 'pending' })} />
         <StatCard label="Overdue Follow-ups" value={followUps.overdue} danger onClick={() => drill({ followUp: 'overdue' })} />
       </div>
 
+      </section>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="Leads by Source">
+        <ChartCard title="Leads by Source" empty={!data.bySource.some(item => item.total > 0)}>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie
@@ -128,13 +144,13 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
                   <Cell key={entry.source} fill={SOURCE_COLOR[entry.source] ?? CATEGORICAL[0]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number, _name, props: any) => [`${value} leads (${props.payload.conversionRate}% converted)`, props.payload.source]} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Tooltip formatter={(value: number, _name, props: any) => [`${value} leads (${props.payload.conversionRate}% converted)`, SOURCE_LABELS[props.payload.source] ?? props.payload.source]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} formatter={(value: string) => SOURCE_LABELS[value] ?? value} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Leads Over Time">
+        <ChartCard title="Leads Over Time" empty={!data.timeSeries.series.some(item => item.total > 0)}>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={data.timeSeries.series}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e1e0d9" />
@@ -146,10 +162,10 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Pipeline Funnel">
+        <ChartCard title="Pipeline Funnel" empty={!data.funnel.some(item => item.count > 0)}>
           <div className="space-y-2 py-2">
             {data.funnel.map((stage) => {
-              const barPct = Math.max(4, (stage.count / (data.funnel[0].count || 1)) * 100);
+              const barPct = Math.max(0, (stage.count / Math.max(1, ...data.funnel.map(item => item.count))) * 100);
               return (
                 <button
                   key={stage.stage}
@@ -187,10 +203,10 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
           </div>
         </ChartCard>
 
-        <ChartCard title="Rent vs Sale Split">
+        <ChartCard title="Rent vs Sale Split" empty={!data.listingTypeSplit.some(item => item.total > 0)}>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
-              <Pie data={data.listingTypeSplit} dataKey="total" nameKey="value" cx="50%" cy="50%" outerRadius={80} onClick={() => drill({})} cursor="pointer">
+              <Pie data={data.listingTypeSplit} dataKey="total" nameKey="value" cx="50%" cy="50%" outerRadius={80} onClick={(entry: any) => { if (typeof entry.payload?.value === 'string') drill({ listingType: [entry.payload.value] }); }} cursor="pointer">
                 {data.listingTypeSplit.map((entry, i) => (
                   <Cell key={entry.value} fill={CATEGORICAL[i % CATEGORICAL.length]} />
                 ))}
@@ -204,7 +220,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
         <TopListCard title="Leads by City (Top 10)" items={data.topCities} onClick={(v) => drill({ city: [v] })} />
         <TopListCard title="Leads by Project (Top 10)" items={data.topProjects} onClick={(v) => drill({ project: [v] })} />
 
-        <ChartCard title="BHK Distribution">
+        <ChartCard title="BHK Distribution" empty={!data.bhkDistribution.some(item => item.total > 0)}>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={data.bhkDistribution} onClick={(e: any) => e?.activePayload && drill({ bhk: [e.activePayload[0].payload.value] })}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e1e0d9" vertical={false} />
@@ -219,6 +235,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-gray-900">Team performance</h2>
+        {!leaderboard.length && <p className="rounded-xl border bg-white p-5 text-sm text-muted-foreground">No team activity for this period and source.</p>}
 
         {/* Mobile — below md: reads like a ranking (rank, name, headline
             metric), not a horizontally-scrolled 11-column table. Tap a row
@@ -230,7 +247,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
         </div>
 
         {/* Desktop table — md and up, unchanged. */}
-        <div className="hidden overflow-x-auto rounded-xl border bg-white md:block">
+        <div className={leaderboard.length ? "hidden overflow-x-auto rounded-xl border bg-white md:block" : "hidden"}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -358,10 +375,10 @@ const LeaderboardStatRow: React.FC<{
   );
 };
 
-const ChartCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="rounded-xl border bg-white p-4">
+const ChartCard: React.FC<{ title: string; children: React.ReactNode; empty?: boolean }> = ({ title, children, empty }) => (
+  <div className="min-w-0 rounded-xl border bg-white p-4">
     <h3 className="mb-2 text-sm font-semibold text-gray-900">{title}</h3>
-    {children}
+    {empty ? <div className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">No data for this period and source.</div> : children}
   </div>
 );
 
@@ -372,8 +389,8 @@ const TopListCard: React.FC<{ title: string; items: { value: string; total: numb
       <div className="space-y-1.5 py-1">
         {items.length === 0 && <p className="text-xs text-muted-foreground">No data.</p>}
         {items.map((item) => (
-          <button key={item.value} onClick={() => onClick(item.value)} className="flex w-full items-center gap-2 rounded p-1 text-left hover:bg-accent">
-            <span className="w-28 shrink-0 truncate text-xs">{item.value}</span>
+          <button key={item.value} onClick={() => onClick(item.value)} className="flex w-full min-w-0 items-center gap-2 rounded p-1 text-left hover:bg-accent">
+            <span className="w-24 shrink-0 truncate text-xs sm:w-28" title={item.value}>{item.value}</span>
             <div className="h-4 flex-1 overflow-hidden rounded bg-muted">
               <div className="h-full rounded" style={{ width: `${(item.total / max) * 100}%`, backgroundColor: SEQUENTIAL }} />
             </div>

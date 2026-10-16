@@ -77,6 +77,9 @@ test('CRM role access and shared lead workflow (isolated PostgreSQL)', { skip: !
         assert(calls.dueToday.every((lead: any) => sources.includes(lead.source)));
         const kpis = await call('/crm/kpis' + period, token);
         assert.equal(kpis.scorecards.current.totalLeads, sources.length);
+        const pending = await call('/crm/leads?followUp=pending', token);
+        assert.equal(pending.total, kpis.scorecards.followUps.pending);
+        assert(pending.leads.every((lead: any) => lead.next_follow_up_at && !['converted','closed_lost','junk'].includes(lead.status)));
         const exportCsv = await call('/crm/leads/export.csv', token);
         for (const source of Object.keys(leadIds)) assert.equal(exportCsv.includes(source + ' visitor'), sources.includes(source));
       }

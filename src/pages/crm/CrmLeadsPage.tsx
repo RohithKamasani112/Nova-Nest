@@ -49,6 +49,7 @@ const EMPTY_OPTIONS: FilterOptions = {
 };
 
 const FOLLOW_UP_LABELS: Record<string, string> = {
+  pending: 'All pending follow-ups',
   due_today: 'Due today',
   overdue: 'Overdue',
   this_week: 'This week',

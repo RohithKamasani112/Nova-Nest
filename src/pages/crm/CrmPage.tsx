@@ -134,6 +134,13 @@ export const CrmPage: React.FC<CrmPageProps> = ({ onShareProperties }) => {
   const reduceMotion = useReducedMotion();
 
   const navigateToLeads = (filters: LeadFiltersState) => {
+    if (filters.followUp && !filters.dateFrom && !filters.dateTo) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('period', 'all');
+      params.delete('customFrom');
+      params.delete('customTo');
+      window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+    }
     setLeadsInitialFilters(filters);
     setActiveTab('leads');
   };

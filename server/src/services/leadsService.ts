@@ -23,7 +23,7 @@ export interface LeadFilters {
   dateField?: 'lead_date' | 'created_at';
   dateFrom?: string;
   dateTo?: string;
-  followUp?: 'due_today' | 'overdue' | 'this_week' | 'none';
+  followUp?: 'due_today' | 'overdue' | 'this_week' | 'none' | 'pending';
   hasPhone?: boolean;
   hasEmail?: boolean;
   isDuplicate?: boolean;
@@ -105,6 +105,8 @@ function buildWhere(filters: LeadFilters): { where: string; params: unknown[] } 
     clauses.push(`l.next_follow_up_at::date = current_date`);
   } else if (filters.followUp === 'overdue') {
     clauses.push(`l.next_follow_up_at < now() AND l.status NOT IN ${TERMINAL_STATUSES}`);
+  } else if (filters.followUp === 'pending') {
+    clauses.push(`l.next_follow_up_at IS NOT NULL AND l.status NOT IN ${TERMINAL_STATUSES}`);
   } else if (filters.followUp === 'this_week') {
     clauses.push(`l.next_follow_up_at BETWEEN now() AND now() + interval '7 days'`);
   } else if (filters.followUp === 'none') {

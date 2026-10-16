@@ -175,13 +175,6 @@ export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll, a
 
   if (loadError) return <div className="crm-calls-panel crm-reminder-error" role="alert"><span>Could not load daily reminders.</span><Button variant="outline" onClick={() => load()}>Retry</Button></div>;
 
-  if (total === 0) {
-    return (
-      <div className="crm-calls-panel flex items-center gap-2 rounded-xl border bg-white p-4 text-sm text-muted-foreground">
-        <PhoneCall size={16} /> No calls due — you're all caught up.
-      </div>
-    );
-  }
 
   return (
     <div className="crm-calls-panel rounded-xl border bg-white p-4">
@@ -206,6 +199,7 @@ export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll, a
 
       {!collapsed && (
         <div className="crm-reminders-groups">
+          {total === 0 && <p className="text-sm text-muted-foreground">No calls due for the selected team. You can switch team members above.</p>}
           {overdue.length > 0 && (
             <div>
               <p className="crm-reminders-group-label crm-reminders-group-label--overdue">Overdue ({overdue.length})</p>

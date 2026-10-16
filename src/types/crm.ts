@@ -129,7 +129,7 @@ export interface LeadFiltersState {
   dateField?: 'lead_date' | 'created_at';
   dateFrom?: string;
   dateTo?: string;
-  followUp?: 'due_today' | 'overdue' | 'this_week' | 'none';
+  followUp?: 'due_today' | 'overdue' | 'this_week' | 'none' | 'pending';
   hasPhone?: boolean;
   hasEmail?: boolean;
   isDuplicate?: boolean;
