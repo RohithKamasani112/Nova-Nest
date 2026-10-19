@@ -98,6 +98,7 @@ export interface LeadListItem {
   agent_name: string | null;
   status: string;
   lead_date: string | null;
+  created_at?: string;
   next_follow_up_at: string | null;
   last_activity_at: string | null;
   last_activity_type: string | null;
