@@ -37,6 +37,14 @@ export const TeamAccountsPage: React.FC = () => {
   const edit = (account: TeamAccount) => setForm({ id: account.id, username: account.username, name: account.name, password: '', role: account.role,
     portals: selectedLeadSources(account.source_scope),
     agentId: account.agent_id ?? '', isActive: account.is_active });
+  const selectMember = (agentId: string) => {
+    const existing = accounts.find(account => account.role === 'agent' && account.agent_id === agentId);
+    if (existing) {
+      edit(existing);
+      return;
+    }
+    setForm({ ...form, agentId });
+  };
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (form.role === 'telecaller' && !form.portals.length) { toast.error('Choose at least one lead source.'); return; }
@@ -71,7 +79,10 @@ export const TeamAccountsPage: React.FC = () => {
             })}
             <p className="text-xs text-gray-500">Custom includes website and manually entered leads. Saving transfers selected sources and their full lead history to this login. Previous telecallers keep their other sources.</p>
           </fieldset>
-            : <label className="block text-sm font-medium">Linked team member<select required className={fieldClass} value={form.agentId} onChange={e => setForm({ ...form, agentId: e.target.value })}><option value="">Select a team member</option>{members.filter(member => !accounts.some(account => account.agent_id === member.id && account.id !== form.id)).map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select><span className="mt-1 block text-xs font-normal text-gray-500">Create the member in CRM → Team first. This login sees leads assigned to that member.</span></label>}
+            : <label className="block text-sm font-medium">Linked team member<select required className={fieldClass} value={form.agentId} onChange={e => selectMember(e.target.value)}><option value="">Select a team member</option>{members.map(member => {
+              const existing = accounts.find(account => account.role === 'agent' && account.agent_id === member.id);
+              return <option key={member.id} value={member.id}>{member.name}{existing ? ' (login exists)' : ''}</option>;
+            })}</select><span className="mt-1 block text-xs font-normal text-gray-500">Select any team member. Members with a login open their existing account for editing. This login sees leads assigned to that member.</span></label>}
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} />Login enabled</label>
           <Button type="submit" disabled={saving || loading || loadError} className="w-full">{saving ? 'Saving…' : 'Save login'}</Button>
         </form>
