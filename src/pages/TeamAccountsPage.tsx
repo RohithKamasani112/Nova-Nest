@@ -25,6 +25,12 @@ export const TeamAccountsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [directoryPage, setDirectoryPage] = useState(1);
+  const pageSize = 8;
+  const pageCount = Math.max(1, Math.ceil(accounts.length / pageSize));
+  const currentPage = Math.min(directoryPage, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleAccounts = accounts.slice(pageStart, pageStart + pageSize);
   const load = async () => {
     setLoading(true); setLoadError(false);
     try {
@@ -58,10 +64,10 @@ export const TeamAccountsPage: React.FC = () => {
     finally { setSaving(false); }
   };
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div><p className="crm-eyebrow mb-2">ADMINISTRATION</p><h1 className="text-3xl font-semibold text-gray-900">Team logins</h1>
         <p className="mt-2 text-sm text-gray-600">Create usernames, reset passwords and control CRM access. All accounts use the same login page.</p></div>
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_1.1fr]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.5fr)]">
         <form onSubmit={save} className="space-y-4 rounded-2xl border bg-white p-4 sm:p-6">
           <div className="flex items-center justify-between gap-2"><h2 className="flex items-center gap-2 font-semibold"><KeyRound size={18} />{form.id ? 'Edit login' : 'Create login'}</h2>
             {form.id && <Button type="button" variant="ghost" onClick={() => setForm(emptyForm)}><Plus size={14} />New</Button>}</div>
@@ -86,12 +92,37 @@ export const TeamAccountsPage: React.FC = () => {
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} />Login enabled</label>
           <Button type="submit" disabled={saving || loading || loadError} className="w-full">{saving ? 'Saving…' : 'Save login'}</Button>
         </form>
-        <section className="space-y-3"><h2 className="flex items-center gap-2 font-semibold"><ShieldCheck size={18} />Access directory</h2>
-          {loading ? <p className="p-6 text-sm text-gray-500">Loading logins…</p> : loadError ? <Button variant="outline" onClick={() => void load()}>Retry loading logins</Button> : accounts.length === 0 ? <p className="rounded-xl border border-dashed p-6 text-sm text-gray-500">No scoped logins yet. Create telecaller and individual team accounts here.</p> : accounts.map(account => (
-            <article key={account.id} className="flex items-start justify-between gap-3 rounded-xl border bg-white p-4">
-              <div className="min-w-0"><p className="truncate font-semibold">{account.name}</p><p className="break-all text-sm text-gray-600">{account.username}</p><p className="mt-1 text-xs text-gray-500">{accountScope(account)}</p><span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs ${account.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{account.is_active ? 'Active' : 'Disabled'}</span></div>
-              <Button type="button" variant="outline" size="icon" aria-label={`Edit ${account.name} login`} onClick={() => edit(account)}><Pencil size={15} /></Button>
-            </article>))}
+        <section className="min-w-0 space-y-3"><h2 className="flex items-center gap-2 font-semibold"><ShieldCheck size={18} />Access directory <span className="ml-auto text-xs font-normal text-gray-500">{accounts.length} logins</span></h2>
+          {loading ? <p className="p-6 text-sm text-gray-500">Loading logins…</p> : loadError ? <Button variant="outline" onClick={() => void load()}>Retry loading logins</Button> : accounts.length === 0 ? <p className="rounded-xl border border-dashed p-6 text-sm text-gray-500">No scoped logins yet. Create telecaller and individual team accounts here.</p> : (
+            <div className="overflow-hidden rounded-2xl border bg-white">
+              <div className="max-h-[560px] overflow-auto" role="region" aria-label="Team login directory" tabIndex={0}>
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <caption className="sr-only">Team logins, access and account status</caption>
+                  <thead className="sticky top-0 z-10 bg-gray-50 text-xs text-gray-600"><tr>
+                    {['Name', 'Username', 'Role', 'Lead access', 'Status', 'Edit'].map(label => <th key={label} scope="col" className="border-b px-3 py-3 font-medium">{label}</th>)}
+                  </tr></thead>
+                  <tbody className="divide-y">{visibleAccounts.map(account => (
+                    <tr key={account.id} className={form.id === account.id ? 'bg-green-50' : 'hover:bg-gray-50'}>
+                      <th scope="row" className="max-w-[160px] break-words px-3 py-3 font-medium text-gray-900">{account.name}</th>
+                      <td className="max-w-[160px] break-all px-3 py-3 text-gray-600">{account.username}</td>
+                      <td className="px-3 py-3 text-gray-600">{account.role === 'agent' ? 'Team member' : 'Telecaller'}</td>
+                      <td className="max-w-[200px] break-words px-3 py-3 text-gray-600">{accountScope(account)}</td>
+                      <td className="px-3 py-3"><span className={`inline-block rounded-full px-2 py-0.5 text-xs ${account.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{account.is_active ? 'Active' : 'Disabled'}</span></td>
+                      <td className="px-3 py-3"><Button type="button" variant="outline" size="icon" aria-label={`Edit ${account.name} login`} onClick={() => edit(account)}><Pencil size={15} /></Button></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-3 text-xs text-gray-600">
+                <span>{pageStart + 1}–{Math.min(pageStart + pageSize, accounts.length)} of {accounts.length}</span>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setDirectoryPage(currentPage - 1)}>Previous</Button>
+                  <span>Page {currentPage} of {pageCount}</span>
+                  <Button type="button" variant="outline" size="sm" disabled={currentPage === pageCount} onClick={() => setDirectoryPage(currentPage + 1)}>Next</Button>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>
