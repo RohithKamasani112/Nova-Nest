@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { differenceInCalendarDays } from 'date-fns';
 import toast from 'react-hot-toast';
 import { ArrowUpRight, Star, StickyNote, UploadCloud } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -33,24 +32,6 @@ import { ColumnKey, Density, OPTIONAL_COLUMN_LABELS, OPTIONAL_COLUMNS } from './
 // Single ` · ` at 40% opacity for an empty value — not an em dash, which
 // reads as loudly as real data at 50 rows.
 const Empty: React.FC = () => <span style={{ color: 'var(--crm-text-muted)' }}>·</span>;
-
-function LeadAge({ lead }: { lead: LeadListItem }) {
-  const firstSeen = lead.lead_date || lead.created_at;
-  if (!firstSeen) return null;
-  const days = Math.max(0, differenceInCalendarDays(new Date(), new Date(firstSeen)));
-  if (!Number.isFinite(days)) return null;
-  const description = `This client is ${days} ${days === 1 ? 'day' : 'days'} old.`;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span tabIndex={0} aria-label={description} className="block w-fit cursor-help text-[11px] leading-4 tabular-nums" style={{ color: 'var(--crm-text-muted)' }}>
-          {days}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{description}</TooltipContent>
-    </Tooltip>
-  );
-}
 
 function Truncated({
   children,
@@ -692,7 +673,6 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                                 <MultiInterestBadge leadId={lead.id} count={lead.other_interest_count} />
                               )}
                             </div>
-                            <LeadAge lead={lead} />
                             {!compact && (
                               <a
                                 href={phone ? telHref(phone) : undefined}
@@ -794,7 +774,6 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                       <span className="crm-mobile-name-text">{titleCase(lead.name)}</span>
                       {lead.other_interest_count > 0 && <span className="crm-mobile-interest-count" title="Total enquiries">{lead.other_interest_count + 1}</span>}
                     </span>
-                    <LeadAge lead={lead} />
                     <span className="crm-mobile-meta">
                       {phone && <span className="crm-mobile-phone">{phone}</span>}
                       <span className="crm-mobile-stage" title={stage}>

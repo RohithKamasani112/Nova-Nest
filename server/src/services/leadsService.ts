@@ -150,7 +150,6 @@ export interface LeadListItem {
   agent_name: string | null;
   status: string;
   lead_date: Date | null;
-  created_at: Date;
   next_follow_up_at: Date | null;
   last_activity_at: Date | null;
   last_activity_type: string | null;
@@ -176,7 +175,7 @@ export async function listLeads(
   const listQuery = `
     SELECT l.id, l.source, l.name, l.phone, l.phone_raw, l.email, l.project_name, l.locality, l.city,
            l.property_type, l.listing_type, l.configuration,
-           l.price_value, l.agent_id, a.name AS agent_name, l.status, l.lead_date, l.created_at, l.next_follow_up_at,
+           l.price_value, l.agent_id, a.name AS agent_name, l.status, l.lead_date, l.next_follow_up_at,
            la.occurred_at AS last_activity_at, la.type AS last_activity_type, l.updated_at,
            LEFT(COALESCE(ln.content, NULLIF(l.notes, '')), 240) AS latest_note, ln.occurred_at AS latest_note_at,
            (SELECT count(*)::int FROM lead_duplicates ld WHERE ld.existing_lead_id = l.id AND ld.matched_on = 'phone' AND ${enquiryAccess}) AS other_interest_count
