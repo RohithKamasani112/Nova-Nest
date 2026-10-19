@@ -11,6 +11,7 @@ export interface CrmAgent {
 
 export interface AgentStats extends CrmAgent {
   total_leads: number;
+  site_visits_scheduled: number;
   converted: number;
   conversion_rate: number;
   overdue_follow_ups: number;
@@ -243,6 +244,7 @@ export interface KpiScorecards {
   newLeads: number;
   contacted: number;
   siteVisitsDone: number;
+  siteVisitsScheduled: number;
   converted: number;
   conversionRate: number;
   closedLost: number;
@@ -276,6 +278,7 @@ export interface AgentLeaderboardRow {
   newLeads: number;
   contacted: number;
   siteVisits: number;
+  siteVisitsScheduled: number;
   converted: number;
   conversionRate: number;
   lost: number;

@@ -42,6 +42,11 @@ existing validator also requires name and project and validates optional email.
 The submitted source is always overridden to housing. JSON and URL-encoded form
 bodies are accepted; the existing combined query/body limit remains 10KB.
 
+Optional `bhk` is accepted in query parameters, JSON, or form fields (case-insensitive).
+Use `2`, `3`, or `3 BHK`; `bedrooms` is also accepted. It is saved as the numeric
+bedroom count and CRM configuration (e.g. `3 BHK`). Zero represents a studio.
+Omitting it preserves existing request behavior; invalid values return HTTP 400.
+
 Housing checks credentials in this order, using the first nonempty value:
 
 1. `x-api-key` header (case-insensitive header name).

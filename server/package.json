@@ -19,7 +19,7 @@
     "test:website-lead": "tsx src/test/websiteLead.test.ts",
     "test:magicbricks": "npm run build && node --test dist/test/magicbricks.test.js",
     "test:magicbricks:db": "npm run build && node --test dist/test/magicbricksDb.test.js",
-    "test:portals": "npm run build && node --test dist/test/magicbricks.test.js dist/test/housing.test.js dist/test/acres99.test.js",
+    "test:portals": "npm run build && node --test dist/test/magicbricks.test.js dist/test/housing.test.js dist/test/acres99.test.js dist/test/portalBhk.test.js",
     "package:portals": "npm run package:magicbricks",
     "package:magicbricks": "npm run build && node scripts/package-magicbricks.mjs",
     "dev:magicbricks": "npm run build && node scripts/test-magicbricks-local.mjs",

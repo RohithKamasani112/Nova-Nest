@@ -38,6 +38,12 @@ export function validateLead(payload: Record<string, string>, received = new Dat
   const source = field('source');
   if (source && normalizeNameKey(source).replace(/\s/g, '') !== provider) throw new InputError('Invalid source');
   const propertyFields: Partial<NormalizedLead> = {};
+  if (provider !== '99acres') {
+    const bhk = field('bhk', 'bedrooms');
+    if (bhk && !/^\d{1,2}(?:\s*bhk)?$/i.test(bhk)) throw new InputError('Invalid BHK');
+    propertyFields.bedrooms = bhk ? parseInt(bhk, 10) : null;
+    propertyFields.configuration = bhk ? (propertyFields.bedrooms === 0 ? 'STUDIO' : `${propertyFields.bedrooms} BHK`) : null;
+  }
   if (provider === '99acres') {
     const price = normalizePrice(field('price'));
     if (price.priceRaw && (price.priceValue === null || !Number.isFinite(price.priceValue) || price.priceValue < 0 || price.priceValue >= 1e12)) throw new InputError('Invalid property price');

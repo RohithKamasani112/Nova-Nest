@@ -43,6 +43,7 @@ interface ScorecardRow {
   new_leads: string;
   contacted: string;
   site_visits_done: string;
+  site_visits_scheduled: string;
   converted: string;
   closed_lost: string;
   junk: string;
@@ -58,6 +59,7 @@ async function fetchScorecards(params: KpiParams, from: string, to: string): Pro
        count(*) FILTER (WHERE status = 'new') AS new_leads,
        count(*) FILTER (WHERE first_contacted_at IS NOT NULL) AS contacted,
        count(*) FILTER (WHERE status = 'site_visit_done') AS site_visits_done,
+       count(*) FILTER (WHERE status = 'site_visit_scheduled') AS site_visits_scheduled,
        count(*) FILTER (WHERE status = 'converted') AS converted,
        count(*) FILTER (WHERE status = 'closed_lost') AS closed_lost,
        count(*) FILTER (WHERE status = 'junk') AS junk,
@@ -121,6 +123,7 @@ function toScoreSet(row: ScorecardRow, duplicatesBlocked: number) {
     newLeads: Number(row.new_leads),
     contacted: Number(row.contacted),
     siteVisitsDone: Number(row.site_visits_done),
+    siteVisitsScheduled: Number(row.site_visits_scheduled),
     converted,
     conversionRate: pct(converted, total),
     closedLost,
@@ -152,6 +155,7 @@ export async function getScorecards(params: KpiParams) {
       newLeads: delta(cur.newLeads, prv.newLeads),
       contacted: delta(cur.contacted, prv.contacted),
       siteVisitsDone: delta(cur.siteVisitsDone, prv.siteVisitsDone),
+      siteVisitsScheduled: delta(cur.siteVisitsScheduled, prv.siteVisitsScheduled),
       converted: delta(cur.converted, prv.converted),
       closedLost: delta(cur.closedLost, prv.closedLost),
       junk: delta(cur.junk, prv.junk),
@@ -316,6 +320,7 @@ export async function getAgentLeaderboard(params: Omit<KpiParams, 'agentId'>) {
        count(l.id) FILTER (WHERE l.status = 'new') AS new_leads,
        count(l.id) FILTER (WHERE l.first_contacted_at IS NOT NULL) AS contacted,
        count(l.id) FILTER (WHERE l.status = 'site_visit_done') AS site_visits,
+       count(l.id) FILTER (WHERE l.status = 'site_visit_scheduled') AS site_visits_scheduled,
        count(l.id) FILTER (WHERE l.status = 'converted') AS converted,
        count(l.id) FILTER (WHERE l.status = 'closed_lost') AS lost,
        avg(EXTRACT(EPOCH FROM (l.first_contacted_at - l.created_at)) / 3600.0) FILTER (WHERE l.first_contacted_at IS NOT NULL) AS avg_response_hours,
@@ -336,6 +341,7 @@ export async function getAgentLeaderboard(params: Omit<KpiParams, 'agentId'>) {
     newLeads: Number(r.new_leads),
     contacted: Number(r.contacted),
     siteVisits: Number(r.site_visits),
+    siteVisitsScheduled: Number(r.site_visits_scheduled),
     converted: Number(r.converted),
     conversionRate: pct(Number(r.converted), Number(r.total)),
     lost: Number(r.lost),

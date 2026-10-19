@@ -15,6 +15,7 @@ export interface AgentStatsRow {
   is_active: boolean;
   created_at: Date;
   total_leads: number;
+  site_visits_scheduled: number;
   converted: number;
   conversion_rate: number;
   overdue_follow_ups: number;
@@ -29,12 +30,14 @@ export async function listAgentsWithStats(includeInactive: boolean): Promise<Age
     is_active: boolean;
     created_at: Date;
     total_leads: string;
+    site_visits_scheduled: string;
     converted: string;
     overdue_follow_ups: string;
   }>(
     `SELECT
        a.id, a.name, a.email, a.phone, a.is_active, a.created_at,
        count(l.id) AS total_leads,
+       count(l.id) FILTER (WHERE l.status = 'site_visit_scheduled') AS site_visits_scheduled,
        count(l.id) FILTER (WHERE l.status = 'converted') AS converted,
        count(l.id) FILTER (
          WHERE l.next_follow_up_at < now() AND l.status NOT IN ${TERMINAL_STATUSES}
@@ -54,6 +57,7 @@ export async function listAgentsWithStats(includeInactive: boolean): Promise<Age
     is_active: r.is_active,
     created_at: r.created_at,
     total_leads: Number(r.total_leads),
+    site_visits_scheduled: Number(r.site_visits_scheduled),
     converted: Number(r.converted),
     conversion_rate: pct(Number(r.converted), Number(r.total_leads)),
     overdue_follow_ups: Number(r.overdue_follow_ups),

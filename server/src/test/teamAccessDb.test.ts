@@ -165,6 +165,22 @@ test('CRM role access and shared lead workflow (isolated PostgreSQL)', { skip: !
       assert.equal(repeatedDetail.lead.source, 'personal');
       assert.equal(repeatedDetail.lead.is_duplicate, true);
     });
+    await t.test('scheduled site visit counts are distinct from completed visits and scoped for each role', async () => {
+      await database.query("UPDATE leads SET status = 'site_visit_scheduled', agent_id = $2 WHERE id = $1", [leadIds.housing, team.agent.id]);
+      try {
+        for (const [token, expected] of [[adminToken, 1], [tokens['housing.calls'], 1], [tokens['magic.calls'], 0], [tokens['team.one'], 1], [tokens['team.two'], 0]] as const) {
+          const kpis = await call('/crm/kpis' + period, token);
+          assert.equal(kpis.scorecards.current.siteVisitsScheduled, expected);
+          assert.equal(kpis.scorecards.current.siteVisitsDone, 0);
+          const result = await call('/crm/kpis/agents' + period, token);
+          assert.equal(result.leaderboard.reduce((sum: number, row: any) => sum + row.siteVisitsScheduled, 0), expected);
+        }
+        const stats = await call('/crm/agents/stats');
+        assert.equal(stats.agents.find((agent: any) => agent.id === team.agent.id).site_visits_scheduled, 1);
+      } finally {
+        await database.query("UPDATE leads SET status = 'new', agent_id = NULL WHERE id = $1", [leadIds.housing]);
+      }
+    });
     await t.test('multiple sources transfer old and future leads while keeping unrelated sources and history', async () => {
       const newCaller = await createAccount('combined.calls', 'telecaller', { portals: ['housing', 'magicbricks'] });
       await call('/crm/leads', tokens['housing.calls'], 'GET', undefined, 401);

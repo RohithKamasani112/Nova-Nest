@@ -134,6 +134,7 @@ export const CrmAgentsPage: React.FC = () => {
               <TableHead>Phone</TableHead>
               <TableHead>Active</TableHead>
               <TableHead>Total Leads</TableHead>
+              <TableHead>Site Visits Scheduled</TableHead>
               <TableHead>Converted</TableHead>
               <TableHead>Conv. %</TableHead>
               <TableHead>Overdue Follow-ups</TableHead>
@@ -143,9 +144,9 @@ export const CrmAgentsPage: React.FC = () => {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={11} className="py-8 text-center text-muted-foreground">Loading...</TableCell></TableRow>
             ) : agents.length === 0 ? (
-              <TableRow><TableCell colSpan={10} className="py-10 text-center text-muted-foreground">No team members yet.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={11} className="py-10 text-center text-muted-foreground">No team members yet.</TableCell></TableRow>
             ) : (
               agents.map((a) => (
                 <TableRow key={a.id}>
@@ -156,6 +157,7 @@ export const CrmAgentsPage: React.FC = () => {
                     {a.is_active ? <Badge variant="secondary">Active</Badge> : <Badge variant="outline">Inactive</Badge>}
                   </TableCell>
                   <TableCell>{a.total_leads}</TableCell>
+                  <TableCell>{a.site_visits_scheduled ?? 0}</TableCell>
                   <TableCell>{a.converted}</TableCell>
                   <TableCell>{a.conversion_rate}%</TableCell>
                   <TableCell>
@@ -257,7 +259,7 @@ const AgentCard: React.FC<{
             </a>
           )}
           <p className="mt-1 text-xs text-gray-600">
-            {agent.total_leads} leads · {agent.converted} converted · {agent.conversion_rate}% conv.
+            {agent.total_leads} leads · {agent.site_visits_scheduled ?? 0} site visits scheduled · {agent.converted} converted · {agent.conversion_rate}% conv.
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">

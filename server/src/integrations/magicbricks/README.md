@@ -56,6 +56,7 @@ values are already decoded JSON strings and are not decoded again.
 | isd | default 91; nonnumeric values stored as raw_isd with country 91 |
 | msg | comments; optional |
 | city | City; optional |
+| bhk | optional bedroom count, e.g. `2`, `3`, or `3 BHK`; `bedrooms` is an alias; saved to CRM bedrooms/configuration |
 | dt | optional YYYYMMDD, strict real date |
 | time | optional HHMMSS, strict real time |
 | api_key | query or form/JSON credential; prefer x-api-key header |

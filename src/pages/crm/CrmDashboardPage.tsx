@@ -21,7 +21,7 @@ interface CrmDashboardPageProps {
   onDrillDown: (filters: LeadFiltersState) => void;
 }
 
-const GOOD_UP = new Set(['totalLeads', 'newLeads', 'contacted', 'siteVisitsDone', 'converted', 'totalDealValue']);
+const GOOD_UP = new Set(['totalLeads', 'newLeads', 'contacted', 'siteVisitsScheduled', 'siteVisitsDone', 'converted', 'totalDealValue']);
 const GOOD_DOWN = new Set(['closedLost', 'junk']);
 
 const compactRupees = (value: number) => value >= 10000000 ? `₹${(value / 10000000).toLocaleString('en-IN', {maximumFractionDigits: 2})} Cr` : value >= 100000 ? `₹${(value / 100000).toLocaleString('en-IN', {maximumFractionDigits: 2})} L` : `₹${value.toLocaleString('en-IN')}`;
@@ -113,6 +113,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
         <StatCard label="Total Leads" value={current.totalLeads} metricKey="totalLeads" delta={rangeState.preset === 'all' ? null : deltas.totalLeads} onClick={() => drill({})} />
         <StatCard label="New Leads" value={current.newLeads} metricKey="newLeads" delta={rangeState.preset === 'all' ? null : deltas.newLeads} onClick={() => drill({ status: ['new'] })} />
         <StatCard label="Contacted" value={current.contacted} metricKey="contacted" delta={rangeState.preset === 'all' ? null : deltas.contacted} onClick={() => drill({ contacted: true })} />
+        <StatCard label="Site Visits Scheduled" value={current.siteVisitsScheduled ?? 0} metricKey="siteVisitsScheduled" delta={rangeState.preset === 'all' ? null : deltas.siteVisitsScheduled} onClick={() => drill({ status: ['site_visit_scheduled'] })} />
         <StatCard label="Site Visits Done" value={current.siteVisitsDone} metricKey="siteVisitsDone" delta={rangeState.preset === 'all' ? null : deltas.siteVisitsDone} onClick={() => drill({ status: ['site_visit_done'] })} />
         <StatCard label="Converted" value={`${current.converted} (${current.conversionRate}%)`} metricKey="converted" delta={rangeState.preset === 'all' ? null : deltas.converted} onClick={() => drill({ status: ['converted'] })} />
         <StatCard label="Closed / Lost" value={`${current.closedLost} (${current.lossRate}%)`} metricKey="closedLost" delta={rangeState.preset === 'all' ? null : deltas.closedLost} onClick={() => drill({ status: ['closed_lost'] })} />
@@ -255,7 +256,8 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
                 <TableHead>Total</TableHead>
                 <TableHead>New</TableHead>
                 <TableHead>Contacted</TableHead>
-                <TableHead>Site Visits</TableHead>
+                <TableHead>Site Visits Scheduled</TableHead>
+                <TableHead>Site Visits Done</TableHead>
                 <TableHead>Converted</TableHead>
                 <TableHead>Conv. %</TableHead>
                 <TableHead>Lost</TableHead>
@@ -271,6 +273,7 @@ export const CrmDashboardPage: React.FC<CrmDashboardPageProps> = ({ onDrillDown 
                   <TableCell><button className="hover:underline" onClick={() => drill({ agentId: [a.agentId] })}>{a.total}</button></TableCell>
                   <TableCell><button className="hover:underline" onClick={() => drill({ agentId: [a.agentId], status: ['new'] })}>{a.newLeads}</button></TableCell>
                   <TableCell>{a.contacted}</TableCell>
+                  <TableCell><button className="hover:underline" onClick={() => drill({ agentId: [a.agentId], status: ['site_visit_scheduled'] })}>{a.siteVisitsScheduled ?? 0}</button></TableCell>
                   <TableCell><button className="hover:underline" onClick={() => drill({ agentId: [a.agentId], status: ['site_visit_done'] })}>{a.siteVisits}</button></TableCell>
                   <TableCell><button className="hover:underline" onClick={() => drill({ agentId: [a.agentId], status: ['converted'] })}>{a.converted}</button></TableCell>
                   <TableCell>{a.conversionRate}%</TableCell>
@@ -316,7 +319,10 @@ const LeaderboardCard: React.FC<{
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
             {rank}
           </span>
-          <span className="truncate font-semibold text-gray-900">{a.agentName}</span>
+          <span className="min-w-0">
+            <span className="block truncate font-semibold text-gray-900">{a.agentName}</span>
+            <span className="block text-xs text-gray-500">{a.siteVisitsScheduled ?? 0} site visits scheduled</span>
+          </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <div className="text-right">
@@ -335,7 +341,8 @@ const LeaderboardCard: React.FC<{
           <LeaderboardStatRow label="Total leads" value={a.total} onClick={() => drill({ agentId: [a.agentId] })} />
           <LeaderboardStatRow label="New" value={a.newLeads} onClick={() => drill({ agentId: [a.agentId], status: ['new'] })} />
           <LeaderboardStatRow label="Contacted" value={a.contacted} />
-          <LeaderboardStatRow label="Site visits" value={a.siteVisits} onClick={() => drill({ agentId: [a.agentId], status: ['site_visit_done'] })} />
+          <LeaderboardStatRow label="Site visits scheduled" value={a.siteVisitsScheduled ?? 0} onClick={() => drill({ agentId: [a.agentId], status: ['site_visit_scheduled'] })} />
+          <LeaderboardStatRow label="Site visits done" value={a.siteVisits} onClick={() => drill({ agentId: [a.agentId], status: ['site_visit_done'] })} />
           <LeaderboardStatRow label="Lost" value={a.lost} onClick={() => drill({ agentId: [a.agentId], status: ['closed_lost'] })} />
           <LeaderboardStatRow label="Avg response" value={a.avgResponseHours !== null ? `${a.avgResponseHours}h` : '—'} />
           <LeaderboardStatRow
