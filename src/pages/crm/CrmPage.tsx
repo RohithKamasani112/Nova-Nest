@@ -1,4 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext';
+import { leadSourceLabels } from '../../utils/leadSources';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useReducedMotion } from 'motion/react';
@@ -165,7 +166,7 @@ export const CrmPage: React.FC<CrmPageProps> = ({ onShareProperties }) => {
         <div>
           <p className="crm-eyebrow mb-2">NOVA NEST · SALES WORKSPACE</p>
           <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Customer relationships</h1>
-          <p className="text-gray-600">{isAdmin ? 'Your leads, conversations and next steps. All in one place.' : `${user?.name} · ${user?.role === 'agent' ? 'Assigned leads' : user?.source_scope?.includes('housing') ? 'Housing + Custom' : user?.source_scope?.includes('magicbricks') ? 'MagicBricks' : '99acres'}`}</p>
+          <p className="text-gray-600">{isAdmin ? 'Your leads, conversations and next steps. All in one place.' : `${user?.name} · ${user?.role === 'agent' ? 'Assigned leads' : leadSourceLabels(user?.source_scope ?? [])}`}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {canAdd && <Button variant="outline" onClick={() => setPersonalFormOpen(true)}>

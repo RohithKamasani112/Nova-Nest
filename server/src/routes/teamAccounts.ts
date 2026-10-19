@@ -22,12 +22,13 @@ const schema = z.object({
   name: z.string().trim().min(1).max(200),
   password: z.string().min(8).max(128).optional(),
   role: z.enum(['telecaller', 'agent']),
-  portal: z.enum(['magicbricks', 'housing', '99acres']).optional(),
+  portal: z.enum(['magicbricks', 'housing', '99acres', 'custom']).optional(),
+  portals: z.array(z.enum(['magicbricks', 'housing', '99acres', 'custom'])).min(1).max(4).optional(),
   agentId: z.string().uuid().optional(),
   isActive: z.boolean().default(true),
 }).superRefine((data, ctx) => {
   if (!data.id && !data.password) ctx.addIssue({ code: 'custom', message: 'Password required for a new account.' });
-  if (data.role === 'telecaller' && !data.portal) ctx.addIssue({ code: 'custom', message: 'Choose a portal.' });
+  if (data.role === 'telecaller' && !data.portals?.length && !data.portal) ctx.addIssue({ code: 'custom', message: 'Choose at least one lead source.' });
   if (data.role === 'agent' && !data.agentId) ctx.addIssue({ code: 'custom', message: 'Choose a team member.' });
 });
 
@@ -49,7 +50,9 @@ teamAccountsRouter.put('/', asyncHandler(async (req, res) => {
         if (!agent.rowCount) throw new Error('TEAM_NOT_FOUND');
         if (agent.rows[0].user_id && agent.rows[0].user_id !== input.id) throw new Error('TEAM_ALREADY_LINKED');
       }
-      const scope = input.role === 'telecaller' ? PORTAL_SOURCES[input.portal!] : [];
+      const scope = input.role === 'telecaller'
+        ? [...new Set((input.portals ?? [input.portal!]).flatMap(portal => PORTAL_SOURCES[portal]))]
+        : [];
       let userId = input.id;
       if (userId) {
         await client.query(`UPDATE users SET username = $2, name = $3, role = $4, source_scope = $5,
@@ -60,6 +63,16 @@ teamAccountsRouter.put('/', asyncHandler(async (req, res) => {
           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
           [input.username, `${input.username}@team.novanest.internal`, input.name, input.role, scope, input.isActive, hash]);
         userId = result.rows[0].id;
+      }
+      // Source access covers every existing and future lead. Transfer only the
+      // selected sources, preserving other scopes and invalidating stale sessions.
+      if (scope.length) {
+        await client.query(`UPDATE users u SET source_scope = ARRAY(
+            SELECT source FROM unnest(u.source_scope) AS source
+            WHERE NOT (source = ANY($2::text[]))
+          ), session_version = session_version + 1
+          WHERE u.role = 'telecaller' AND u.id <> $1 AND u.source_scope && $2::text[]`,
+          [userId, scope]);
       }
       await client.query('UPDATE agents SET user_id = NULL WHERE user_id = $1', [userId]);
       if (input.role === 'agent') await client.query('UPDATE agents SET user_id = $1 WHERE id = $2', [userId, input.agentId]);

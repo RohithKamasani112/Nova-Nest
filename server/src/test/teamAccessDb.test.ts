@@ -44,7 +44,7 @@ test('CRM role access and shared lead workflow (isolated PostgreSQL)', { skip: !
     const otherTeam = await call('/crm/agents', adminToken, 'POST', { name: 'Team Two' }, 201);
     const createAccount = (username: string, role: string, extra: object) => call('/team-accounts', adminToken, 'PUT', { username, name: username, password, role, ...extra });
     const magicAccount = await createAccount('magic.calls', 'telecaller', { portal: 'magicbricks' });
-    await createAccount('housing.calls', 'telecaller', { portal: 'housing' });
+    const housingAccount = await createAccount('housing.calls', 'telecaller', { portals: ['housing', 'custom'] });
     await createAccount('acres.calls', 'telecaller', { portal: '99acres' });
     await createAccount('team.one', 'agent', { agentId: team.agent.id });
     await createAccount('team.two', 'agent', { agentId: otherTeam.agent.id });
@@ -164,6 +164,34 @@ test('CRM role access and shared lead workflow (isolated PostgreSQL)', { skip: !
       const repeatedDetail = await call(`/crm/leads/${repeated.id}`, tokens['housing.calls']);
       assert.equal(repeatedDetail.lead.source, 'personal');
       assert.equal(repeatedDetail.lead.is_duplicate, true);
+    });
+    await t.test('multiple sources transfer old and future leads while keeping unrelated sources and history', async () => {
+      const newCaller = await createAccount('combined.calls', 'telecaller', { portals: ['housing', 'magicbricks'] });
+      await call('/crm/leads', tokens['housing.calls'], 'GET', undefined, 401);
+      await call('/crm/leads', tokens['magic.calls'], 'GET', undefined, 401);
+      const login = async (username: string) => (await call('/auth/login', '', 'POST', { email: username, password })).token;
+      let combined = await login('combined.calls');
+      const housing = await login('housing.calls');
+      assert.deepEqual((await call('/crm/leads', combined)).leads.map((lead: any) => lead.source).sort(), ['housing', 'magicbricks']);
+      assert((await call('/crm/leads', housing)).leads.every((lead: any) => ['website', 'personal'].includes(lead.source)));
+      assert.equal((await call('/crm/leads?source=housing', housing)).total, 0);
+      const magic = await login('magic.calls');
+      assert.equal((await call('/crm/leads', magic)).total, 0);
+      const detail = await call(`/crm/leads/${leadIds.magicbricks}`, combined);
+      assert(detail.activities.some((activity: any) => activity.content === 'Call complete'));
+      assert.equal(detail.lead.agent_id, otherTeam.agent.id);
+      const future = (await database.query("INSERT INTO leads (source,name,name_normalized,phone) VALUES ('housing','Future visitor','future visitor','9876543277') RETURNING id")).rows[0];
+      await call(`/crm/leads/${future.id}`, combined);
+      await call(`/crm/leads/${future.id}`, housing, 'GET', undefined, 404);
+      await call('/team-accounts', adminToken, 'PUT', { id: housingAccount.id, username: 'housing.calls', name: 'Housing calls', role: 'telecaller', portals: ['custom', 'housing'] });
+      await call('/crm/leads', combined, 'GET', undefined, 401);
+      combined = await login('combined.calls');
+      assert.deepEqual((await call('/crm/filters/options', combined)).sources, ['magicbricks']);
+      const updatedHousing = await login('housing.calls');
+      await call(`/crm/leads/${future.id}`, updatedHousing);
+      const scopes = (await call('/team-accounts')).accounts;
+      assert.deepEqual(scopes.find((account: any) => account.id === newCaller.id).source_scope, ['magicbricks']);
+      await call('/team-accounts', adminToken, 'PUT', { id: newCaller.id, username: 'combined.calls', name: 'Combined', role: 'telecaller', portals: [] }, 400);
     });
     await t.test('admin edits revoke sessions and passwords are never returned', async () => {
       const accounts = (await call('/team-accounts')).accounts;

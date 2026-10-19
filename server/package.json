@@ -24,6 +24,7 @@
     "package:magicbricks": "npm run build && node scripts/package-magicbricks.mjs",
     "dev:magicbricks": "npm run build && node scripts/test-magicbricks-local.mjs",
     "deploy:lambda": "node scripts/deploy-lambda.mjs",
+    "test:team-sources": "npm run build && node --test dist/test/telecallerSources.test.js",
     "test:team-access:db": "npm run build && node --test dist/test/teamAccessDb.test.js",
     "test:storage": "npm run build && node --test dist/test/storage.test.js",
     "test:deploy": "npm run build && node --test scripts/deploy-lambda.test.mjs"

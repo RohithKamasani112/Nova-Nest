@@ -12,7 +12,8 @@ export interface CrmIdentity {
 export const crmIdentity = new AsyncLocalStorage<CrmIdentity>();
 export const PORTAL_SOURCES: Record<string, string[]> = {
   magicbricks: ['magicbricks'],
-  housing: ['housing', 'website', 'personal'],
+  housing: ['housing'],
+  custom: ['website', 'personal'],
   '99acres': ['99acres'],
 };
 

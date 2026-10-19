@@ -14,7 +14,7 @@ export async function leadAccess(req: Request, res: Response, next: NextFunction
     return res.status(403).json({ error: 'Only admins and telecallers can assign leads.' });
   }
   if (req.method === 'POST' && req.path === '/' && user.role === 'telecaller' && !user.source_scope.includes('personal')) {
-    return res.status(403).json({ error: 'Custom leads are managed by Housing + Custom telecallers.' });
+    return res.status(403).json({ error: 'Custom lead access is required to create custom leads.' });
   }
   if (req.method === 'POST' && req.path === '/' && user.role === 'agent') req.body.agentId = user.agent_id;
   const ids: unknown[] = uuid.test(id) ? [id] : req.path === '/bulk' ? req.body?.ids : [];
