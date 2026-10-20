@@ -353,7 +353,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             enterKeyHint="search"
-            className="tap-target w-full pl-8"
+            className="crm-lead-search tap-target w-full pl-8"
           />
         </div>
         <Button variant="outline" onClick={openMobileFilters} className="tap-target relative shrink-0">
@@ -390,7 +390,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
               placeholder="Search name, phone, email, project..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-56 pl-8"
+              className="crm-lead-search w-56 pl-8"
             />
           </div>
         </div>
@@ -404,7 +404,7 @@ export const CrmLeadsPage: React.FC<CrmLeadsPageProps> = ({ initialFilters, onUp
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onBlur={() => !searchInput && setSearchExpanded(false)}
-                className="w-48 pl-8"
+                className="crm-lead-search w-48 pl-8"
               />
             </div>
           ) : (

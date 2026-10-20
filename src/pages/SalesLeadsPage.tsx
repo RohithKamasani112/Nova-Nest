@@ -151,7 +151,7 @@ export const SalesLeadsPage: React.FC<{ onNavigate: (page: string) => void }> = 
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           enterKeyHint="search"
-          className="tap-target w-full pl-8"
+          className="crm-lead-search tap-target w-full pl-8"
         />
       </div>
 
