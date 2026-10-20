@@ -350,9 +350,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               )}
             </div>
 
-            <CallOutcomePicker key={lead.id} onLog={logOutcome} />
+            <CallOutcomePicker key={`call-outcome-${lead.id}`} onLog={logOutcome} />
 
-            <details key={lead.id} className="rounded-lg border p-3">
+            <details key={`lead-details-${lead.id}`} className="rounded-lg border p-3">
               <summary className="cursor-pointer text-sm font-semibold">Show more lead details</summary>
               <div className="mt-4 space-y-4">
                 <section className="rounded-lg border p-3" aria-label="Edit contact details">
