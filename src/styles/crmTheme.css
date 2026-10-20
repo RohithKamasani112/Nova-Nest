@@ -249,3 +249,6 @@
   }
 }
 
+
+/* Keep shared follow-up and site-visit shortcuts compact inside CRM surfaces. */
+.crm-quick-date-picker [data-slot="button"].crm-date-shortcut { min-height: 36px; height: 36px; padding: 4px 6px; font-size: 12px; gap: 4px; }

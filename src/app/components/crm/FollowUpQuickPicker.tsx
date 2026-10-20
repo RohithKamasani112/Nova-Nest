@@ -36,21 +36,15 @@ export const FollowUpQuickPicker: React.FC<FollowUpQuickPickerProps> = ({ onPick
   };
 
   return (
-    <div className="space-y-2">
-      {/* A predictable 2-column grid (instead of variable-width flex-wrap
-          buttons) plus a 44px tap height on mobile — the old flex-wrap row
-          of tightly-packed sm buttons was the "rough on mobile" complaint:
-          easy to mis-tap and the row reflowed unpredictably at narrow
-          popover widths. md: sizes restore the exact pre-existing desktop
-          look (h-8 px-3, same as Button's old size="sm"). */}
-      <div className="grid grid-cols-2 gap-2">
+    <div className="crm-quick-date-picker space-y-2">
+      <div className="grid grid-cols-3 gap-1.5">
         {QUICK_OPTIONS.map((opt) => (
           <Button
             key={opt.label}
             type="button"
             variant="outline"
             onClick={() => pickDays(opt.days)}
-            className="h-11 px-4 text-sm md:h-8 md:px-3 md:text-xs"
+            className="crm-date-shortcut min-w-0"
           >
             {opt.label}
           </Button>
@@ -59,21 +53,18 @@ export const FollowUpQuickPicker: React.FC<FollowUpQuickPickerProps> = ({ onPick
           type="button"
           variant="outline"
           onClick={() => setCustomOpen((v) => !v)}
-          className="h-11 px-4 text-sm md:h-8 md:px-3 md:text-xs"
+          className="crm-date-shortcut min-w-0"
         >
           Custom date
         </Button>
-        {onCancel && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onCancel}
-            className="h-11 px-4 text-sm md:h-8 md:px-3 md:text-xs"
-          >
+      </div>
+      {onCancel && (
+        <div className="flex justify-end">
+          <Button type="button" variant="ghost" onClick={onCancel} className="h-8 px-2 text-xs">
             Cancel
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       {customOpen && (
         <div className="flex flex-col gap-2 border-t pt-2 sm:flex-row sm:items-center">
           <Input
