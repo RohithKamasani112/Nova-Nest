@@ -339,7 +339,8 @@ const ManagedBy: React.FC<{ lead: LeadListItem; options: {value: string; label: 
   </Select>;
 };
 
-const ACTIONS_COL_WIDTH = 152;
+// Reserve room for Call, WhatsApp and the labelled Add note button.
+const ACTIONS_COL_WIDTH = 232;
 
 export const LeadsTable: React.FC<LeadsTableProps> = ({
   leads,
@@ -748,7 +749,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
                     <span style={{ color: followUp?.overdue ? 'var(--crm-status-overdue)' : undefined }}>{followUp?.text ?? lead.agent_name ?? 'Unassigned'}</span>
                   </button>
                   <div className="crm-mobile-actions">
-                    {phone ? <LeadContactActions phone={phone} name={lead.name} compact onContact={() => handleContact(lead.id)} /> : (
+                    {phone ? <LeadContactActions phone={phone} name={lead.name} compact showCallLabel onContact={() => handleContact(lead.id)} /> : (
                       <button type="button" className="crm-mobile-open" onClick={() => onRowClick(lead.id)} aria-label={'View ' + lead.name}><ArrowUpRight size={18} /></button>
                     )}
                   </div>

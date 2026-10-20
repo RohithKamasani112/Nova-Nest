@@ -14,7 +14,7 @@ import { CalendarDays, Mail, ExternalLink, Share2, MessageSquareText } from 'luc
 import { LeadContactActions } from './LeadContactActions';
 import { addLeadActivity, getLeadDetail, getLeadInterests, listAgents, updateLead } from '../../../services/crmApi';
 import { CrmAgent, LeadActivity, LeadDetail, LeadInterest } from '../../../types/crm';
-import { leadPhone, SOURCE_LABELS, STATUS_LABELS, tomorrowIso, titleCase } from './crmVisuals';
+import { leadPhone, SOURCE_LABELS, STATUS_LABELS, telHref, tomorrowIso, titleCase } from './crmVisuals';
 import { clearLastContacted, markLastContacted } from '../../../utils/lastContacted';
 import { FollowUpQuickPicker } from './FollowUpQuickPicker';
 import { AgentFormDialog } from './AgentFormDialog';
@@ -48,7 +48,6 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   const [editingFollowUp, setEditingFollowUp] = useState(false);
   const [promptNextFollowUp, setPromptNextFollowUp] = useState(false);
   const [followUpPromptLabel, setFollowUpPromptLabel] = useState('Set the next follow-up date:');
-  const [showNoteFollowUp, setShowNoteFollowUp] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const statusOptions = useLeadStatuses();
   const statusLabel = (value: string) => statusOptions.find(option => option.value === value)?.label ?? STATUS_LABELS[value] ?? value;
@@ -89,7 +88,6 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
     // showing the site-visit-date prompt with no such status change made.
     setNoteText('');
     setNoteFollowUp(null);
-    setShowNoteFollowUp(false);
     setEditingFollowUp(false);
     setPromptNextFollowUp(false);
     setFollowUpPromptLabel('Set the next follow-up date:');
@@ -162,7 +160,6 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
       await addLeadActivity(lead.id, 'note', noteText.trim(), noteFollowUp ?? undefined);
       setNoteText('');
       setNoteFollowUp(null);
-      setShowNoteFollowUp(false);
       toast.success('Note added.');
       load(true);
       onChanged();
@@ -231,7 +228,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               <span className="crm-avatar" aria-hidden="true">{lead.name.trim().slice(0, 1).toUpperCase()}</span>
               <div className="min-w-0">
                 <SheetTitle className="break-words text-xl font-semibold tracking-tight">{titleCase(lead.name)}</SheetTitle>
-                <p className="mt-1 break-all text-sm text-muted-foreground">{phone ?? lead.email ?? 'No contact information'}</p>
+                {phone ? <a href={telHref(phone)} onClick={() => markLastContacted(lead.id)} className="mt-1 inline-block break-all text-sm font-medium underline underline-offset-2" aria-label={`Call ${lead.name} directly`}>{phone}</a> : <p className="mt-1 break-all text-sm text-muted-foreground">{lead.email ?? 'No contact information'}</p>}
               </div>
             </div>
               <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -241,6 +238,13 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               </div>
             </SheetHeader>
           <div className="crm-record-body min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
+            {lead.message && (
+              <section className="crm-enquiry" aria-label="Original enquiry">
+                <p className="crm-section-label"><MessageSquareText size={15} aria-hidden="true" /> Original enquiry</p>
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{lead.message}</p>
+              </section>
+            )}
+
             <div className="grid grid-cols-2 gap-4 text-sm">
               <DetailField label="Project" value={lead.project_name} />
               <DetailField label="Lead date" value={lead.lead_date ? new Date(lead.lead_date).toLocaleDateString() : null} />
@@ -249,9 +253,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               <label htmlFor="lead-note" className="mb-1.5 block text-sm font-semibold">Add note</label>
               <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} id="lead-note" rows={3} disabled={savingNote} placeholder="Call notes, next steps..." />
               <div className="mt-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setShowNoteFollowUp(value => !value)}> {showNoteFollowUp ? 'Hide reminder options' : '+ Add follow-up reminder'} </Button>
-                {showNoteFollowUp && <div className="mt-2"><p className="mb-1 text-xs font-medium text-muted-foreground">Next follow-up (optional)</p>
-                <FollowUpQuickPicker onPick={setNoteFollowUp} /></div>}
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Next follow-up (optional)</p>
+                <FollowUpQuickPicker onPick={setNoteFollowUp} />
                 {noteFollowUp && (
                   <p className="mt-1 text-xs text-emerald-700">
                     Will set follow-up to {formatFollowUp(noteFollowUp)}{' '}
@@ -300,8 +303,8 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                       prompt below), just as one obvious top-of-lead
                       button instead of a buried dropdown choice. */}
                   {lead.status !== 'site_visit_scheduled' && (
-                    <Button variant="outline" size="sm" onClick={() => handleStatusChange('site_visit_scheduled')}>
-                      Schedule visit
+                    <Button className="crm-schedule-visit" size="sm" onClick={() => handleStatusChange('site_visit_scheduled')}>
+                      <CalendarDays size={17} aria-hidden="true" /> Schedule visit
                     </Button>
                   )}
                   <Button variant="outline" size="sm" onClick={() => setEditingFollowUp((v) => !v)}>
@@ -378,12 +381,6 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                   )}
                 </section>
 
-                {lead.message && (
-                  <section className="crm-enquiry" aria-label="Original enquiry">
-                    <p className="crm-section-label"><MessageSquareText size={15} aria-hidden="true" /> Original enquiry</p>
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{lead.message}</p>
-                  </section>
-                )}
 
                 <div className="crm-details-grid grid grid-cols-2 gap-4 text-sm">
                   <DetailField label="Locality" value={lead.locality} />
@@ -495,12 +492,12 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
             className="crm-record-footer shrink-0 border-t bg-background p-4"
             style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
           >
-            <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+            <LeadContactActions phone={phone} name={lead.name} onContact={() => markLastContacted(lead.id)} />
+            <div className="my-3 flex min-w-0 items-center justify-between gap-3">
             <span className="shrink-0 text-xs font-medium text-muted-foreground">Lead stage</span>
             <LeadStatusSelect value={lead.status} onValueChange={handleStatusChange} label="Lead stage" className="min-w-0 w-full max-w-64 text-sm" />
             </div>
             <Button type="button" variant="outline" className="mb-2 w-full" onClick={() => document.getElementById('lead-note')?.focus()}><MessageSquareText size={16} /> Add note</Button>
-            <LeadContactActions phone={phone} name={lead.name} onContact={() => markLastContacted(lead.id)} />
           </div>
           </>
         )}
