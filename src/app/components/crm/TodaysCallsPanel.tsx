@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCrmRefresh } from './useCrmRefresh';
 import toast from 'react-hot-toast';
-import { StickyNote, CalendarClock, Check, PhoneCall, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { StickyNote, CalendarClock, Check, PhoneCall, MoreHorizontal, ChevronDown, AlertCircle, CalendarDays } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
@@ -118,8 +118,11 @@ function ReminderGroup({ title, leads, onChanged, onViewAll, viewLabel, overdue 
   showSiteVisitTag?: boolean;
 }) {
   return <section aria-label={title} className="min-w-0">
-    <h3 className={`crm-reminders-group-label${overdue ? ' crm-reminders-group-label--overdue' : ''}`}>
-      <span>{title} ({leads.length})</span>
+    <h3 className={`crm-reminders-group-label${overdue ? ' crm-reminders-group-label--overdue' : !showSiteVisitTag ? ' crm-reminders-group-label--visits' : ''}`}>
+      <span className="crm-reminders-group-heading">
+        {overdue ? <AlertCircle size={17} aria-hidden="true" /> : !showSiteVisitTag ? <CalendarDays size={17} aria-hidden="true" /> : <CalendarClock size={17} aria-hidden="true" />}
+        {title} <span className="crm-reminders-group-count">{leads.length}</span>
+      </span>
       <button type="button" className="crm-reminders-group-link" onClick={onViewAll}>{viewLabel}</button>
     </h3>
     <div className="crm-reminders-scroll" role="region" aria-label={`${title} lead list`} tabIndex={0}>{leads.map(lead => (

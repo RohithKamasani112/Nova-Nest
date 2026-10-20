@@ -254,5 +254,14 @@
 .crm-quick-date-picker [data-slot="button"].crm-date-shortcut { min-height: 36px; height: 36px; padding: 4px 6px; font-size: 12px; gap: 4px; }
 
 
-.crm-reminders-scroll { max-height: min(380px, 45dvh); overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-gutter: stable; padding-right: 6px; }
+.crm-reminders-scroll { max-height: min(380px, 45dvh); overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: auto; scrollbar-gutter: stable; padding-right: 6px; }
 .crm-reminders-scroll:focus-visible { outline: 2px solid #8faf9a; outline-offset: 2px; border-radius: 6px; }
+
+/* Distinct heading bands keep reminder categories separate from lead rows. */
+.crm-reminders-group-label { margin-bottom: 6px; padding: 10px 12px; border: 1px solid #d9e5dc; border-left: 4px solid #51765c; border-radius: 9px; background: #eef5ef; color: #294c34; font-size: 13px; line-height: 20px; text-transform: none; letter-spacing: 0; }
+.crm-reminders-group-label--overdue { background: #fff1f2; border-color: #fecdd3; border-left-color: #be123c; color: #9f1239; }
+.crm-reminders-group-label--visits { background: #fff8e8; border-color: #eed69d; border-left-color: #b77910; color: #80520b; }
+.crm-reminders-group-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.crm-reminders-group-heading > svg { flex-shrink: 0; }
+.crm-reminders-group-count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; padding: 0 6px; border-radius: 6px; background: #ffffffb3; font-size: 12px; }
+.crm-reminders-group-label .crm-reminders-group-link { color: inherit; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
