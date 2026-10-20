@@ -35,7 +35,7 @@ export interface LeadFilters {
   batchId?: string;
 }
 
-const TERMINAL_STATUSES = "('converted','closed_lost','junk')";
+const TERMINAL_STATUSES = "('converted','closed','closed_lost','junk')";
 
 export interface SortOptions {
   sortBy?: 'lead_date' | 'created_at' | 'name' | 'price_value' | 'next_follow_up_at' | 'updated_at';
@@ -317,7 +317,8 @@ export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'site_visit_done', label: 'Site Visit Done' },
   { value: 'negotiation', label: 'Negotiation' },
   { value: 'converted', label: 'Converted' },
-  { value: 'closed_lost', label: 'Closed / Lost' },
+  { value: 'closed', label: 'Closed' },
+  { value: 'closed_lost', label: 'Lost' },
   { value: 'junk', label: 'Junk' },
 ];
 const LISTING_TYPE_VALUES = ['rent', 'sale', 'resale', 'pg', 'commercial', 'other'];
@@ -680,6 +681,7 @@ export async function updateLead(id: string, patch: LeadUpdateInput) {
       add('status', patch.status);
       if (patch.status === 'contacted' && !existing.first_contacted_at) add('first_contacted_at', new Date());
       if (patch.status === 'converted' && !existing.converted_at) add('converted_at', new Date());
+      if (patch.status === 'closed' && !existing.closed_at) add('closed_at', new Date());
       if (patch.status === 'closed_lost') {
         if (!existing.closed_at) add('closed_at', new Date());
         if (!patch.lostReason && !existing.lost_reason) throw new Error('LOST_REASON_REQUIRED');
@@ -790,6 +792,7 @@ export async function bulkAction(input: BulkActionInput): Promise<{ affected: nu
       const params: unknown[] = [status];
       if (status === 'contacted') sets.push('first_contacted_at = COALESCE(first_contacted_at, now())');
       if (status === 'converted') sets.push('converted_at = COALESCE(converted_at, now())');
+      if (status === 'closed') sets.push('closed_at = COALESCE(closed_at, now())');
       if (status === 'closed_lost') {
         sets.push('closed_at = COALESCE(closed_at, now())');
         if (input.payload?.lostReason) {

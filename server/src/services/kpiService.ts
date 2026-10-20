@@ -96,8 +96,8 @@ async function fetchFollowUpCounts(params: KpiParams): Promise<{ pending: number
   }
   const { rows } = await pool.query<{ pending: string; overdue: string }>(
     `SELECT
-       count(*) FILTER (WHERE next_follow_up_at IS NOT NULL AND status NOT IN ('converted','closed_lost','junk')) AS pending,
-       count(*) FILTER (WHERE next_follow_up_at < now() AND status NOT IN ('converted','closed_lost','junk')) AS overdue
+       count(*) FILTER (WHERE next_follow_up_at IS NOT NULL AND status NOT IN ('converted','closed','closed_lost','junk')) AS pending,
+       count(*) FILTER (WHERE next_follow_up_at < now() AND status NOT IN ('converted','closed','closed_lost','junk')) AS overdue
      FROM leads
      WHERE deleted_at IS NULL${extra}`,
     values
@@ -324,7 +324,7 @@ export async function getAgentLeaderboard(params: Omit<KpiParams, 'agentId'>) {
        count(l.id) FILTER (WHERE l.status = 'converted') AS converted,
        count(l.id) FILTER (WHERE l.status = 'closed_lost') AS lost,
        avg(EXTRACT(EPOCH FROM (l.first_contacted_at - l.created_at)) / 3600.0) FILTER (WHERE l.first_contacted_at IS NOT NULL) AS avg_response_hours,
-       count(l.id) FILTER (WHERE l.next_follow_up_at < now() AND l.status NOT IN ('converted','closed_lost','junk')) AS overdue_follow_ups,
+       count(l.id) FILTER (WHERE l.next_follow_up_at < now() AND l.status NOT IN ('converted','closed','closed_lost','junk')) AS overdue_follow_ups,
        sum(l.deal_value) FILTER (WHERE l.status = 'converted') AS deal_value
      FROM agents a
      LEFT JOIN leads l ON l.agent_id = a.id AND ${where}

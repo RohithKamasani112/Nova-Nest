@@ -1,7 +1,7 @@
 import { pool, withTransaction } from '../db/pool';
 import { collapseWhitespace } from '../lib/textUtils';
 
-const TERMINAL_STATUSES = "('converted','closed_lost','junk')";
+const TERMINAL_STATUSES = "('converted','closed','closed_lost','junk')";
 
 function pct(n: number, d: number): number {
   return d > 0 ? Math.round((n / d) * 1000) / 10 : 0;

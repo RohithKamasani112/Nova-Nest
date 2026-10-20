@@ -4,7 +4,7 @@ import { pool } from '../db/pool';
 export async function listLeadStatuses(): Promise<{ value: string; label: string }[]> {
   const { rows } = await pool.query(`SELECT value, label FROM crm_lead_statuses
     ORDER BY array_position(ARRAY['new','contacted','follow_up','site_visit_scheduled','site_visit_done',
-      'negotiation','converted','closed_lost','junk']::text[], value) NULLS LAST, created_at, label`);
+      'negotiation','converted','closed','closed_lost','junk']::text[], value) NULLS LAST, created_at, label`);
   return rows;
 }
 

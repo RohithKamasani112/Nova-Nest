@@ -79,7 +79,7 @@ test('CRM role access and shared lead workflow (isolated PostgreSQL)', { skip: !
         assert.equal(kpis.scorecards.current.totalLeads, sources.length);
         const pending = await call('/crm/leads?followUp=pending', token);
         assert.equal(pending.total, kpis.scorecards.followUps.pending);
-        assert(pending.leads.every((lead: any) => lead.next_follow_up_at && !['converted','closed_lost','junk'].includes(lead.status)));
+        assert(pending.leads.every((lead: any) => lead.next_follow_up_at && !['converted','closed','closed_lost','junk'].includes(lead.status)));
         const exportCsv = await call('/crm/leads/export.csv', token);
         for (const source of Object.keys(leadIds)) assert.equal(exportCsv.includes(source + ' visitor'), sources.includes(source));
       }
@@ -179,6 +179,31 @@ test('CRM role access and shared lead workflow (isolated PostgreSQL)', { skip: !
       assert.equal(new Date(visit.lead.next_follow_up_at).toISOString(), date);
       assert.equal(visit.lead.status, 'site_visit_scheduled');
       await call(`/crm/leads/${id}`, token, 'PATCH', { status: 'new', nextFollowUpAt: null });
+    });
+    await t.test('Closed and Lost are separate terminal statuses with distinct lost counts', async () => {
+      const token = tokens['team.two'];
+      const id = leadIds.magicbricks;
+      const options = (await call('/crm/leads/statuses', token)).statuses;
+      assert(options.some((option: any) => option.value === 'closed' && option.label === 'Closed'));
+      assert(options.some((option: any) => option.value === 'closed_lost' && option.label === 'Lost'));
+      assert(!options.some((option: any) => option.label === 'Closed / lost'));
+      const initialLost = (await call('/crm/kpis' + period, token)).scorecards.current.closedLost;
+      await call(`/crm/leads/${id}`, token, 'PATCH', { status: 'closed', nextFollowUpAt: '2020-01-01T04:30:00Z' });
+      const closed = (await call(`/crm/leads/${id}`, token)).lead;
+      assert.equal(closed.status, 'closed');
+      assert(closed.closed_at);
+      for (const filter of ['pending', 'overdue']) {
+        assert(!(await call('/crm/leads?followUp=' + filter, token)).leads.some((lead: any) => lead.id === id));
+      }
+      assert.equal((await call('/crm/kpis' + period, token)).scorecards.current.closedLost, initialLost);
+      await call('/crm/leads/bulk', token, 'POST', { ids: [id], action: 'change_status', payload: { status: 'closed' } });
+      await call(`/crm/leads/${id}`, token, 'PATCH', { status: 'closed_lost' }, 400);
+      await call(`/crm/leads/${id}`, token, 'PATCH', { status: 'closed_lost', lostReason: 'Bought elsewhere' });
+      assert.equal((await call('/crm/kpis' + period, token)).scorecards.current.closedLost, initialLost + 1);
+      const detail = await call(`/crm/leads/${id}`, token);
+      assert(detail.activities.some((activity: any) => activity.to_status === 'closed'));
+      assert(detail.activities.some((activity: any) => activity.to_status === 'closed_lost'));
+      await call(`/crm/leads/${id}`, token, 'PATCH', { status: 'new', nextFollowUpAt: null, lostReason: null });
     });
     await t.test('website and manual inputs are Custom and Housing can assign them', async () => {
       const website = await call('/public/leads', '', 'POST', { name: 'Website contact', phone: '9876543288', project: 'Website project' }, 201);

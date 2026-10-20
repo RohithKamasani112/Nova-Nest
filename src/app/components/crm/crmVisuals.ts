@@ -26,6 +26,7 @@ export const STATUS_DOT_VAR: Record<string, string> = {
   site_visit_done: 'var(--crm-status-site_visit_done)',
   negotiation: 'var(--crm-status-negotiation)',
   converted: 'var(--crm-status-converted)',
+  closed: 'var(--crm-status-closed)',
   closed_lost: 'var(--crm-status-closed_lost)',
   junk: 'var(--crm-status-junk)',
 };
@@ -38,17 +39,18 @@ export const STATUS_LABELS: Record<string, string> = {
   site_visit_done: 'Site visit done',
   negotiation: 'Negotiation',
   converted: 'Converted',
-  closed_lost: 'Closed / lost',
+  closed: 'Closed',
+  closed_lost: 'Lost',
   junk: 'Junk',
 };
 
-export const TERMINAL_STATUSES = new Set(['converted', 'closed_lost', 'junk']);
+export const TERMINAL_STATUSES = new Set(['converted', 'closed', 'closed_lost', 'junk']);
 
 // Order shown in every status dropdown across the CRM (drawer, inline table
 // editor, bulk-action bar) — funnel order, terminal states last.
 export const STATUS_OPTIONS = [
   'new', 'contacted', 'follow_up', 'site_visit_scheduled', 'site_visit_done',
-  'negotiation', 'converted', 'closed_lost', 'junk',
+  'negotiation', 'converted', 'closed', 'closed_lost', 'junk',
 ];
 
 // Canned call-outcome quick-picks for the row-level "log a call" popover —
