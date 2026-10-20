@@ -108,6 +108,26 @@ const CallRow: React.FC<RowProps> = ({ lead, onChanged, showSiteVisitTag = true 
   );
 };
 
+function ReminderGroup({ title, leads, onChanged, onViewAll, viewLabel, overdue = false, showSiteVisitTag = true }: {
+  title: string;
+  leads: LeadListItem[];
+  onChanged: () => void;
+  onViewAll: () => void;
+  viewLabel: string;
+  overdue?: boolean;
+  showSiteVisitTag?: boolean;
+}) {
+  return <section aria-label={title} className="min-w-0">
+    <h3 className={`crm-reminders-group-label${overdue ? ' crm-reminders-group-label--overdue' : ''}`}>
+      <span>{title} ({leads.length})</span>
+      <button type="button" className="crm-reminders-group-link" onClick={onViewAll}>{viewLabel}</button>
+    </h3>
+    <div className="crm-reminders-scroll" role="region" aria-label={`${title} lead list`} tabIndex={0}>{leads.map(lead => (
+      <CallRow key={lead.id} lead={lead} onChanged={onChanged} showSiteVisitTag={showSiteVisitTag} />
+    ))}</div>
+  </section>;
+}
+
 interface TodaysCallsPanelProps {
   onViewAll: (filters: LeadFiltersState) => void;
   /**
@@ -201,29 +221,13 @@ export const TodaysCallsPanel: React.FC<TodaysCallsPanelProps> = ({ onViewAll, a
         <div className="crm-reminders-groups">
           {total === 0 && <p className="text-sm text-muted-foreground">No calls due for the selected team. You can switch team members above.</p>}
           {overdue.length > 0 && (
-            <div>
-              <p className="crm-reminders-group-label crm-reminders-group-label--overdue">Overdue ({overdue.length})</p>
-              <div>{overdue.map((lead) => <CallRow key={lead.id} lead={lead} onChanged={load} />)}</div>
-            </div>
+            <ReminderGroup key={`overdue-${agentId}-${JSON.stringify(sourceScope)}`} title="Overdue" leads={overdue} overdue onChanged={() => load(true)} onViewAll={() => viewReminders('overdue')} viewLabel="View all overdue" />
           )}
           {siteVisitsToday.length > 0 && (
-            <div>
-              <p className="crm-reminders-group-label">
-                Site visits today ({siteVisitsToday.length})
-                <button type="button" className="crm-reminders-group-link" onClick={() => viewReminders('due_today', true)}>View visits</button>
-              </p>
-              <div>
-                {siteVisitsToday.map((lead) => (
-                  <CallRow key={lead.id} lead={lead} onChanged={load} showSiteVisitTag={false} />
-                ))}
-              </div>
-            </div>
+            <ReminderGroup key={`visits-${agentId}-${JSON.stringify(sourceScope)}`} title="Site visits today" leads={siteVisitsToday} showSiteVisitTag={false} onChanged={() => load(true)} onViewAll={() => viewReminders('due_today', true)} viewLabel="View visits" />
           )}
           {otherDueToday.length > 0 && (
-            <div>
-              <p className="crm-reminders-group-label">Due Today ({otherDueToday.length})<button type="button" className="crm-reminders-group-link" onClick={() => viewReminders('due_today')}>View today</button></p>
-              <div>{otherDueToday.map((lead) => <CallRow key={lead.id} lead={lead} onChanged={load} />)}</div>
-            </div>
+            <ReminderGroup key={`today-${agentId}-${JSON.stringify(sourceScope)}`} title="Due Today" leads={otherDueToday} onChanged={() => load(true)} onViewAll={() => viewReminders('due_today')} viewLabel="View today" />
           )}
         </div>
       )}

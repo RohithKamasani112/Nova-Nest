@@ -252,3 +252,7 @@
 
 /* Keep shared follow-up and site-visit shortcuts compact inside CRM surfaces. */
 .crm-quick-date-picker [data-slot="button"].crm-date-shortcut { min-height: 36px; height: 36px; padding: 4px 6px; font-size: 12px; gap: 4px; }
+
+
+.crm-reminders-scroll { max-height: min(380px, 45dvh); overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-gutter: stable; padding-right: 6px; }
+.crm-reminders-scroll:focus-visible { outline: 2px solid #8faf9a; outline-offset: 2px; border-radius: 6px; }
