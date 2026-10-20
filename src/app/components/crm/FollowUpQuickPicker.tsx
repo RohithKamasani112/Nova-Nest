@@ -10,8 +10,6 @@ interface FollowUpQuickPickerProps {
 const QUICK_OPTIONS: { label: string; days: number }[] = [
   { label: 'Tomorrow', days: 1 },
   { label: '+2 days', days: 2 },
-  { label: '+1 week', days: 7 },
-  { label: '+2 weeks', days: 14 },
 ];
 
 // Default reminder time for quick-pick options — a specific date with no

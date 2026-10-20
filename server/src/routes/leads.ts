@@ -1,4 +1,5 @@
 import { leadAccess } from '../middleware/leadAccess';
+import { createLeadStatus, listLeadStatuses } from '../services/leadStatusesService';
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/requireAuth';
@@ -16,6 +17,7 @@ import {
   LeadFilters,
   LeadNotFoundError,
   listLeads,
+  invalidateFilterOptions,
   softDeleteLead,
   SortOptions,
   updateLead,
@@ -23,6 +25,18 @@ import {
 
 export const leadsRouter = Router();
 leadsRouter.use(requireAuth, leadAccess);
+
+leadsRouter.get('/statuses', asyncHandler(async (_req, res) => {
+  res.json({ statuses: await listLeadStatuses() });
+}));
+
+leadsRouter.post('/statuses', asyncHandler(async (req, res) => {
+  const parsed = z.object({ label: z.string().trim().min(1).max(60).refine(value => !/[\x00-\x1f\x7f]/.test(value)) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Enter a status name (1–60 characters).' });
+  const status = await createLeadStatus(parsed.data.label, req.user!.id);
+  invalidateFilterOptions();
+  res.status(201).json({ status });
+}));
 
 function parseArrayParam(value: unknown): string[] | undefined {
   if (value === undefined || value === null || value === '') return undefined;

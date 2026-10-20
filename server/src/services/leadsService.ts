@@ -4,6 +4,7 @@ import { cleanCell, collapseWhitespace } from '../lib/textUtils';
 import { normalizeEmail, normalizeName, normalizeNameKey, normalizePhone } from '../lib/valueNormalize';
 import { resolveMapping } from '../parsers/rowMapper';
 import { CrmSource } from '../types/crm';
+import { isLeadStatus, listLeadStatuses } from './leadStatusesService';
 
 export interface LeadFilters {
   source?: string[];
@@ -324,6 +325,8 @@ const LISTING_TYPE_VALUES = ['rent', 'sale', 'resale', 'pg', 'commercial', 'othe
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
 
+export function invalidateFilterOptions() { filterOptionsCache = null; }
+
 async function loadFilterOptions(): Promise<FilterOptions> {
   const values: unknown[] = [];
   const access = accessSql(values);
@@ -369,7 +372,7 @@ async function loadFilterOptions(): Promise<FilterOptions> {
 
   return {
     sources: visibleSources(),
-    statuses: STATUS_OPTIONS.map((s) => ({ ...s, count: statusCountMap.get(s.value) ?? 0 })),
+    statuses: (await listLeadStatuses()).map((s) => ({ ...s, count: statusCountMap.get(s.value) ?? 0 })),
     agents: agents.rows.map((r) => ({ id: r.id, name: r.name, count: Number(r.count) })),
     cities: cities.rows.map((r) => ({ value: r.value, count: Number(r.count) })),
     localities: localities.rows.map((r) => ({ value: r.value, count: Number(r.count) })),
@@ -625,7 +628,6 @@ export async function createPersonalLead(input: PersonalLeadInput) {
 
 // ------------------------------------------------------------- update ---
 
-const STATUS_VALUES = STATUS_OPTIONS.map((s) => s.value);
 
 export interface LeadUpdateInput {
   name?: string;
@@ -674,7 +676,7 @@ export async function updateLead(id: string, patch: LeadUpdateInput) {
       add('phone_raw', normalized.phoneRaw);
     }
     if (patch.status !== undefined) {
-      if (!STATUS_VALUES.includes(patch.status)) throw new Error('INVALID_STATUS');
+      if (!(await isLeadStatus(patch.status))) throw new Error('INVALID_STATUS');
       add('status', patch.status);
       if (patch.status === 'contacted' && !existing.first_contacted_at) add('first_contacted_at', new Date());
       if (patch.status === 'converted' && !existing.converted_at) add('converted_at', new Date());
@@ -765,7 +767,7 @@ export async function bulkAction(input: BulkActionInput): Promise<{ affected: nu
 
   if (input.action === 'change_status') {
     const status = input.payload?.status;
-    if (!status || !STATUS_VALUES.includes(status)) throw new Error('INVALID_STATUS');
+    if (!status || !(await isLeadStatus(status))) throw new Error('INVALID_STATUS');
 
     // Bulk goes through the same per-lead stamping rules as a single update
     // (first_contacted_at / converted_at / closed_at, lost_reason required)

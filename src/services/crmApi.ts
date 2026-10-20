@@ -130,6 +130,18 @@ export async function deactivateAgent(
 
 // -------------------------------------------------------------- leads ---
 
+export interface LeadStatusOption { value: string; label: string }
+
+export async function listLeadStatuses(): Promise<LeadStatusOption[]> {
+  const { data } = await crmApi.get('/crm/leads/statuses');
+  return data.statuses;
+}
+
+export async function createLeadStatus(label: string): Promise<LeadStatusOption> {
+  const { data } = await crmApi.post('/crm/leads/statuses', { label });
+  return data.status;
+}
+
 function filtersToParams(filters: LeadFiltersState): Record<string, string> {
   const params: Record<string, string> = {};
   for (const [key, value] of Object.entries(filters)) {

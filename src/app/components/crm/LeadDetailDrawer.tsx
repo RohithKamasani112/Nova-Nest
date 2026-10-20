@@ -1,3 +1,5 @@
+import { LeadStatusSelect, useLeadStatuses } from './LeadStatusSelect';
+import { CallOutcomePicker } from './CallOutcomePicker';
 import { useCrmRefresh } from './useCrmRefresh';
 import { useAuth } from '../../../contexts/AuthContext';
 import React, { useEffect, useState } from 'react';
@@ -12,7 +14,7 @@ import { CalendarDays, Mail, ExternalLink, Share2, MessageSquareText } from 'luc
 import { LeadContactActions } from './LeadContactActions';
 import { addLeadActivity, getLeadDetail, getLeadInterests, listAgents, updateLead } from '../../../services/crmApi';
 import { CrmAgent, LeadActivity, LeadDetail, LeadInterest } from '../../../types/crm';
-import { CALL_OUTCOMES, leadPhone, SOURCE_LABELS, STATUS_LABELS, STATUS_OPTIONS, tomorrowIso, titleCase } from './crmVisuals';
+import { leadPhone, SOURCE_LABELS, STATUS_LABELS, tomorrowIso, titleCase } from './crmVisuals';
 import { clearLastContacted, markLastContacted } from '../../../utils/lastContacted';
 import { FollowUpQuickPicker } from './FollowUpQuickPicker';
 import { AgentFormDialog } from './AgentFormDialog';
@@ -30,7 +32,6 @@ interface LeadDetailDrawerProps {
   onShareProperties?: (clientName: string, clientPhone: string | null, leadId: string) => void;
 }
 
-const LOST_REASONS = ['Budget mismatch', 'Location mismatch', 'Bought elsewhere', 'Not responding', 'Postponed', 'Broker/spam', 'Other'];
 
 const KNOWN_FIELDS = new Set(['__unparsed', 'notes']);
 
@@ -47,7 +48,10 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   const [editingFollowUp, setEditingFollowUp] = useState(false);
   const [promptNextFollowUp, setPromptNextFollowUp] = useState(false);
   const [followUpPromptLabel, setFollowUpPromptLabel] = useState('Set the next follow-up date:');
-  const [lostReason, setLostReason] = useState('');
+  const [showNoteFollowUp, setShowNoteFollowUp] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const statusOptions = useLeadStatuses();
+  const statusLabel = (value: string) => statusOptions.find(option => option.value === value)?.label ?? STATUS_LABELS[value] ?? value;
   const [loading, setLoading] = useState(false);
   const [addAgentOpen, setAddAgentOpen] = useState(false);
   const [editingContact, setEditingContact] = useState(false);
@@ -85,11 +89,11 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
     // showing the site-visit-date prompt with no such status change made.
     setNoteText('');
     setNoteFollowUp(null);
+    setShowNoteFollowUp(false);
     setEditingFollowUp(false);
     setPromptNextFollowUp(false);
     setFollowUpPromptLabel('Set the next follow-up date:');
     setEditingContact(false);
-    setLostReason('');
     setAddAgentOpen(false);
     load();
     if (leadId) listAgents().then(setAgents).catch(() => setAgents([]));
@@ -98,9 +102,10 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
 
   const handleStatusChange = async (status: string) => {
     if (!lead) return;
-    if (status === 'closed_lost' && !lead.lost_reason && !lostReason) {
-      toast.error('Pick a lost reason first.');
-      return;
+    let reason = lead.lost_reason;
+    if (status === 'closed_lost' && !reason) {
+      reason = window.prompt('Why was this lead lost?')?.trim() ?? '';
+      if (!reason) return;
     }
 
     let dealValue: number | undefined;
@@ -115,11 +120,11 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
     try {
       await updateLead(lead.id, {
         status,
-        lostReason: status === 'closed_lost' ? lostReason || undefined : undefined,
+        lostReason: status === 'closed_lost' ? reason || undefined : undefined,
         dealValue,
       });
       toast.success('Status updated.');
-      load();
+      load(true);
       onChanged();
       // They've come back and acted on this lead — see utils/lastContacted.ts.
       clearLastContacted(lead.id);
@@ -143,7 +148,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
     try {
       await updateLead(lead.id, { agentId: agentId === '__unassigned__' ? null : agentId });
       toast.success('Team member reassigned.');
-      load();
+      load(true);
       onChanged();
     } catch {
       toast.error('Could not reassign team member.');
@@ -151,30 +156,34 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
   };
 
   const handleAddNote = async () => {
-    if (!lead || !noteText.trim()) return;
+    if (!lead || !noteText.trim() || savingNote) return;
+    setSavingNote(true);
     try {
       await addLeadActivity(lead.id, 'note', noteText.trim(), noteFollowUp ?? undefined);
       setNoteText('');
       setNoteFollowUp(null);
-      load();
+      setShowNoteFollowUp(false);
+      toast.success('Note added.');
+      load(true);
       onChanged();
     } catch {
       toast.error('Could not add note.');
-    }
+    } finally { setSavingNote(false); }
   };
 
-  // One-tap outcome logging — same CALL_OUTCOMES + addLeadActivity pattern
+  // Outcome logging — same CALL_OUTCOMES + addLeadActivity pattern
   // as LeadsTable.tsx's row-level popover, surfaced here too since that
   // popover only reveals on hover and never appears on a touch device.
   const logOutcome = async (label: string, scheduleFollowUp: boolean) => {
     if (!lead) return;
     try {
-      await addLeadActivity(lead.id, 'note', label, scheduleFollowUp ? tomorrowIso() : undefined);
-      toast.success(scheduleFollowUp ? 'Logged — follow-up set for tomorrow.' : 'Logged.');
-      load();
+      const setReminder = scheduleFollowUp && lead.status !== 'site_visit_scheduled';
+      await addLeadActivity(lead.id, 'note', label, setReminder ? tomorrowIso() : undefined);
+      toast.success(setReminder ? 'Logged — follow-up set for tomorrow.' : 'Logged.');
+      load(true);
       onChanged();
     } catch {
-      toast.error('Could not log outcome.');
+      throw new Error('Could not log outcome.');
     }
   };
 
@@ -185,7 +194,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
       toast.success('Follow-up updated.');
       setEditingFollowUp(false);
       setPromptNextFollowUp(false);
-      load();
+      load(true);
       onChanged();
     } catch {
       toast.error('Could not update follow-up.');
@@ -196,7 +205,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
     if (!lead) return;
     try {
       await updateLead(lead.id, { nextFollowUpAt: null });
-      load();
+      load(true);
       onChanged();
       setFollowUpPromptLabel('Set the next follow-up date:');
       setPromptNextFollowUp(true);
@@ -227,44 +236,47 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
             </div>
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <Badge variant="outline">{SOURCE_LABELS[lead.source] ?? lead.source}</Badge>
-                <Badge variant="secondary">{STATUS_LABELS[lead.status] ?? lead.status}</Badge>
+                <Badge variant="secondary">{statusLabel(lead.status)}</Badge>
                 {lead.is_duplicate && <Badge variant="destructive">Flagged duplicate</Badge>}
               </div>
             </SheetHeader>
           <div className="crm-record-body min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <DetailField label="Project" value={lead.project_name} />
+              <DetailField label="Lead date" value={lead.lead_date ? new Date(lead.lead_date).toLocaleDateString() : null} />
+            </div>
+            <section className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4" aria-label="Add a note">
+              <label htmlFor="lead-note" className="mb-1.5 block text-sm font-semibold">Add note</label>
+              <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} id="lead-note" rows={3} disabled={savingNote} placeholder="Call notes, next steps..." />
+              <div className="mt-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowNoteFollowUp(value => !value)}> {showNoteFollowUp ? 'Hide reminder options' : '+ Add follow-up reminder'} </Button>
+                {showNoteFollowUp && <div className="mt-2"><p className="mb-1 text-xs font-medium text-muted-foreground">Next follow-up (optional)</p>
+                <FollowUpQuickPicker onPick={setNoteFollowUp} /></div>}
+                {noteFollowUp && (
+                  <p className="mt-1 text-xs text-emerald-700">
+                    Will set follow-up to {formatFollowUp(noteFollowUp)}{' '}
+                    <button type="button" className="underline" onClick={() => setNoteFollowUp(null)}>
+                      clear
+                    </button>
+                  </p>
+                )}
+              </div>
+              <Button size="sm" className="mt-2" onClick={handleAddNote} disabled={savingNote || !noteText.trim()}>
+                {savingNote ? 'Saving...' : 'Save note'}
+              </Button>
+            </section>
 
-            <section className="rounded-lg border p-3" aria-label="Edit contact details">
-              {!editingContact ? (
-                <Button variant="outline" size="sm" onClick={() => { setContactName(lead.name ?? ''); setContactPhone(lead.phone ?? ''); setEditingContact(true); }}>Edit name / mobile</Button>
-              ) : (
-                <form className="space-y-3" onSubmit={async (event) => {
-                  event.preventDefault();
-                  if (savingContact) return;
-                  setSavingContact(true);
-                  try {
-                    await updateLead(lead.id, { name: contactName.trim(), ...(contactPhone.trim() ? { phone: contactPhone.trim() } : {}) });
-                    setEditingContact(false);
-                    toast.success('Contact details updated.');
-                    load();
-                    onChanged();
-                  } catch (error: any) {
-                    toast.error(error?.response?.data?.error ?? 'Could not update contact details.');
-                  } finally { setSavingContact(false); }
-                }}>
-                  <label className="block text-sm">Name<Input required maxLength={200} value={contactName} onChange={event => setContactName(event.target.value)} disabled={savingContact} /></label>
-                  <label className="block text-sm">Mobile number<Input type="tel" inputMode="tel" maxLength={30} placeholder="e.g. +91 98765 43210" value={contactPhone} onChange={event => setContactPhone(event.target.value)} disabled={savingContact} /></label>
-                  <p className="text-xs text-muted-foreground">Leave mobile blank to keep the existing number.</p>
-                  <div className="flex flex-wrap gap-2"><Button type="submit" size="sm" disabled={savingContact}>{savingContact ? 'Saving...' : 'Save changes'}</Button><Button type="button" variant="outline" size="sm" disabled={savingContact} onClick={() => setEditingContact(false)}>Cancel</Button></div>
-                </form>
+            <section className="space-y-2" aria-label="Lead status">
+              <p className="text-sm font-semibold">Status</p>
+              <LeadStatusSelect value={lead.status} onValueChange={handleStatusChange} />
+              {promptNextFollowUp && followUpPromptLabel === 'Set the site visit date:' && (
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <p className="mb-2 text-sm font-medium">Select site visit date & time</p>
+                  <FollowUpQuickPicker onPick={handleSetFollowUp} onCancel={() => setPromptNextFollowUp(false)} />
+                </div>
               )}
             </section>
 
-            {lead.message && (
-              <section className="crm-enquiry" aria-label="Original enquiry">
-                <p className="crm-section-label"><MessageSquareText size={15} aria-hidden="true" /> Original enquiry</p>
-                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{lead.message}</p>
-              </section>
-            )}
 
             <section className="crm-follow-up-card">
               <div className="flex flex-col gap-3">
@@ -302,7 +314,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                   )}
                 </div>
               </div>
-              {(editingFollowUp || promptNextFollowUp) && (
+              {(editingFollowUp || (promptNextFollowUp && followUpPromptLabel !== 'Set the site visit date:')) && (
                 <div className="mt-2 border-t pt-2">
                   {promptNextFollowUp && <p className="mb-1.5 text-xs text-muted-foreground">{followUpPromptLabel}</p>}
                   <FollowUpQuickPicker
@@ -335,144 +347,114 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
               )}
             </div>
 
-            {/* Quick outcome logging — one tap logs a note and (for the
-                non-terminal outcomes) schedules tomorrow's follow-up. Same
-                CALL_OUTCOMES list and behavior as LeadsTable.tsx's desktop
-                row popover, just placed at the top of the sheet instead of
-                behind a hover-only trigger. */}
-            <div>
-              <p className="mb-1.5 text-xs font-medium text-muted-foreground">Log call outcome</p>
-              <div className="flex flex-wrap gap-1.5">
-                {CALL_OUTCOMES.map((o) => (
-                  <button
-                    key={o.label}
-                    type="button"
-                    onClick={() => logOutcome(o.label, o.scheduleFollowUp)}
-                    className="crm-outcome-button"
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <CallOutcomePicker key={lead.id} onLog={logOutcome} />
 
-            <div className="crm-details-grid grid grid-cols-2 gap-4 text-sm">
-              <DetailField label="Project" value={lead.project_name} />
-              <DetailField label="Locality" value={lead.locality} />
-              <DetailField label="Configuration" value={lead.configuration} />
-              <DetailField label="Price" value={lead.price_value ? `₹${Number(lead.price_value).toLocaleString('en-IN')}` : lead.price_raw} />
-              <DetailField label="Listing type" value={lead.listing_type} />
-              <DetailField label="Property type" value={lead.property_type} />
-              <DetailField label="Lead date" value={lead.lead_date ? new Date(lead.lead_date).toLocaleDateString() : null} />
-              <DetailField label="Enquiries" value={String(lead.enquiry_count)} />
-              {lead.deal_value && <DetailField label="Deal value" value={`₹${Number(lead.deal_value).toLocaleString('en-IN')}`} />}
-              {lead.lost_reason && <DetailField label="Lost reason" value={lead.lost_reason} />}
-            </div>
+            <details key={lead.id} className="rounded-lg border p-3">
+              <summary className="cursor-pointer text-sm font-semibold">Show more lead details</summary>
+              <div className="mt-4 space-y-4">
+                <section className="rounded-lg border p-3" aria-label="Edit contact details">
+                  {!editingContact ? (
+                    <Button variant="outline" size="sm" onClick={() => { setContactName(lead.name ?? ''); setContactPhone(lead.phone ?? ''); setEditingContact(true); }}>Edit name / mobile</Button>
+                  ) : (
+                    <form className="space-y-3" onSubmit={async (event) => {
+                      event.preventDefault();
+                      if (savingContact) return;
+                      setSavingContact(true);
+                      try {
+                        await updateLead(lead.id, { name: contactName.trim(), ...(contactPhone.trim() ? { phone: contactPhone.trim() } : {}) });
+                        setEditingContact(false);
+                        toast.success('Contact details updated.');
+                        load(true);
+                        onChanged();
+                      } catch (error: any) {
+                        toast.error(error?.response?.data?.error ?? 'Could not update contact details.');
+                      } finally { setSavingContact(false); }
+                    }}>
+                      <label className="block text-sm">Name<Input required maxLength={200} value={contactName} onChange={event => setContactName(event.target.value)} disabled={savingContact} /></label>
+                      <label className="block text-sm">Mobile number<Input type="tel" inputMode="tel" maxLength={30} placeholder="e.g. +91 98765 43210" value={contactPhone} onChange={event => setContactPhone(event.target.value)} disabled={savingContact} /></label>
+                      <p className="text-xs text-muted-foreground">Leave mobile blank to keep the existing number.</p>
+                      <div className="flex flex-wrap gap-2"><Button type="submit" size="sm" disabled={savingContact}>{savingContact ? 'Saving...' : 'Save changes'}</Button><Button type="button" variant="outline" size="sm" disabled={savingContact} onClick={() => setEditingContact(false)}>Cancel</Button></div>
+                    </form>
+                  )}
+                </section>
 
-            <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
-                <Select value={lead.status} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s.replace(/_/g, ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {lead.status !== 'closed_lost' && (
-                  <Select value={lostReason} onValueChange={setLostReason}>
-                    <SelectTrigger className="mt-2 w-full">
-                      <SelectValue placeholder="Lost reason (if closing)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LOST_REASONS.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r}
-                        </SelectItem>
+                {lead.message && (
+                  <section className="crm-enquiry" aria-label="Original enquiry">
+                    <p className="crm-section-label"><MessageSquareText size={15} aria-hidden="true" /> Original enquiry</p>
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{lead.message}</p>
+                  </section>
+                )}
+
+                <div className="crm-details-grid grid grid-cols-2 gap-4 text-sm">
+                  <DetailField label="Locality" value={lead.locality} />
+                  <DetailField label="Configuration" value={lead.configuration} />
+                  <DetailField label="Price" value={lead.price_value ? `₹${Number(lead.price_value).toLocaleString('en-IN')}` : lead.price_raw} />
+                  <DetailField label="Listing type" value={lead.listing_type} />
+                  <DetailField label="Property type" value={lead.property_type} />
+                  <DetailField label="Enquiries" value={String(lead.enquiry_count)} />
+                  {lead.deal_value && <DetailField label="Deal value" value={`₹${Number(lead.deal_value).toLocaleString('en-IN')}`} />}
+                  {lead.lost_reason && <DetailField label="Lost reason" value={lead.lost_reason} />}
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Team</label>
+                    <Select
+                      disabled={!canAssign}
+                      value={lead.agent_id ?? '__unassigned__'}
+                      onValueChange={(v) => (v === ADD_NEW_AGENT ? setAddAgentOpen(true) : handleReassign(v))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                        {agents.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name}
+                          </SelectItem>
+                        ))}
+                        {isAdmin && <SelectItem value={ADD_NEW_AGENT} className="text-primary">+ Add new team member</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {interests.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-sm font-semibold">
+                      Also enquired about {interests.length} other propert{interests.length === 1 ? 'y' : 'ies'}
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {interests.map((i, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-sm">
+                          <span className="font-medium">{i.projectName ?? 'Unknown property'}</span>
+                          <Badge variant="outline" className="shrink-0">
+                            {SOURCE_LABELS[i.source] ?? i.source} · {new Date(i.createdAt).toLocaleDateString()}
+                          </Badge>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Team</label>
-                <Select
-                  disabled={!canAssign}
-                  value={lead.agent_id ?? '__unassigned__'}
-                  onValueChange={(v) => (v === ADD_NEW_AGENT ? setAddAgentOpen(true) : handleReassign(v))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__unassigned__">Unassigned</SelectItem>
-                    {agents.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name}
-                      </SelectItem>
-                    ))}
-                    {isAdmin && <SelectItem value={ADD_NEW_AGENT} className="text-primary">+ Add new team member</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {interests.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-sm font-semibold">
-                  Also enquired about {interests.length} other propert{interests.length === 1 ? 'y' : 'ies'}
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  {interests.map((i, idx) => (
-                    <div key={idx} className="flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-sm">
-                      <span className="font-medium">{i.projectName ?? 'Unknown property'}</span>
-                      <Badge variant="outline" className="shrink-0">
-                        {SOURCE_LABELS[i.source] ?? i.source} · {new Date(i.createdAt).toLocaleDateString()}
-                      </Badge>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {extraFields.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-sm font-semibold">Additional fields from source</p>
-                <div className="max-h-40 overflow-y-auto rounded-lg border p-2 text-xs">
-                  {extraFields.map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-2 py-0.5">
-                      <span className="text-muted-foreground">{k}</span>
-                      <span className="text-right">{String(v)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <p className="mb-1.5 text-sm font-semibold">Add note</p>
-              <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={2} placeholder="Call notes, next steps..." />
-              <div className="mt-2">
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Next follow-up (optional)</p>
-                <FollowUpQuickPicker onPick={setNoteFollowUp} />
-                {noteFollowUp && (
-                  <p className="mt-1 text-xs text-emerald-700">
-                    Will set follow-up to {formatFollowUp(noteFollowUp)}{' '}
-                    <button type="button" className="underline" onClick={() => setNoteFollowUp(null)}>
-                      clear
-                    </button>
-                  </p>
+                  </div>
                 )}
+
+                {extraFields.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-sm font-semibold">Additional fields from source</p>
+                    <div className="max-h-40 overflow-y-auto rounded-lg border p-2 text-xs">
+                      {extraFields.map(([k, v]) => (
+                        <div key={k} className="flex justify-between gap-2 py-0.5">
+                          <span className="text-muted-foreground">{k}</span>
+                          <span className="text-right">{String(v)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+
               </div>
-              <Button size="sm" className="mt-2" onClick={handleAddNote} disabled={!noteText.trim()}>
-                Add note
-              </Button>
-            </div>
+            </details>
 
             <div>
               <p className="mb-1.5 text-sm font-semibold">Activity timeline</p>
@@ -486,7 +468,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
                     </div>
                     {a.type === 'status_change' && (
                       <p>
-                        {a.from_status ?? '—'} → {a.to_status}
+                        {a.from_status ? statusLabel(a.from_status) : '?'} {'?'} {a.to_status ? statusLabel(a.to_status) : ''}
                       </p>
                     )}
                     {a.content && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{a.content}</p>}
@@ -515,19 +497,9 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({ leadId, onCl
           >
             <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
             <span className="shrink-0 text-xs font-medium text-muted-foreground">Lead stage</span>
-            <Select value={lead.status} onValueChange={handleStatusChange}>
-              <SelectTrigger aria-label="Lead stage" className="min-w-0 w-full max-w-64 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {STATUS_LABELS[s] ?? s.replace(/_/g, ' ')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <LeadStatusSelect value={lead.status} onValueChange={handleStatusChange} label="Lead stage" className="min-w-0 w-full max-w-64 text-sm" />
             </div>
+            <Button type="button" variant="outline" className="mb-2 w-full" onClick={() => document.getElementById('lead-note')?.focus()}><MessageSquareText size={16} /> Add note</Button>
             <LeadContactActions phone={phone} name={lead.name} onContact={() => markLastContacted(lead.id)} />
           </div>
           </>

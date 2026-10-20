@@ -1,3 +1,5 @@
+import { LeadStatusSelect, useLeadStatuses } from './LeadStatusSelect';
+import { CallOutcomePicker } from './CallOutcomePicker';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowUpRight, Star, StickyNote, UploadCloud } from 'lucide-react';
@@ -15,13 +17,11 @@ import { addLeadActivity, getLeadInterests, updateLead } from '../../../services
 import { clearLastContacted, getLastContactedLeadId, markLastContacted } from '../../../utils/lastContacted';
 import {
   ACTIVITY_VERB,
-  CALL_OUTCOMES,
   leadPhone,
   SOURCE_LABELS,
   SOURCE_STRIPE_VAR,
   STATUS_DOT_VAR,
   STATUS_LABELS,
-  STATUS_OPTIONS,
   telHref,
   titleCase,
   tomorrowIso,
@@ -164,30 +164,7 @@ const InlineStatusSelect: React.FC<{ lead: LeadListItem; onChanged: () => void; 
     <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
       <PopoverAnchor asChild>
         <span onClick={(e) => e.stopPropagation()}>
-          <Select value={lead.status} onValueChange={handleChange} disabled={busy}>
-            <SelectTrigger
-              size="sm"
-              aria-label={`Change status for ${lead.name}`}
-              className="min-h-7 w-auto max-w-full gap-1 rounded-md border-0 bg-transparent px-1.5 py-1 text-xs shadow-none hover:bg-[var(--crm-surface-hover)] focus-visible:ring-1 data-[size=sm]:h-auto"
-            >
-              <span className="flex items-center gap-1.5">
-                <span
-                  className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ background: STATUS_DOT_VAR[lead.status] ?? 'var(--crm-status-new)' }}
-                />
-                <span className="truncate" style={{ color: 'var(--crm-text-secondary)' }}>
-                  <SelectValue>{STATUS_LABELS[lead.status] ?? lead.status}</SelectValue>
-                </span>
-              </span>
-            </SelectTrigger>
-            <SelectContent onClick={(e) => e.stopPropagation()}>
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {STATUS_LABELS[s] ?? s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <LeadStatusSelect value={lead.status} onValueChange={handleChange} disabled={busy} label={`Change status for ${lead.name}`} className="min-h-9 w-full max-w-full text-xs" />
         </span>
       </PopoverAnchor>
       <PopoverContent className="w-72" align="start" onClick={(e) => e.stopPropagation()}>
@@ -271,15 +248,15 @@ const RowActions: React.FC<{ lead: LeadListItem; onChanged: () => void; onContac
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState('');
 
-  const logOutcome = async (label: string, scheduleFollowUp: boolean, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const logOutcome = async (label: string, scheduleFollowUp: boolean) => {
     try {
-      await addLeadActivity(lead.id, 'note', label, scheduleFollowUp ? tomorrowIso() : undefined);
-      toast.success(scheduleFollowUp ? 'Logged — follow-up set for tomorrow.' : 'Logged.');
+      const setReminder = scheduleFollowUp && lead.status !== 'site_visit_scheduled';
+      await addLeadActivity(lead.id, 'note', label, setReminder ? tomorrowIso() : undefined);
+      toast.success(setReminder ? 'Logged — follow-up set for tomorrow.' : 'Logged.');
       setNoteOpen(false);
       onChanged();
     } catch {
-      toast.error('Could not log outcome.');
+      throw new Error('Could not log outcome.');
     }
   };
 
@@ -307,30 +284,12 @@ const RowActions: React.FC<{ lead: LeadListItem; onChanged: () => void; onContac
       <LeadContactActions phone={phone} name={lead.name} compact onContact={() => onContact(lead.id)} />
       <Popover open={noteOpen} onOpenChange={setNoteOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="icon" className="crm-note-button" title="Log call / add note" aria-label={`Add note for ${lead.name}`}>
-            <StickyNote size={17} strokeWidth={1.8} />
+          <Button variant="outline" size="sm" className="gap-1.5" title="Log call / add note" aria-label={`Add note for ${lead.name}`}>
+            <StickyNote size={17} strokeWidth={1.8} /> Add note
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-72 space-y-2" align="end" onClick={(e) => e.stopPropagation()}>
-          <div>
-            <p className="mb-1.5 text-xs font-medium" style={{ color: 'var(--crm-text-secondary)' }}>
-              Call outcome
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {CALL_OUTCOMES.map((o) => (
-                <Button
-                  key={o.label}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={(e) => logOutcome(o.label, o.scheduleFollowUp, e)}
-                >
-                  {o.label}
-                </Button>
-              ))}
-            </div>
-          </div>
+          <CallOutcomePicker onLog={(label, followUp) => logOutcome(label, followUp)} />
           <Textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={2} placeholder="Or write a custom note..." />
           <Button size="sm" className="w-full" onClick={handleAddNote} disabled={!noteText.trim()}>
             Save note
@@ -398,6 +357,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
   onUploadClick,
   teamOptions = [],
 }) => {
+  const statusOptions = useLeadStatuses();
   const { user } = useAuth();
   const canAssign = user?.role === 'admin' || user?.role === 'telecaller';
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -761,7 +721,7 @@ export const LeadsTable: React.FC<LeadsTableProps> = ({
               const phone = leadPhone(lead);
               const isHighlighted = lead.id === highlightId;
               const followUp = followUpOrActivity(lead);
-              const stage = STATUS_LABELS[lead.status] ?? lead.status;
+              const stage = statusOptions.find(option => option.value === lead.status)?.label ?? STATUS_LABELS[lead.status] ?? lead.status;
               const compactStage = lead.status === 'site_visit_scheduled' ? 'Visit set' : lead.status === 'site_visit_done' ? 'Visit done' : stage;
               return (
                 <div

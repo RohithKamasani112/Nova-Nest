@@ -151,6 +151,35 @@ test('CRM role access and shared lead workflow (isolated PostgreSQL)', { skip: !
       assert.equal((await call('/crm/leads', tokens['team.one'])).total, 0);
       assert.equal((await call('/crm/leads', tokens['team.two'])).total, 1);
     });
+    await t.test('agents create reusable statuses, retain history, and schedule visits through status updates', async () => {
+      const token = tokens['team.two'];
+      const id = leadIds.magicbricks;
+      await call('/crm/leads/statuses', '', 'POST', { label: 'Unauthenticated' }, 401);
+      await call('/crm/leads/statuses', token, 'POST', { label: '   ' }, 400);
+      await call('/crm/leads/statuses', token, 'POST', { label: 'x'.repeat(61) }, 400);
+      const { status } = await call('/crm/leads/statuses', token, 'POST', { label: '  Requested   evening call  ' }, 201);
+      const duplicate = await call('/crm/leads/statuses', tokens['magic.calls'], 'POST', { label: 'requested evening call' }, 201);
+      assert.equal(duplicate.status.value, status.value);
+      const options = await call('/crm/leads/statuses', tokens['team.one']);
+      assert(options.statuses.some((option: any) => option.value === status.value && option.label === 'Requested evening call'));
+      assert(options.statuses.some((option: any) => option.value === 'not_answered'));
+      await call(`/crm/leads/${id}`, token, 'PATCH', { status: 'not_a_registered_status' }, 400);
+      await call(`/crm/leads/${id}`, token, 'PATCH', { status: status.value });
+      const detail = await call(`/crm/leads/${id}`, token);
+      assert.equal(detail.lead.status, status.value);
+      assert(detail.activities.some((activity: any) => activity.type === 'status_change' && activity.to_status === status.value));
+      const filtered = await call('/crm/leads?status=' + status.value, token);
+      assert(filtered.leads.some((lead: any) => lead.id === id));
+      const filters = await call('/crm/filters/options', token);
+      assert(filters.statuses.some((option: any) => option.value === status.value && option.count === 1));
+      await call(`/crm/leads/${leadIds.housing}`, token, 'PATCH', { status: status.value }, 404);
+      const date = '2030-02-12T04:30:00.000Z';
+      await call(`/crm/leads/${id}`, token, 'PATCH', { status: 'site_visit_scheduled', nextFollowUpAt: date });
+      const visit = await call(`/crm/leads/${id}`, token);
+      assert.equal(new Date(visit.lead.next_follow_up_at).toISOString(), date);
+      assert.equal(visit.lead.status, 'site_visit_scheduled');
+      await call(`/crm/leads/${id}`, token, 'PATCH', { status: 'new', nextFollowUpAt: null });
+    });
     await t.test('website and manual inputs are Custom and Housing can assign them', async () => {
       const website = await call('/public/leads', '', 'POST', { name: 'Website contact', phone: '9876543288', project: 'Website project' }, 201);
       const manual = await call('/crm/leads', tokens['housing.calls'], 'POST', { name: 'Manual contact', phone: '9876543287', agentId: team.agent.id }, 201);

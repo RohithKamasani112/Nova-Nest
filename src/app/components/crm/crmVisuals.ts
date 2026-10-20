@@ -60,6 +60,13 @@ export const CALL_OUTCOMES: { label: string; scheduleFollowUp: boolean }[] = [
   { label: 'Switched off', scheduleFollowUp: true },
   { label: 'Number busy', scheduleFollowUp: true },
   { label: 'Asked to call back later', scheduleFollowUp: true },
+  { label: 'Not reachable', scheduleFollowUp: true },
+  { label: 'Interested', scheduleFollowUp: false },
+  { label: 'Details shared on WhatsApp', scheduleFollowUp: false },
+  { label: 'Discussing with family', scheduleFollowUp: true },
+  { label: 'Budget mismatch', scheduleFollowUp: false },
+  { label: 'Location mismatch', scheduleFollowUp: false },
+  { label: 'Already bought elsewhere', scheduleFollowUp: false },
   { label: 'Wrong number', scheduleFollowUp: false },
   { label: 'Not interested', scheduleFollowUp: false },
 ];
