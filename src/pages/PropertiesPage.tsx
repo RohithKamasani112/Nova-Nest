@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import { readPreference, savePreference } from '../utils/browserPreferences';
 import { PropertyComparison } from '../components/PropertyComparison';
 import { readPropertySearch, writePropertySearch, filterRangeError, matchesBhk, CATEGORY_LABELS } from '../utils/propertySearchState';
-import { resolveLocality, localityKey } from '../utils/propertyLocalities';
+import { resolveLocality, localityKey, getDistinctLocalities } from '../utils/propertyLocalities';
 import { usePropertyRefresh } from '../hooks/usePropertyRefresh';
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Property, PropertyFilters, SortOption } from '../types';
@@ -36,6 +36,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
   const pageSize = 12;
   const restoring = React.useRef(false);
   const [properties, setProperties] = useState<Property[]>([]);
+  const availableLocalities = React.useMemo(() => getDistinctLocalities(properties), [properties]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [filters, setFilters] = useState<PropertyFilters>({ ...initialFilters, ...initialSearch.filters });
   const [sortOption, setSortOption] = useState<SortOption>(initialSearch.sort);
@@ -367,10 +368,10 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
           </div>
         </div>
 
-        <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-2" aria-label="Popular areas">
+        {availableLocalities.length > 0 && <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-2" aria-label="Popular areas">
           <span className="mr-2 shrink-0 text-sm font-semibold text-charcoal">Explore areas</span>
-          {Array.from(new Set(properties.map(resolveLocality).filter(Boolean))).sort().slice(0, 12).map(name => <button key={name} type="button" aria-pressed={Boolean(filters.locality?.includes(name))} onClick={() => { toggleLocalityFilter(name); setPage(1); }} className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-2 text-sm ${filters.locality?.includes(name) ? 'bg-charcoal text-white' : 'bg-white text-charcoal'}`}>{name} <span className="opacity-60">({properties.filter(p => resolveLocality(p) === name).length})</span></button>)}
-        </div>
+          {availableLocalities.slice().sort((a, b) => a.name.localeCompare(b.name)).slice(0, 12).map(({ name, count }) => <button key={name} type="button" aria-pressed={Boolean(filters.locality?.includes(name))} onClick={() => { toggleLocalityFilter(name); setPage(1); }} className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-2 text-sm ${filters.locality?.includes(name) ? 'bg-charcoal text-white' : 'bg-white text-charcoal'}`}>{name} <span className="opacity-60">({count})</span></button>)}
+        </div>}
         {/* Filters */}
         <FilterBar
           filters={filters}

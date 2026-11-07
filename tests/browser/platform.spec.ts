@@ -81,3 +81,37 @@ test('dirty property edits prompt before navigation and can be recovered',async(
   await page.getByRole('button',{name:'Restore draft',exact:true}).click();
   await expect(page.getByRole('textbox',{name:'Property Title',exact:true})).toHaveValue('Unfinished browser draft');
 });
+
+test('locality cards use fallback photos and disappear when their last active listing is deactivated', async ({page}) => {
+  const {rows,errors}=await setup(page);
+  for (const row of rows) row.images=[];
+  rows[0].images=['/src/assets/no-image.png'];
+  rows[1].images=['/missing-locality-photo.jpg'];
+  await page.route('**/missing-locality-photo.jpg',route=>route.fulfill({status:404,body:''}));
+  await page.goto('/');
+  const section=page.locator('section').filter({has:page.getByRole('heading',{name:'Localities',exact:true})});
+  await section.scrollIntoViewIfNeeded();
+  const hoodi=section.getByRole('button',{name:'Hoodi: 9 active properties',exact:true});
+  await expect(hoodi).toBeVisible();
+  await expect(hoodi.locator('img')).toHaveAttribute('src',/localities\/hoodi\.jpg/);
+  await expect(section.getByRole('button',{name:'Whitefield: 9 active properties',exact:true}).locator('img')).toHaveAttribute('src',/localities\/whitefield\.jpg/);
+  for (const row of rows) if(row.locality==='Hoodi') row.isActive=false;
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(section.getByRole('button',{name:/^Hoodi:/})).toHaveCount(0);
+  await expect(section.getByRole('button',{name:'Whitefield: 9 active properties',exact:true})).toBeVisible();
+  for (const row of rows) row.isActive=false;
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(section).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+test('area filters show only localities with active listings', async ({page}) => {
+  const {rows}=await setup(page);
+  for(const row of rows) if(row.locality==='Hoodi') row.isActive=false;
+  await page.goto('/properties');
+  const areas=page.getByLabel('Popular areas');
+  await expect(areas.getByRole('button',{name:'Whitefield (9)',exact:true})).toBeVisible();
+  await expect(areas.getByRole('button',{name:/Hoodi/})).toHaveCount(0);
+  for(const row of rows) row.isActive=false;
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(areas).toHaveCount(0);
+});

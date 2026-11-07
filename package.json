@@ -14,7 +14,7 @@
     "scan:staged": "node scripts/check-staged-secrets.mjs",
     "security:hooks": "node scripts/install-security-hook.mjs",
     "typecheck": "node node_modules/typescript/bin/tsc --noEmit",
-    "test:platform": "node --test scripts/property-filters.test.mjs scripts/property-search.test.mjs && node scripts/property-refresh.test.mjs",
+    "test:platform": "node --test scripts/property-filters.test.mjs scripts/property-search.test.mjs scripts/property-localities.test.mjs && node scripts/property-refresh.test.mjs",
     "test:browser": "playwright test",
     "check": "npm run typecheck && npm run test:platform && npm run test:security && npm run build"
   },
