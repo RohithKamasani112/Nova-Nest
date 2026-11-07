@@ -54,9 +54,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   };
 
   const body = (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Logo */}
-      <div className="mb-4 border-b border-white/10 p-6 pb-4">
+      <div className="mb-2 shrink-0 border-b border-white/10 p-6 pb-4">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 overflow-hidden rounded-lg">
             <img src={companyLogo} alt="Nova Nest Property Management" className="h-full w-full object-cover" />
@@ -69,7 +69,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-2">
+      <nav aria-label="Admin navigation" className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-3 pb-4">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
@@ -79,21 +79,21 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               onClick={() => go(item.id)}
               whileHover={reduce ? undefined : { x: 4 }}
               whileTap={reduce ? undefined : { scale: 0.98 }}
-              className={`flex min-h-[44px] w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+              className={`flex min-h-[56px] w-full items-center gap-3.5 rounded-xl border-l-4 px-4 py-4 text-sm font-semibold transition-colors ${
                 isActive
-                  ? 'border-l-4 border-primary bg-primary/20 text-white'
-                  : 'text-sidebar-text hover:bg-white/5 hover:text-white'
+                  ? 'border-primary bg-primary/20 text-white'
+                  : 'border-transparent text-sidebar-text hover:bg-white/5 hover:text-white'
               }`}
             >
-              <Icon size={20} />
-              <span className="truncate">{item.label}</span>
+              <Icon size={22} className="shrink-0" />
+              <span className="min-w-0 text-left leading-5">{item.label}</span>
             </motion.button>
           );
         })}
       </nav>
 
       {/* Profile + Logout */}
-      <div className="border-t border-white/10 p-4">
+      <div className="shrink-0 border-t border-white/10 p-4">
         <div className="mb-3 rounded-xl bg-white/5 p-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/30 font-semibold text-white">
@@ -107,7 +107,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </div>
         <button
           onClick={onLogout}
-          className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-sidebar-text transition-colors hover:bg-white/5 hover:text-white"
+          className="flex min-h-[56px] w-full items-center gap-3.5 rounded-xl px-4 py-4 text-sm text-sidebar-text transition-colors hover:bg-white/5 hover:text-white"
         >
           <LogOut size={20} />
           <span>Logout</span>
@@ -128,7 +128,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       </button>
 
       {/* Desktop fixed sidebar */}
-      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-64 flex-col bg-charcoal md:flex">
+      <aside className="fixed left-0 top-0 z-30 hidden h-dvh w-64 flex-col bg-charcoal md:flex">
         {body}
       </aside>
 
@@ -148,7 +148,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               animate={reduce ? { opacity: 1 } : { x: 0 }}
               exit={reduce ? { opacity: 0 } : { x: '-100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-              className="fixed left-0 top-0 z-50 h-screen w-72 max-w-[82%] bg-charcoal md:hidden"
+              className="fixed left-0 top-0 z-50 h-dvh w-72 max-w-[82%] bg-charcoal md:hidden"
             >
               <button
                 onClick={() => setOpen(false)}
