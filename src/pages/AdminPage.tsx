@@ -1,3 +1,6 @@
+import { categoryFromForm } from '../utils/propertySearchState';
+import { canonicalLocality } from '../utils/propertyLocalities';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import React, { useEffect, useRef, useState } from 'react';
 import { NearbyPlace, Property } from '../types';
 import {
@@ -142,6 +145,7 @@ const propertyTypeOptions = [
   'Apartment',
   'Villa',
   'Independent House',
+  'Townhouse',
   'Plot / Land',
   'Commercial Office',
   'Shop / Showroom',
@@ -219,8 +223,8 @@ const toFormCategory = (category: Property['category']): string => {
     villa: 'Villa',
     house: 'Independent House',
     land: 'Plot / Land',
-    condo: 'Apartment',
-    townhouse: 'Independent House',
+    condo: 'Commercial Office',
+    townhouse: 'Townhouse',
   };
 
   return categoryMap[category];
@@ -281,6 +285,7 @@ const FloatingInput: React.FC<{
     <div className={`relative ${className ?? ''}`}>
       {textarea ? (
         <textarea
+          aria-label={label}
           value={value}
           maxLength={maxLength}
           onChange={(e) => onChange(e.target.value)}
@@ -290,6 +295,7 @@ const FloatingInput: React.FC<{
         />
       ) : (
         <input
+          aria-label={label}
           type={type}
           value={value}
           maxLength={maxLength}
@@ -330,6 +336,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [uploadingImages, setUploadingImages] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<{ field: string; message: string } | null>(null);
+  const baseline = useRef(JSON.stringify(initialFormData));
+  const draftKey = `nova-property-draft:${JSON.parse(localStorage.getItem('estate_auth_user') || 'null')?.id || 'admin'}:${editingProperty?.id || 'new'}`;
+  const [draftAvailable, setDraftAvailable] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   // Lat/lng from the selected Google Place — not a visible field, carried
   // separately from FormData so an unrelated edit doesn't need to re-select
@@ -369,6 +378,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   useEffect(() => {
     if (!editingProperty) {
+      baseline.current = JSON.stringify(initialFormData);
       setFormData(initialFormData);
       setCoords(null);
       setNearbyPlaces([]);
@@ -383,7 +393,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     );
     setNearbyPlaces(editingProperty.nearbyPlaces || []);
 
-    setFormData((prev) => ({
+    setFormData((prev) => { const loaded: FormData = {
       ...prev,
       title: editingProperty.title || '',
       category: toFormCategory(editingProperty.category),
@@ -399,6 +409,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       bedrooms: editingProperty.bedrooms ? String(editingProperty.bedrooms) : '',
       bathrooms: editingProperty.bathrooms ? String(editingProperty.bathrooms) : '',
       areaSqft: editingProperty.areaSqft ? String(editingProperty.areaSqft) : '',
+      carpetArea: editingProperty.carpetArea ? String(editingProperty.carpetArea) : '',
+      builtUpArea: editingProperty.builtUpArea ? String(editingProperty.builtUpArea) : '',
       featured: Boolean(editingProperty.featured),
       verified: Boolean(editingProperty.verified),
       urgent: Boolean(editingProperty.urgent),
@@ -420,9 +432,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       possessionStatus: editingProperty.possessionStatus || '',
       tenantPreference: editingProperty.tenantPreference ? TENANT_PREFERENCE_TO_FORM[editingProperty.tenantPreference] ?? '' : '',
       furnishingStatus: editingProperty.furnishingStatus || (editingProperty.furnished ? 'Fully Furnished' : ''),
-    }));
+    }; baseline.current = JSON.stringify(loaded); return loaded; });
     setStep(2);
   }, [editingProperty]);
+
+  const dirty = JSON.stringify(formData) !== baseline.current && !showSuccess;
+  useUnsavedChanges(dirty);
+  useEffect(() => { try { setDraftAvailable(Boolean(sessionStorage.getItem(draftKey))); } catch { /* Optional draft storage. */ } }, [draftKey]);
+  useEffect(() => {
+    if (!dirty || loading) return;
+    try { sessionStorage.setItem(draftKey, JSON.stringify({ formData, coords, nearbyPlaces })); } catch { /* Editing still works without storage. */ }
+  }, [dirty, formData, coords, nearbyPlaces, draftKey, loading]);
 
   // Reactive price <-> price-per-sqft sync for sell listings (Section 2).
   useEffect(() => {
@@ -477,13 +497,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setStep(target);
   };
 
-  const normalizeCategory = (category: string): Property['category'] => {
-    if (category === 'Villa') return 'villa';
-    if (category === 'Independent House') return 'house';
-    if (category === 'Plot / Land') return 'land';
-    return 'apartment';
-  };
-
   const parseCount = (value: string) => {
     if (value === 'Studio') return 0;
     if (value.includes('+')) return parseInt(value, 10);
@@ -532,6 +545,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
 
     // Only the explicit "Publish/Update" button on the final step may submit.
     // This blocks an accidental publish from pressing Enter inside a field on an
@@ -552,6 +566,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       { field: 'streetAddress', step: 2, ok: !!formData.streetAddress.trim(), message: 'Please enter the property address' },
       { field: 'locality', step: 2, ok: !!formData.locality.trim(), message: 'Please select or enter the locality / area' },
       { field: 'description', step: 2, ok: !!formData.description.trim(), message: 'Please add a property description' },
+      { field: 'areaSqft', step: 4, ok: Number(formData.areaSqft) > 0, message: 'Please enter the property size in square feet' },
+      { field: 'images', step: 5, ok: formData.images.length > 0, message: 'Please upload at least one property image' },
       { field: 'price', step: 3, ok: Number(formData.price) > 0, message: 'Please enter a price' },
     ];
     const missing = requiredChecks.find((check) => !check.ok);
@@ -583,16 +599,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       title: formData.title.trim() || 'Untitled Property',
       price: Number(formData.price) || 0,
       location: fullLocation,
-      locality: formData.locality.trim() || undefined,
+      locality: canonicalLocality(formData.locality) || undefined,
       latitude: coords?.lat,
       longitude: coords?.lng,
       nearbyPlaces: nearbyPlaces.length > 0 ? nearbyPlaces : undefined,
       description: formData.description.trim(),
-      category: normalizeCategory(formData.category),
+      category: categoryFromForm(formData.category),
       status: isRent ? 'rent' : 'buy',
       bedrooms: parseCount(formData.bedrooms),
       bathrooms: parseCount(formData.bathrooms),
       areaSqft: Number(formData.areaSqft) || 0,
+      carpetArea: Number(formData.carpetArea) || undefined,
+      builtUpArea: Number(formData.builtUpArea) || undefined,
       images: formData.images,
       videos: formData.videoUrl ? [formData.videoUrl] : [],
       amenities: formData.amenities,
@@ -623,7 +641,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setLoading(true);
     try {
       if (editingProperty) {
-        await updateProperty(editingProperty.id, propertyData);
+        await updateProperty(editingProperty.id, propertyData, editingProperty.updatedAt || editingProperty.createdAt);
         toast.success('Property updated successfully');
       } else {
         await createProperty(propertyData);
@@ -632,6 +650,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
       // Show the success overlay, then redirect to the listings after 3.2s
       // (spec #21) so the check-draw + progress bar can fully play.
+      sessionStorage.removeItem(draftKey);
       setShowSuccess(true);
       window.setTimeout(() => onNavigate('manage-properties'), 3200);
     } catch (submitError) {
@@ -738,6 +757,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   return (
     <div className="max-w-4xl">
+      {draftAvailable && <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+        <span>An unfinished draft is available in this tab.</span>
+        <button type="button" className="font-semibold underline" onClick={() => { try { const draft = JSON.parse(sessionStorage.getItem(draftKey) || '{}'); if (draft.formData) { setFormData({ ...initialFormData, ...draft.formData }); setCoords(draft.coords || null); setNearbyPlaces(draft.nearbyPlaces || []); setDraftAvailable(false); toast.success('Draft restored'); } } catch { toast.error('Could not restore draft'); } }}>Restore draft</button>
+        <button type="button" className="underline" onClick={() => { sessionStorage.removeItem(draftKey); setDraftAvailable(false); }}>Discard draft</button>
+      </div>}
+
       <div className="mb-6 sm:mb-8">
         <h1 className="mb-5 font-['Playfair_Display'] text-2xl font-bold text-text-primary sm:mb-8 sm:text-3xl">
           {editingProperty ? 'Edit Property' : 'Add New Property'}

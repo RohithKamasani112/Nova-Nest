@@ -60,3 +60,6 @@ server/awscliv2.zip
 .env.*
 !.env.example
 .demo/
+
+/test-results/
+/playwright-report/

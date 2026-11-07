@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { ZodError } from 'zod';
 import cors from 'cors';
 import express from 'express';
 import { env } from './env';
@@ -21,6 +23,11 @@ if (!(process.env.AWS_LAMBDA_FUNCTION_NAME && process.env.CORS_AT_FUNCTION_URL =
   const local = env.nodeEnv !== 'production' && !!origin && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
   callback(null, !origin || env.allowedOrigins.includes(origin) || local);
 }, credentials: false, allowedHeaders: ['Authorization', 'Content-Type'], methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] }));
+app.use((req, res, next) => {
+  const requestId = randomUUID(); res.locals.requestId = requestId; res.setHeader('X-Request-Id', requestId);
+  res.on('finish', () => { if (res.statusCode >= 400) console.warn(JSON.stringify({ component: 'api', method: req.method, path: req.path, status: res.statusCode, requestId })); });
+  next();
+});
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
@@ -47,7 +54,8 @@ app.get(
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err instanceof ZodError) return res.status(400).json({ error: 'Check the highlighted fields and try again.', details: err.flatten(), requestId: res.locals.requestId });
   const error = err as { name?: string; code?: string };
-  console.error(JSON.stringify({ component: 'api', outcome: 'request_failed', name: error?.name ?? 'Error', code: error?.code ?? 'UNKNOWN' }));
-  res.status(500).json({ error: 'Internal server error.' });
+  console.error(JSON.stringify({ component: 'api', outcome: 'request_failed', name: error?.name ?? 'Error', code: error?.code ?? 'UNKNOWN', requestId: res.locals.requestId }));
+  res.status(500).json({ error: 'Something went wrong. Please retry or contact our team with this reference.', requestId: res.locals.requestId });
 });

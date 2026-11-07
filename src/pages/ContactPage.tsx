@@ -1,3 +1,4 @@
+import { normalizeIndianPhone } from '../utils/contactValidation';
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Mail, MapPin, Phone, Send, CheckCircle2, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -75,10 +76,15 @@ const infoCards = [
 export const ContactPage: React.FC = () => {
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [focused, setFocused] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    if (!normalizeIndianPhone(form.phone)) { setSubmitError('Enter a valid Indian mobile number.'); return; }
+    setSubmitting(true); setSubmitError('');
     try {
       const inquiryData: Omit<Inquiry, 'id' | 'createdAt' | 'status'> = {
         propertyId: 'general',
@@ -99,8 +105,9 @@ export const ContactPage: React.FC = () => {
         setForm({ name: '', email: '', phone: '', message: '' });
       }, 3000);
     } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Could not submit enquiry. Please try again.');
       toast.error('Failed to submit enquiry. Please try again.');
-    }
+    } finally { setSubmitting(false); }
   };
 
   const fields = [
@@ -271,7 +278,8 @@ export const ContactPage: React.FC = () => {
                 <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">Message Sent!</h3>
                 <p className="text-[13px] text-[#aaa]">Our team will reach out to you shortly.</p>
               </motion.div>
-            ) : (
+            ) : (<>
+              {submitError && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-800">{submitError}</p>}
               <form onSubmit={submit} className="space-y-5">
                 {fields.map(({ key, label, type, placeholder }) => (
                   <div key={key} className="relative">
@@ -280,6 +288,8 @@ export const ContactPage: React.FC = () => {
                     </label>
                     <div className="relative">
                       <input
+                        aria-label={label}
+                        autoComplete={key === 'phone' ? 'tel' : key === 'name' ? 'name' : 'email'}
                         type={type}
                         required={key !== 'email'}
                         placeholder={placeholder}
@@ -302,6 +312,7 @@ export const ContactPage: React.FC = () => {
                     Message
                   </label>
                   <textarea
+                    aria-label="Message"
                     required
                     rows={4}
                     placeholder="Tell us what you're looking for..."
@@ -318,7 +329,7 @@ export const ContactPage: React.FC = () => {
                 </div>
 
                 <motion.button
-                  type="submit"
+                  type="submit" disabled={submitting}
                   whileHover={{ scale: 1.015 }}
                   whileTap={{ scale: 0.97 }}
                   className="w-full py-3.5 rounded-xl bg-[#15211A] text-accent text-[14px] font-bold tracking-wide flex items-center justify-center gap-2.5 hover:bg-[#233A2C] transition-colors"
@@ -327,7 +338,7 @@ export const ContactPage: React.FC = () => {
                   Submit Enquiry
                 </motion.button>
               </form>
-            )}
+            </>)}
           </motion.div>
 
           {/* Map */}

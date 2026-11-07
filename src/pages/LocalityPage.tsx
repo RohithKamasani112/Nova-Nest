@@ -130,8 +130,8 @@ export const LocalityPage: React.FC<LocalityPageProps> = ({ slug, onNavigate }) 
             Homes for sale &amp; rent in {locality.name}, Bangalore
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-7 text-charcoal/65">
-            Indicative 2026 ranges for premium gated-community homes in {locality.name}. Nova
-            Nest Rentals and Property Management verifies live pricing for you before every
+            Illustrative guide ranges for premium gated-community homes in {locality.name}. Nova
+            Nest Rentals and Property Management can confirm current pricing before a
             visit — figures below are guide ranges, not quotes.
           </p>
 

@@ -20,7 +20,7 @@ test('storage paths cannot escape the backend namespace', async () => {
 
 test('public listing projection excludes hidden records and private fields', async () => {
   const { publicProperties } = await import('../services/storageService');
-  const projected = publicProperties([{ id: 'active', title: 'Listing', images: [], ownerId: 'private-owner', commissionValue: 123, commissionType: 'fixed', adminNotes: 'private', isActive: true }, { id: 'inactive', isActive: false }]);
+  const projected = publicProperties([{ id: 'active', title: 'Listing', images: [], ownerId: 'private-owner', commissionValue: 123, commissionType: 'fixed', adminNotes: 'private', isActive: true }, { id: 'inactive', isActive: false }, { id: 'archived', archivedAt: '2026-01-01', isActive: true }]);
   assert.deepEqual(projected, [{ id: 'active', title: 'Listing', images: [], isActive: true }]);
 });
 
@@ -108,6 +108,9 @@ test('HTTP storage endpoints require admin access, sanitize public responses and
     body: body === undefined ? undefined : JSON.stringify(body), redirect: 'manual' });
   try {
     for (const role of [undefined, 'agent', 'telecaller']) for (const [route, method, body] of [
+      ['/storage/properties/abc', 'POST', { operation: 'archive' }],
+      ['/storage/billing/number', 'POST', { type: 'service' }],
+      ['/storage/billing/documents', 'POST', { docNumber: 'X', docType: 'service', pdfUrl: 'invoices/X.pdf' }],
       ['/storage/object?path=leads.json', 'GET', undefined],
       ['/storage/object', 'PUT', { path: 'properties.json', content: '[]' }],
       ['/storage/upload', 'POST', { path: 'assets/x.jpg', contentType: 'image/jpeg', size: 100 }],
@@ -124,7 +127,7 @@ test('HTTP storage endpoints require admin access, sanitize public responses and
     const media = await request('/public/storage/asset?path=assets/flat/photo.jpg');
     assert.equal(media.status, 302); assert(media.headers.get('location')?.includes('X-Amz-Signature'));
     assert.equal((await request('/storage/object?path=leads.json', 'admin')).status, 200);
-    assert.equal((await request('/storage/object', 'admin', 'PUT', { path: 'properties.json', content: '[]' })).status, 204);
+    assert.equal((await request('/storage/object', 'admin', 'PUT', { path: 'properties.json', content: '[]' })).status, 409);
     assert.equal((await request('/storage/upload', 'admin', 'POST', { path: 'assets/x.jpg', contentType: 'image/jpeg', size: 100 })).status, 200);
     assert.equal((await request('/storage/download', 'admin', 'POST', { path: 'invoices/test.pdf' })).status, 200);
     assert.equal((await request('/storage/object?path=crm-import-staging/a.json', 'admin')).status, 400);

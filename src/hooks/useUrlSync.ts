@@ -48,6 +48,8 @@ export function useUrlSync({
   // effect even gets a chance to read and apply it. Flipped to false once
   // that initial parse completes.
   const suppress = useRef(true);
+  const currentPageRef = useRef({ page: currentPage, property: selectedProperty, slug: activeSlug });
+  currentPageRef.current = { page: currentPage, property: selectedProperty, slug: activeSlug };
   const selectedId = selectedProperty?.id;
   // Skip the initial render: GA's config call in index.html already sends the
   // first page_view, so we only report subsequent client-side navigations.
@@ -75,7 +77,7 @@ export function useUrlSync({
       window.history.pushState(
         { page: currentPage, propId: selectedId, slug: activeSlug },
         '',
-        desired
+        currentPage === 'properties' ? desired + (sessionStorage.getItem('nova-browse-query') || '') : desired
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,7 +96,7 @@ export function useUrlSync({
       if (route.type === 'property') {
         try {
           const all = await getAllProperties();
-          const prop = findPropertyForSlug(all, route.slug);
+          const prop = findPropertyForSlug(all.filter(p => p.isActive !== false), route.slug);
           if (!cancelled) {
             applyRoute(
               prop
@@ -121,7 +123,15 @@ export function useUrlSync({
     };
 
     applyFromUrl();
-    const onPop = () => applyFromUrl();
+    const onPop = () => {
+      if (!window.dispatchEvent(new Event('nova-before-navigate', { cancelable: true }))) {
+        // Keep the current editor mounted when the visitor cancels Back/Forward.
+        const current = pathForState(currentPageRef.current.page, currentPageRef.current.property, currentPageRef.current.slug);
+        window.history.pushState({}, '', current || '/');
+        return;
+      }
+      void applyFromUrl();
+    };
     window.addEventListener('popstate', onPop);
     return () => {
       cancelled = true;

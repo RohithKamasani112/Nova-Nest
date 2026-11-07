@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { readPreference, savePreference } from '../utils/browserPreferences';
+import { PropertyComparison } from '../components/PropertyComparison';
+import { readPropertySearch, writePropertySearch, filterRangeError, matchesBhk, CATEGORY_LABELS } from '../utils/propertySearchState';
+import { resolveLocality, localityKey } from '../utils/propertyLocalities';
+import { usePropertyRefresh } from '../hooks/usePropertyRefresh';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Property, PropertyFilters, SortOption } from '../types';
 import { getAllProperties } from '../services/storageService';
 import { PropertyCard } from '../app/components/PropertyCard';
 import { FilterBar } from '../app/components/FilterBar';
 import { LocationAutocomplete } from '../components/LocationAutocomplete';
-import { PropertyMapView } from '../app/components/PropertyMapView';
-import { TopLocalitiesSection } from '../app/components/TopLocalitiesSection';
+const PropertyMapView = lazy(() => import('../app/components/PropertyMapView').then(m => ({ default: m.PropertyMapView })));
 import { motion } from 'motion/react';
 import { Loader2, MapPin, Search } from 'lucide-react';
 import { Seo } from '../components/Seo';
@@ -22,18 +27,28 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
   onPropertyClick,
   initialFilters = {},
 }) => {
+  const [initialSearch] = useState(() => readPropertySearch(window.location.search || sessionStorage.getItem('nova-browse-query') || ''));
+  const [shortlist, setShortlist] = useState<string[]>(() => { const saved = readPreference<unknown>('nova-shortlist', []); return Array.isArray(saved) ? saved.filter(v => typeof v === 'string').slice(0, 100) : []; });
+  const [onlyShortlisted, setOnlyShortlisted] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [savedSearches, setSavedSearches] = useState<{ label: string; query: string }[]>(() => { const saved = readPreference<unknown>('nova-saved-searches', []); return Array.isArray(saved) ? saved.filter(v => typeof v?.label === 'string' && typeof v?.query === 'string').slice(0, 5) : []; });
+  const [page, setPage] = useState(initialSearch.page);
+  const pageSize = 12;
+  const restoring = React.useRef(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
-  const [filters, setFilters] = useState<PropertyFilters>(initialFilters);
-  const [sortOption, setSortOption] = useState<SortOption>('newest');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<PropertyFilters>({ ...initialFilters, ...initialSearch.filters });
+  const [sortOption, setSortOption] = useState<SortOption>(initialSearch.sort);
+  const [searchQuery, setSearchQuery] = useState(initialSearch.query || initialSearch.filters.location || initialFilters.location || '');
+  const [appliedSearch, setAppliedSearch] = useState(initialSearch.query);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const resultsRef = React.useRef<HTMLDivElement>(null);
 
   // "Properties Near Me" — geolocation-driven split map/list view, layered on
   // top of whatever other filters are active.
   const [nearMeActive, setNearMeActive] = useState(false);
-  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'granted' | 'denied' | 'error'>('idle');
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'granted' | 'denied' | 'timeout' | 'unsupported' | 'error'>('idle');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [nearMeRadiusKm, setNearMeRadiusKm] = useState(10);
   const [selectedNearId, setSelectedNearId] = useState<string | null>(null);
@@ -41,7 +56,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
 
   const requestNearMe = () => {
     if (!navigator.geolocation) {
-      setGeoStatus('error');
+      setGeoStatus('unsupported');
       return;
     }
     setGeoStatus('locating');
@@ -51,7 +66,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
         setGeoStatus('granted');
         setNearMeActive(true);
       },
-      () => setGeoStatus('denied'),
+      error => setGeoStatus(error.code === 1 ? 'denied' : error.code === 3 ? 'timeout' : 'error'),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 5 * 60 * 1000 }
     );
   };
@@ -67,32 +82,41 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
   }, []);
 
   useEffect(() => {
-    setFilters(initialFilters);
-    setSearchQuery(initialFilters.location || '');
     if (initialFilters.nearMe) requestNearMe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFilters]);
-
-  useEffect(() => {
-    const locationParam = new URLSearchParams(window.location.search).get('location');
-    if (locationParam) {
-      setSearchQuery(locationParam);
-      setFilters((current) => ({ ...current, location: locationParam }));
-      window.setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 250);
-    }
+    const pop = () => {
+      if (window.location.pathname !== '/properties') return;
+      restoring.current = true;
+      const next = readPropertySearch(window.location.search);
+      setFilters(next.filters); setSortOption(next.sort); setPage(next.page); setAppliedSearch(next.query); setSearchQuery(next.query || next.filters.location || '');
+    };
+    window.addEventListener('popstate', pop);
+    return () => window.removeEventListener('popstate', pop);
   }, []);
+  const searchState = writePropertySearch(filters, appliedSearch, sortOption, page);
+  useEffect(() => {
+    if (restoring.current) { restoring.current = false; sessionStorage.setItem('nova-browse-query', searchState); return; }
+    sessionStorage.setItem('nova-browse-query', searchState);
+    if (window.location.pathname === '/properties' && window.location.search !== searchState) window.history.pushState({}, '', '/properties' + searchState);
+  }, [searchState]);
+  useEffect(() => {
+    if (loading) return;
+    const scroll = sessionStorage.getItem('nova-browse-scroll');
+    if (scroll) { window.setTimeout(() => window.scrollTo({ top: Number(scroll), behavior: 'auto' }), 100); sessionStorage.removeItem('nova-browse-scroll'); }
+  }, [loading]);
 
   useEffect(() => {
     applyFiltersAndSort();
-  }, [properties, filters, sortOption, searchQuery]);
+  }, [properties, filters, sortOption, appliedSearch, onlyShortlisted, shortlist]);
+
+  usePropertyRefresh(() => loadProperties());
 
   const loadProperties = async () => {
     try {
       const data = await getAllProperties();
-      setProperties(data.filter((property) => property.isActive !== false));
+      setLoadError(false);
+      setProperties(data.filter((property) => property.isActive !== false && !property.archivedAt));
     } catch (error) {
+      setLoadError(true);
       console.error('Error loading properties:', error);
     } finally {
       setLoading(false);
@@ -100,16 +124,18 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
   };
 
   const applyFiltersAndSort = () => {
-    let filtered = [...properties];
+    if (filterRangeError(filters)) { setFilteredProperties([]); return; }
+    let filtered = onlyShortlisted ? properties.filter(p => shortlist.includes(p.id)) : [...properties];
 
     // Apply search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (appliedSearch) {
+      const query = appliedSearch.toLowerCase();
       filtered = filtered.filter(
         (p) =>
           p.title.toLowerCase().includes(query) ||
           p.location.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query)
+          p.description.toLowerCase().includes(query) ||
+          Boolean(p.locality?.toLowerCase().includes(query))
       );
     }
 
@@ -134,7 +160,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
     // Apply bedrooms filter
     if (filters.bedrooms && filters.bedrooms.length > 0) {
       filtered = filtered.filter((p) =>
-        filters.bedrooms?.some((beds) => p.bedrooms >= beds)
+        matchesBhk(p.bedrooms, filters.bedrooms!)
       );
     }
 
@@ -175,7 +201,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
     // Apply locality filter — exact-match multi-select (Top Localities
     // carousel / listings filter), ANDed with every other active filter here.
     if (filters.locality && filters.locality.length > 0) {
-      filtered = filtered.filter((p) => Boolean(p.locality && filters.locality!.includes(p.locality)));
+      filtered = filtered.filter((p) => filters.locality!.some(name => localityKey(name) === localityKey(resolveLocality(p))));
     }
 
     // Apply featured filter
@@ -214,8 +240,8 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
 
   // Filtered/search permutations shouldn't be indexed as separate pages — they
   // point back to the canonical /properties listing instead (requirement #5).
-  const isFiltered = Boolean(
-    searchQuery ||
+  const isFiltered = Boolean(searchState || nearMeActive ||
+    appliedSearch ||
       filters.location ||
       (filters.locality && filters.locality.length) ||
       filters.status ||
@@ -252,8 +278,17 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
       .sort((a, b) => a.distanceMeters - b.distanceMeters);
   }, [nearMeActive, userCoords, filteredProperties, nearMeRadiusKm]);
 
+  const toggleShortlist = (id: string) => {
+    const next = shortlist.includes(id) ? shortlist.filter(value => value !== id) : [...shortlist, id].slice(-100);
+    setShortlist(next); if (!savePreference('nova-shortlist', next)) toast.error('Shortlist could not be saved in this browser.');
+  };
+  const resultActions = (property: Property) => <div className="flex items-center justify-between gap-2 rounded-b-xl border border-t-0 bg-white px-4 py-3 text-xs">
+    <button type="button" aria-pressed={shortlist.includes(property.id)} onClick={() => toggleShortlist(property.id)} className="rounded-md border px-3 py-2 font-semibold text-primary">{shortlist.includes(property.id) ? 'Saved to shortlist' : 'Save property'}</button>
+    <button type="button" aria-pressed={compareIds.includes(property.id)} onClick={() => { if (compareIds.includes(property.id)) setCompareIds(compareIds.filter(id => id !== property.id)); else if (compareIds.length < 3) setCompareIds([...compareIds, property.id]); else toast.error('Compare up to three properties. Remove one first.'); }} className="rounded-md border px-3 py-2">{compareIds.includes(property.id) ? 'Remove comparison' : 'Compare'}</button>
+  </div>;
+
   return (
-    <div className="min-h-screen bg-cream py-12">
+    <div className="min-h-screen bg-cream py-6 sm:py-12">
       <Seo
         title="Properties for Sale & Rent in Bengaluru | Nova Nest"
         description="Browse verified homes, apartments, villas, plots and commercial spaces for sale and rent across Bengaluru. Filter by location, budget, type and more with Nova Nest."
@@ -261,19 +296,11 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
         noindex={isFiltered}
       />
 
-      <TopLocalitiesSection
-        properties={properties}
-        mode="filter"
-        selected={filters.locality || []}
-        onSelectLocality={toggleLocalityFilter}
-        title="Filter by Locality"
-      />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-10">
+        <div className="mb-8 rounded-2xl border border-gold/15 bg-white p-5 shadow-subtle sm:p-8">
           <p className="text-sm uppercase tracking-[0.18em] text-gold font-semibold mb-3">Properties</p>
-          <h1 className="font-serif text-4xl md:text-6xl font-bold text-charcoal mb-3">
+          <h1 className="font-serif text-3xl md:text-5xl font-bold text-charcoal mb-3">
             Browse Properties
           </h1>
           <p className="text-muted-foreground text-base mb-6">
@@ -281,21 +308,30 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
           </p>
 
           {/* Search Bar */}
-          <LocationAutocomplete
-            value={searchQuery}
-            onChange={(value) => {
-              setSearchQuery(value);
-              setFilters({ ...filters, location: value || undefined });
-            }}
-            onSelect={(value) => {
-              setSearchQuery(value);
-              setFilters({ ...filters, location: value });
-            }}
-            locations={properties.map((property) => property.location)}
-            placeholder="Search by location..."
-            className="w-full max-w-lg"
-            inputClassName="bg-white border border-black/10 rounded-md pl-12 pr-5 py-4 w-full shadow-subtle focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
-          />
+          <form onSubmit={event => {
+            event.preventDefault();
+            (document.activeElement as HTMLElement)?.blur();
+            setPage(1);
+            setAppliedSearch(searchQuery.trim());
+            setFilters(current => ({ ...current, location: undefined }));
+            resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }} className="flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-start">
+            <LocationAutocomplete
+              flowOnMobile
+              value={searchQuery}
+              onChange={setSearchQuery}
+              locations={properties.map(property => property.locality?.trim() || property.location)}
+              placeholder="Enter a locality, address or property name"
+              className="w-full min-w-0 flex-1"
+              inputClassName="h-14 bg-white border border-black/10 rounded-md pl-12 pr-5 py-4 w-full shadow-subtle focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+            />
+            <button type="submit" onMouseDown={event => { event.preventDefault(); event.stopPropagation(); }} aria-label="Search listings" className="premium-button inline-flex h-14 w-full items-center sm:w-auto justify-center gap-2 px-4 py-4 font-semibold sm:px-6"><Search size={18} />Search</button>
+          </form>
+          <p className="mt-2 text-sm text-muted-foreground">Choose an area or property name, then Search. BHK and other filters update instantly.</p>
+          {(appliedSearch || filters.location || filters.locality?.length) && <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+            <span>Showing: {[appliedSearch || filters.location, ...(filters.locality || [])].filter(Boolean).join(', ')}</span>
+            <button type="button" className="font-semibold text-primary underline" onClick={() => { setSearchQuery(''); setAppliedSearch(''); setFilters(current => ({ ...current, location: undefined, locality: undefined })); }}>Clear location</button>
+          </div>}
 
           {/* Properties Near Me */}
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -323,25 +359,43 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
               </select>
             )}
 
-            {(geoStatus === 'denied' || geoStatus === 'error') && (
+            {['denied', 'timeout', 'unsupported', 'error'].includes(geoStatus) && (
               <p className="text-sm text-muted-foreground">
-                Location access denied — you can search by locality instead.
+                {geoStatus === 'denied' ? 'Location permission was denied. Enable it in your browser, or search an area.' : geoStatus === 'timeout' ? 'Finding your location timed out. Try again or search an area.' : geoStatus === 'unsupported' ? 'This browser does not support location access. Search an area instead.' : 'Your location could not be found. Try again or search an area.'}
               </p>
             )}
           </div>
         </div>
 
+        <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-2" aria-label="Popular areas">
+          <span className="mr-2 shrink-0 text-sm font-semibold text-charcoal">Explore areas</span>
+          {Array.from(new Set(properties.map(resolveLocality).filter(Boolean))).sort().slice(0, 12).map(name => <button key={name} type="button" aria-pressed={Boolean(filters.locality?.includes(name))} onClick={() => { toggleLocalityFilter(name); setPage(1); }} className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-2 text-sm ${filters.locality?.includes(name) ? 'bg-charcoal text-white' : 'bg-white text-charcoal'}`}>{name} <span className="opacity-60">({properties.filter(p => resolveLocality(p) === name).length})</span></button>)}
+        </div>
         {/* Filters */}
         <FilterBar
           filters={filters}
-          onFilterChange={setFilters}
-          onSortChange={setSortOption}
+          onFilterChange={next => { setPage(1); setFilters(next); if (Object.keys(next).length === 0) { setSearchQuery(''); setAppliedSearch(''); } }}
+          onSortChange={sort => { setSortOption(sort); setPage(1); }}
           currentSort={sortOption}
         />
 
+        {loadError && <div role="alert" className="mt-4 rounded-lg bg-red-50 p-4 text-red-800">Could not refresh properties. <button type="button" onClick={() => loadProperties()} className="font-semibold underline">Retry</button></div>}
+        {filterRangeError(filters) && <p role="alert" className="mt-4 rounded-lg bg-amber-50 p-3 text-amber-900">{filterRangeError(filters)}</p>}
+        <div className="mt-4 flex flex-wrap gap-2" aria-label="Active filters">
+          {Object.entries(filters).filter(([key, value]) => key !== 'nearMe' && value !== undefined && value !== false && (!Array.isArray(value) || value.length)).map(([key, value]) => <button type="button" key={key} aria-label={`Remove ${key} filter`} className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary" onClick={() => { setFilters(current => { const next = { ...current }; delete (next as Record<string, unknown>)[key]; return next; }); setPage(1); }}>{key === 'status' ? (value === 'rent' ? 'For rent' : 'For sale') : `${({ priceMin: 'Min price', priceMax: 'Max price', areaMin: 'Min sq ft', areaMax: 'Max sq ft', bedrooms: 'BHK', locality: 'Area', category: 'Type' } as Record<string,string>)[key] || key}: ${Array.isArray(value) ? value.map(v => CATEGORY_LABELS[v] || v).join(', ') : value === true ? 'Yes' : value}`} <span aria-hidden="true"> x</span></button>)}
+        </div>
+        {nearMeActive && <p className="mt-4 text-sm text-muted-foreground">{filteredProperties.filter(p => !Number.isFinite(p.latitude) || !Number.isFinite(p.longitude)).length} matching listings have no map location and are excluded from nearby results. <button type="button" className="underline" onClick={() => { setFilters(current => ({ ...current, location: undefined, locality: undefined })); setAppliedSearch(''); setSearchQuery(''); }}>Clear area search</button></p>}
+        <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
+          <button type="button" className="rounded-lg border bg-white px-4 py-2 font-semibold text-primary" onClick={() => { const entry = { label: `${appliedSearch || filters.location || filters.locality?.join(', ') || 'All areas'} - ${filters.status === 'rent' ? 'Rent' : filters.status === 'buy' ? 'Sale' : 'Sale & rent'}`, query: searchState }; const next = [entry, ...savedSearches.filter(s => s.query !== entry.query)].slice(0,5); setSavedSearches(next); if (savePreference('nova-saved-searches', next)) toast.success('Search saved on this browser'); else toast.error('Browser storage is unavailable'); }}>Save this search</button>
+          <button type="button" aria-pressed={onlyShortlisted} onClick={() => { setOnlyShortlisted(!onlyShortlisted); setPage(1); }} className={`rounded-lg border px-4 py-2 ${onlyShortlisted ? 'bg-charcoal text-white' : 'bg-white'}`}>Shortlisted ({properties.filter(p => shortlist.includes(p.id)).length})</button>
+          <button type="button" className="text-primary underline" onClick={() => { void (navigator.clipboard?.writeText(window.location.origin + '/properties' + searchState) || Promise.reject(new Error('Clipboard unavailable'))).then(() => toast.success('Search link copied')).catch(() => toast.error('Copy the address from your browser to share this search.')); }}>Copy search link</button>
+          {savedSearches.length > 0 && <select aria-label="Restore a saved search" value="" className="rounded-lg border bg-white p-2" onChange={e => { const saved = savedSearches[Number(e.target.value)]; if (!saved) return; const next = readPropertySearch(saved.query); setFilters(next.filters); setSortOption(next.sort); setAppliedSearch(next.query); setSearchQuery(next.query || next.filters.location || ''); setPage(1); }}><option value="">Saved searches</option>{savedSearches.map((saved,index) => <option key={index} value={index}>{saved.label}</option>)}</select>}
+          {savedSearches.length > 0 && <button type="button" className="text-xs text-gray-500 underline" onClick={() => { setSavedSearches([]); savePreference('nova-saved-searches', []); }}>Clear saved searches</button>}
+        </div>
+        <PropertyComparison properties={compareIds.map(id => properties.find(p => p.id === id)).filter((p): p is Property => Boolean(p))} onClear={() => setCompareIds([])} onOpen={onPropertyClick} />
         {/* Results Count */}
         <div ref={resultsRef} className="mt-8 mb-6 scroll-mt-24">
-          <p className="text-sm font-medium text-muted-foreground">
+          <p aria-live="polite" className="text-sm font-medium text-muted-foreground">
             <span className="font-semibold text-charcoal">
               {nearMeActive ? nearMeResults.length : filteredProperties.length}
             </span>{' '}
@@ -353,7 +407,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
         {nearMeActive && userCoords ? (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="order-2 h-[420px] lg:sticky lg:top-24 lg:order-1 lg:h-[calc(100vh-8rem)]">
-              <PropertyMapView
+              <Suspense fallback={<p className="p-6">Loading map...</p>}><PropertyMapView
                 center={userCoords}
                 markers={nearMeResults.map(({ property }) => ({
                   id: property.id,
@@ -367,7 +421,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
                   cardRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }}
                 className="h-full w-full"
-              />
+              /></Suspense>
             </div>
             <div className="order-1 space-y-5 lg:order-2">
               {nearMeResults.length > 0 ? (
@@ -383,8 +437,8 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
                       distanceLabel={formatDistance(distanceMeters)}
                       isActive={selectedNearId === property.id}
                       onHoverChange={(hovering) => setSelectedNearId(hovering ? property.id : null)}
-                      onClick={() => onPropertyClick(property)}
-                    />
+                      onClick={() => { sessionStorage.setItem('nova-browse-scroll', String(window.scrollY)); onPropertyClick(property); }}
+                    />{resultActions(property)}
                   </div>
                 ))
               ) : (
@@ -414,13 +468,12 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
           </div>
         ) : filteredProperties.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProperties.map((property, index) => (
-              <PropertyCard
-                key={property.id}
+            {filteredProperties.slice((Math.min(page, Math.max(1, Math.ceil(filteredProperties.length / pageSize))) - 1) * pageSize, Math.min(page, Math.max(1, Math.ceil(filteredProperties.length / pageSize))) * pageSize).map((property, index) => (
+              <div key={property.id}><PropertyCard
                 property={property}
                 index={index}
-                onClick={() => onPropertyClick(property)}
-              />
+                onClick={() => { sessionStorage.setItem('nova-browse-scroll', String(window.scrollY)); onPropertyClick(property); }}
+              />{resultActions(property)}</div>
             ))}
           </div>
         ) : (
@@ -441,6 +494,8 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
                 onClick={() => {
                   setFilters({});
                   setSearchQuery('');
+                  setAppliedSearch('');
+                  setOnlyShortlisted(false); setPage(1);
                   setSortOption('newest');
                 }}
               className="premium-button px-6 py-3 font-semibold"
@@ -450,6 +505,11 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({
             </div>
           </motion.div>
         )}
+        {!nearMeActive && filteredProperties.length > pageSize && <nav aria-label="Property results pages" className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <button type="button" disabled={page <= 1} onClick={() => { setPage(Math.max(1, page - 1)); resultsRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="rounded-lg border bg-white px-4 py-3 disabled:opacity-40">Previous</button>
+          <span className="text-sm">Page {Math.min(page, Math.ceil(filteredProperties.length / pageSize))} of {Math.ceil(filteredProperties.length / pageSize)}</span>
+          <button type="button" disabled={page >= Math.ceil(filteredProperties.length / pageSize)} onClick={() => { setPage(page + 1); resultsRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="rounded-lg border bg-white px-4 py-3 disabled:opacity-40">Next</button>
+        </nav>}
       </div>
     </div>
   );

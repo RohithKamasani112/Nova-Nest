@@ -199,6 +199,10 @@ export interface Property {
   longitude?: number;
   videoUrl?: string; // YouTube URL
   isDummy?: boolean; // Flag for dummy data visibility control
+  archivedAt?: string;
+  history?: { at: string; actor: string; operation: string; changes: Record<string, { before: unknown; after: unknown }> }[];
+  carpetArea?: number;
+  builtUpArea?: number;
   isActive?: boolean; // Admin visibility control for public pages
   pricePerSqft?: number; // Sell listings: price per square foot
   commissionType?: 'percentage' | 'fixed'; // Agent commission model

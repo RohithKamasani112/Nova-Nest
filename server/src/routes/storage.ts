@@ -34,12 +34,32 @@ export function createStorageRouters(service: StorageService = storageService, a
 
   storageRouter.use(authenticate, requireAdmin);
   storageRouter.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+  storageRouter.post('/properties/:id', asyncHandler(async (req, res) => {
+    const body = z.object({ operation: z.enum(['create', 'update', 'archive', 'restore', 'delete']), input: z.object({ title: z.string().max(300).optional(), price: z.number().finite().nonnegative().optional(), locality: z.string().max(200).optional(), location: z.string().max(1500).optional(), description: z.string().max(20000).optional(), images: z.array(z.string().max(2000)).max(50).optional(), bedrooms: z.number().int().nonnegative().max(50).optional(), bathrooms: z.number().int().nonnegative().max(50).optional(), areaSqft: z.number().finite().nonnegative().optional(), category: z.enum(['apartment', 'house', 'villa', 'condo', 'townhouse', 'land']).optional(), status: z.enum(['buy', 'rent']).optional(), isActive: z.boolean().optional() }).passthrough().default({}), expectedUpdatedAt: z.string().nullable().default(null) }).parse(req.body);
+    const id = z.string().regex(/^[a-zA-Z0-9_-]{1,150}$/).parse(req.params.id);
+    const property = await service.mutateProperty(body.operation, id, body.input, body.expectedUpdatedAt, req.user!.email || req.user!.id);
+    console.info(JSON.stringify({ component: 'inventory', operation: body.operation, propertyId: id, actor: req.user!.id, requestId: res.locals.requestId }));
+    res.json({ property });
+  }));
+  storageRouter.post('/billing/documents', asyncHandler(async (req, res) => {
+    const document = z.object({ docNumber: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/), docType: z.enum(['sale_booking', 'commission', 'service', 'token_receipt']), pdfUrl: z.string().max(1200) }).passthrough().parse(req.body);
+    res.status(201).json({ document: await service.appendBillingDocument(document) });
+  }));
+  storageRouter.post('/billing/number', asyncHandler(async (req, res) => {
+    const type = z.enum(['sale_booking', 'commission', 'service', 'token_receipt']).parse(req.body.type);
+    res.json({ number: await service.reserveDocumentNumber(type) });
+  }));
   storageRouter.get('/object', asyncHandler(async (req, res) => {
-    const content = await service.read(pathSchema.parse(req.query.path));
-    res.json({ content });
+    const path = pathSchema.parse(req.query.path);
+    const content = await service.read(path);
+    const snapshot = path === 'invoices/documents.json' ? await service.readVersion(path) : null;
+    res.json(snapshot ? { ...snapshot } : { content });
   }));
   storageRouter.put('/object', asyncHandler(async (req, res) => {
-    const input = z.object({ path: pathSchema, content: z.string().max(1_500_000), contentType: z.string().max(100).default('application/json') }).parse(req.body);
+    const input = z.object({ path: pathSchema, content: z.string().max(1_500_000), contentType: z.string().max(100).default('application/json'), revision: z.string().nullable().optional() }).parse(req.body);
+    if (input.path === 'invoices/counters.json' || input.path.endsWith('/invoices/counters.json')) throw new StorageError(403, 'Document counters are managed by the server.');
+    if (input.path === 'properties.json' || input.path.endsWith('/properties.json')) throw new StorageError(409, 'Use the per-property editor to avoid overwriting inventory.');
+    if (input.path === 'invoices/documents.json' || input.path.endsWith('/invoices/documents.json')) throw new StorageError(409, 'Use the document generator to append billing history safely.');
     await service.write(input.path, input.content, input.contentType);
     res.status(204).send();
   }));

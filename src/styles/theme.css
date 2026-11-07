@@ -192,12 +192,12 @@
   --color-gold-light: #C9A35F;
   --color-gold-pale: #F1E7D2;
   --color-emerald: #2E4636;
-  --spacing-1: 0.5rem;
-  --spacing-2: 1rem;
-  --spacing-3: 1.5rem;
-  --spacing-4: 2rem;
-  --spacing-6: 3rem;
-  --spacing-8: 4rem;
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -427,3 +427,7 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Consistent keyboard focus across the public site and workspace. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid #9a7837; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto !important; } }

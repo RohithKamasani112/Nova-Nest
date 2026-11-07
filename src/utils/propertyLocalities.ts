@@ -1,4 +1,18 @@
+import { ADMIN_LOCALITY_OPTIONS } from '../data/localities';
 import { Property } from '../types';
+
+export const localityKey = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
+export function canonicalLocality(value?: string) {
+  if (!value?.trim()) return '';
+  const key = localityKey(value);
+  return ADMIN_LOCALITY_OPTIONS.find(name => localityKey(name) === key) || value.trim().replace(/\s+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+export function resolveLocality(property: Pick<Property, 'locality' | 'location'>) {
+  if (property.locality?.trim()) return canonicalLocality(property.locality);
+  const address = localityKey(property.location || '');
+  // Only infer a known neighborhood actually present in the address.
+  return ADMIN_LOCALITY_OPTIONS.find(name => address.includes(localityKey(name))) || '';
+}
 
 export interface LocalityGroup {
   name: string;
@@ -15,7 +29,8 @@ export const getDistinctLocalities = (properties: Property[]): LocalityGroup[] =
   const groups = new Map<string, { count: number; coverImage: string }>();
 
   for (const property of properties) {
-    const name = property.locality?.trim();
+    if (property.archivedAt || property.isActive === false) continue;
+    const name = resolveLocality(property);
     if (!name) continue;
 
     const existing = groups.get(name);

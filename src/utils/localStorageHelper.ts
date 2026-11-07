@@ -1,4 +1,3 @@
-import { config } from './config';
 
 // Read JSON file from public folder
 export const readLocalJson = async <T>(path: string): Promise<T> => {

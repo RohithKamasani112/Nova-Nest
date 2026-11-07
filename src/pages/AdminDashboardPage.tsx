@@ -1,5 +1,6 @@
+import { crmApi } from '../services/crmApi';
 import React, { useEffect, useState } from 'react';
-import { getAllProperties, getAllLeads, deleteProperty } from '../services/storageService';
+import { getAllProperties, deleteProperty } from '../services/storageService';
 import { Property, Inquiry } from '../types';
 import { toTitleCase } from '../utils/format';
 import { motion } from 'motion/react';
@@ -10,7 +11,6 @@ import {
   Users,
   Plus,
   Trash2,
-  TrendingUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -23,6 +23,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 }) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [leads, setLeads] = useState<Inquiry[]>([]);
+  const [leadTotal, setLeadTotal] = useState(0);
+  const [loadError, setLoadError] = useState(false);
+  const [lastSync, setLastSync] = useState('');
   const [loading, setLoading] = useState(true);
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -36,37 +39,40 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      const [propsData, leadsData] = await Promise.all([
+      const [propsData, leadResponse] = await Promise.all([
         getAllProperties(),
-        getAllLeads(),
+        crmApi.get('/crm/leads', { params: { page: 1, pageSize: 5, sortBy: 'created_at', sortDir: 'desc' } }),
       ]);
       setProperties(propsData);
-      setLeads(leadsData);
+      setLeadTotal(leadResponse.data.total);
+      setLeads(leadResponse.data.leads.map((lead: any) => ({ id: lead.id, name: lead.name, phone: lead.phone || lead.phone_raw || '', email: lead.email || '', propertyId: lead.project_name || 'general', message: '', type: 'request-info', status: lead.status === 'new' ? 'pending' : lead.status === 'converted' ? 'closed' : 'contacted', createdAt: lead.created_at || lead.lead_date || lead.updated_at })));
+      setLoadError(false); setLastSync(new Date().toLocaleTimeString('en-IN'));
     } catch (error) {
-      console.error('Error loading data:', error);
+      setLoadError(true); console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteProperty = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this property?')) return;
+    if (!confirm('Archive this property? It can be restored from Manage Properties.')) return;
 
     try {
       await deleteProperty(id);
       setProperties(properties.filter((p) => p.id !== id));
-      toast.success('Property deleted successfully');
+      toast.success('Property archived');
     } catch (error) {
       toast.error('Failed to delete property');
     }
   };
 
-  const forSaleCount = properties.filter((p) => p.status === 'buy').length;
-  const forRentCount = properties.filter((p) => p.status === 'rent').length;
+  const forSaleCount = properties.filter((p) => !p.archivedAt && p.isActive !== false && p.status === 'buy').length;
+  const forRentCount = properties.filter((p) => !p.archivedAt && p.isActive !== false && p.status === 'rent').length;
 
-  const recentProperties = properties.slice(0, 5);
-  const recentLeads = leads.slice(0, 5);
+  const recentProperties = properties.filter(p => !p.archivedAt).sort((a,b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5);
+  const recentLeads = [...leads].sort((a,b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5);
 
   return (
     <div className="max-w-7xl">
@@ -85,6 +91,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         </button>
       </div>
 
+      <div className="mb-5 flex flex-wrap items-center gap-3 text-sm text-gray-500"><button type="button" disabled={loading} onClick={() => void loadData()} className="rounded-lg border bg-white px-3 py-2">Refresh dashboard</button><span>Lead metrics: CRM {lastSync && `| Synced ${lastSync}`}</span><span>{properties.filter(p => !p.archivedAt && p.isActive !== false).length} active / {properties.filter(p => !p.archivedAt && p.isActive === false).length} inactive / {properties.filter(p => p.archivedAt).length} archived listings</span></div>
+      {loadError && <p role="alert" className="mb-5 rounded-lg bg-red-50 p-3 text-red-800">Dashboard data could not be refreshed. Use Refresh dashboard to retry; displayed values may be out of date.</p>}
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-2 sm:gap-4 sm:mb-8 lg:grid-cols-4">
         {/* Total Properties */}
@@ -157,7 +165,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             <div>
               <p className="text-sm text-gray-500 mt-1">Total Leads</p>
               <p className="text-3xl font-bold text-gray-900">
-                {loading ? '-' : leads.length}
+                {loading ? '-' : leadTotal}
               </p>
             </div>
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">

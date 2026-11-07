@@ -1,3 +1,7 @@
+import { useDialogFocus } from '../hooks/useDialogFocus';
+import { CATEGORY_LABELS } from '../utils/propertySearchState';
+import { normalizeIndianPhone } from '../utils/contactValidation';
+import { usePropertyRefresh } from '../hooks/usePropertyRefresh';
 import React, { useEffect, useRef, useState } from 'react';
 import { Property, Inquiry } from '../types';
 import { createLead, getAllProperties } from '../services/storageService';
@@ -12,7 +16,7 @@ import {
   useReducedMotion,
   useSpring,
 } from 'motion/react';
-import { EASE_ELEGANT, imageSlide, scaleIn, staggerFastContainer, staggerContainer } from '../lib/animation';
+import { imageSlide, scaleIn, staggerFastContainer, staggerContainer } from '../lib/animation';
 import { toTitleCase } from '../utils/format';
 import noImage from '../assets/no-image.png';
 import { Seo } from '../components/Seo';
@@ -100,12 +104,16 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
   onClose,
   onPropertyClick,
 }) => {
+  const [unavailable, setUnavailable] = useState(property.isActive === false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   // Direction of the last gallery move (1 = next, -1 = prev, 0 = first open) so
   // the crossfade slides the right way.
   const [imageDirection, setImageDirection] = useState(0);
   const [similarProperties, setSimilarProperties] = useState<Property[]>([]);
   const [showLeadModal, setShowLeadModal] = useState(false);
+  const leadDialogRef = useRef<HTMLDivElement>(null);
+  const closeLeadDialog = React.useCallback(() => setShowLeadModal(false), []);
+  useDialogFocus(showLeadModal, leadDialogRef, closeLeadDialog);
   const [leadType, setLeadType] = useState<'contact-owner' | 'schedule-visit' | 'request-info'>('contact-owner');
   const [leadForm, setLeadForm] = useState<LeadFormData>({ name: '', phone: '', email: '' });
   const [loadingLead, setLoadingLead] = useState(false);
@@ -140,10 +148,20 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
         .join(' · ')
     : '';
 
+  const refreshAvailability = async () => {
+    try {
+      const current = await getAllProperties();
+      setUnavailable(!current.some(p => p.id === property.id && p.isActive !== false && !p.archivedAt));
+      setSimilarProperties(current.filter(p => p.isActive !== false && p.category === property.category && p.id !== property.id).slice(0, 3));
+    } catch { /* Keep the current view on a temporary network failure. */ }
+  };
+  usePropertyRefresh(refreshAvailability);
+
   useEffect(() => {
     const loadSimilarProperties = async () => {
       try {
         const allProps = await getAllProperties();
+        setUnavailable(!allProps.some(p => p.id === property.id && p.isActive !== false && !p.archivedAt));
         setSimilarProperties(
           allProps
             .filter((p) => p.isActive !== false && p.category === property.category && p.id !== property.id)
@@ -166,7 +184,9 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
 
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!leadForm.name || !leadForm.phone || !leadForm.email) {
+    if (loadingLead) return;
+    if (!normalizeIndianPhone(leadForm.phone)) { toast.error('Enter a valid Indian mobile number'); return; }
+    if (!leadForm.name.trim() || !leadForm.phone) {
       toast.error('Please fill all fields');
       return;
     }
@@ -188,14 +208,14 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
       setShowLeadModal(false);
       setLeadForm({ name: '', phone: '', email: '' });
     } catch (error) {
-      toast.error('Failed to submit inquiry');
+      toast.error(error instanceof Error ? error.message : 'Failed to submit inquiry. Please retry.');
     } finally {
       setLoadingLead(false);
     }
   };
 
   const imageCount = property.images.length;
-  const propertyTypeLabel = property.category === 'land' ? 'Plot' : property.category;
+  const propertyTypeLabel = CATEGORY_LABELS[property.category];
   // Studio (0 BHK) is meaningful for an actual home; for plots/commercial
   // listings a bedroom count doesn't apply at all, so skip the card there
   // rather than showing a misleading "Studio" (spec #3, #11).
@@ -231,27 +251,16 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
     setLeadType(type);
     setShowLeadModal(true);
   };
-  const saveQuickLead = (source: string, type: Inquiry['type']) => {
-    void createLead({
-      propertyId: property.id,
-      userId: 'guest',
-      name: `${source} Enquiry`,
-      email: '',
-      phone: source === 'Call' ? 'Via Call' : 'Via WhatsApp',
-      message: `${source} enquiry for ${property.title} at ${property.location}`,
-      type,
-    }).catch((error) => {
-      console.error(`Failed to save ${source.toLowerCase()} lead:`, error);
-    });
-  };
   // Open the number-capture modal first; the actual WhatsApp redirect happens
   // in submitWhatsappLead once we have the visitor's number.
   const handleWhatsApp = () => {
     trackWhatsAppClick('property_detail', { property_id: property.id, property_name: property.title });
     setShowWhatsappModal(true);
   };
-  const submitWhatsappLead = (phone: string) => {
-    void createLead({
+  const submitWhatsappLead = async (phone: string) => {
+    const chat = window.open('about:blank', '_blank');
+    if (chat) chat.opener = null;
+    try { await createLead({
       propertyId: property.id,
       userId: 'guest',
       name: 'WhatsApp Enquiry',
@@ -259,15 +268,13 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
       phone,
       message: `WhatsApp enquiry for ${property.title} at ${property.location}`,
       type: 'contact-owner',
-    }).catch((error) => {
-      console.error('Failed to save WhatsApp lead:', error);
     });
     setShowWhatsappModal(false);
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    if (chat) chat.location.href = whatsappUrl; else window.location.href = whatsappUrl;
+    } catch (error) { chat?.close(); throw error; }
   };
   const handleCall = () => {
     trackPhoneClick('property_detail', { property_id: property.id, property_name: property.title });
-    saveQuickLead('Call', 'contact-owner');
     window.location.href = `tel:+${contactNumber}`;
   };
 
@@ -283,21 +290,23 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
     property.areaSqft > 0
       ? {
           icon: Maximize,
-          label: 'Area',
+          label: 'Listed area (sq ft)',
           value: <InViewCount value={property.areaSqft} format={(n) => `${Math.round(n).toLocaleString()} sqft`} />,
         }
       : null,
     { icon: Home, label: 'Type', value: propertyTypeLabel },
-  ].filter((card): card is { icon: typeof Bed; label: string; value: React.ReactNode } => card !== null);
+  ].filter((card): card is NonNullable<typeof card> => card !== null);
 
   // "About Home" summary rows — only fields the property actually has data
   // for (spec #8, #11). Facing / unit floor-number aren't persisted on the
   // Property record today, so they're intentionally not listed here.
   const summaryRows = [
+    property.carpetArea ? { label: 'Carpet area', value: `${property.carpetArea.toLocaleString('en-IN')} sq ft` } : null,
+    property.builtUpArea ? { label: 'Built-up area', value: `${property.builtUpArea.toLocaleString('en-IN')} sq ft` } : null,
     property.price > 0 ? { label: 'Ask Price', value: formatPrice(property.price) } : null,
     isResidential && property.bedrooms > 0 ? { label: 'Bedrooms', value: `${property.bedrooms} BHK` } : null,
     property.bathrooms > 0 ? { label: 'Bathrooms', value: `${property.bathrooms}` } : null,
-    property.areaSqft > 0 ? { label: 'Area', value: `${property.areaSqft.toLocaleString()} sqft` } : null,
+    property.areaSqft > 0 ? { label: 'Listed area (sq ft)', value: `${property.areaSqft.toLocaleString()} sqft` } : null,
     property.furnished !== undefined
       ? { label: 'Furnishing', value: property.furnished ? 'Furnished' : 'Unfurnished' }
       : null,
@@ -359,6 +368,15 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabKeysSignature]);
+
+  if (unavailable) return (
+    <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+      <Seo title="Property no longer available | Nova Nest" description="This listing is no longer available. Browse current properties for sale and rent." path="/properties" noindex />
+      <h1 className="mb-4 font-serif text-3xl">This property is no longer available</h1>
+      <p className="mb-6 text-muted-foreground">Explore other available homes for sale and rent.</p>
+      <button type="button" onClick={onClose} className="premium-button px-6 py-3">Browse available properties</button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-surface text-text-primary">
@@ -474,7 +492,8 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
               </div>
             )}
 
-            {/* Header: title, badges, address, price, brokerage, quick facts — always visible above the tabs. */}
+            <div className="mx-auto max-w-7xl px-4 py-3 text-xs text-gray-500">Listing updated {new Date(property.updatedAt || property.createdAt).toLocaleDateString('en-IN')}. {property.verified ? 'Verified means marked as checked by the Nova Nest team; confirm current availability and terms before booking.' : 'Contact our team to confirm availability and details.'}</div>
+      {/* Header: title, badges, address, price, brokerage, quick facts — always visible above the tabs. */}
             <section className="rounded-2xl border border-border border-t-4 border-t-primary bg-white p-6 shadow-[0_10px_30px_rgba(15,31,61,0.08)] sm:p-8">
               <h1 className="font-serif text-xl font-semibold leading-snug text-charcoal sm:text-2xl md:text-3xl">
                 {toTitleCase(property.title)}
@@ -824,12 +843,12 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
               transition={reduce ? { duration: 0.2 } : { type: 'spring', stiffness: 280, damping: 28 }}
               className="fixed inset-0 z-50 flex items-center justify-center px-4"
             >
-              <div className="w-full max-w-md rounded-md bg-white p-6 shadow-strong">
+              <div ref={leadDialogRef} role="dialog" aria-modal="true" aria-labelledby="enquiry-heading" className="w-full max-w-md rounded-md bg-white p-6 shadow-strong">
                 <div className="mb-5 flex items-center justify-between">
-                  <h2 className="font-serif text-2xl font-bold text-charcoal">
+                  <h2 id="enquiry-heading" className="font-serif text-2xl font-bold text-charcoal">
                     {leadType === 'schedule-visit' ? 'Schedule a Visit' : leadType === 'request-info' ? 'Request Brochure' : 'Contact Owner'}
                   </h2>
-                  <button onClick={() => setShowLeadModal(false)} className="min-h-[44px] min-w-[44px] rounded-md p-1 transition-colors hover:bg-surface">
+                  <button aria-label="Close enquiry" onClick={() => setShowLeadModal(false)} className="min-h-[44px] min-w-[44px] rounded-md p-1 transition-colors hover:bg-surface">
                     <X size={22} />
                   </button>
                 </div>
@@ -840,10 +859,10 @@ export const PropertyDetailsPage: React.FC<PropertyDetailsPageProps> = ({
                     ['email', 'Email', 'email'],
                   ].map(([field, label, type]) => (
                     <label key={field} className="block">
-                      <span className="mb-2 block text-sm font-semibold text-text-primary">{label} *</span>
+                      <span className="mb-2 block text-sm font-semibold text-text-primary">{label}{field !== 'email' ? ' *' : ' (optional)'}</span>
                       <input
                         type={type}
-                        required
+                        required={field !== 'email'}
                         value={leadForm[field as keyof LeadFormData]}
                         onChange={(e) => setLeadForm({ ...leadForm, [field]: e.target.value })}
                         className="w-full rounded-md border border-border px-4 py-3 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20"

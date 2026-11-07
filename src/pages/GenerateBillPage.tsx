@@ -53,6 +53,7 @@ export const GenerateBillPage: React.FC = () => {
   const [activeTile, setActiveTile] = useState<ServiceTile | null>(null);
   const [docs, setDocs] = useState<BillingDoc[]>([]);
   const [legacyBills, setLegacyBills] = useState<Bill[]>([]);
+  const [historyError, setHistoryError] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -63,10 +64,11 @@ export const GenerateBillPage: React.FC = () => {
     setLoadingHistory(true);
     try {
       const [billingDocs, bills] = await Promise.all([getAllBillingDocs(), getAllBills()]);
+      setHistoryError(false);
       setDocs(billingDocs);
       setLegacyBills(bills);
     } catch (error) {
-      console.error('Error loading billing history:', error);
+      setHistoryError(true); console.error('Error loading billing history:', error);
     } finally {
       setLoadingHistory(false);
     }
@@ -137,7 +139,7 @@ export const GenerateBillPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl">
+    <div className="max-w-7xl">{historyError && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-red-800">Billing history could not be loaded. <button type="button" onClick={() => void loadHistory()} className="underline">Retry</button></p>}
       <div className="mb-6 flex flex-col gap-1 sm:mb-8">
         <h1 className="font-['Playfair_Display'] text-2xl font-bold text-gray-900 sm:text-3xl">Generate Bill</h1>
         <p className="text-sm text-gray-600 sm:text-base">

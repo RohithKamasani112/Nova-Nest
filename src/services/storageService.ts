@@ -1,3 +1,5 @@
+import { normalizeIndianPhone } from '../utils/contactValidation';
+import { crmApi } from './crmApi';
 import { BillingDoc, BillingDocType, Bill, Inquiry, Property } from '../types';
 import {
   uploadToS3,
@@ -65,86 +67,36 @@ export const getPropertyById = async (
   }
 };
 
-// Create new property
-export const createProperty = async (
-  property: Omit<Property, 'id' | 'createdAt'>
-): Promise<Property> => {
+const notifyInventory = () => {
+  window.dispatchEvent(new Event('nova-properties-changed'));
+  try { localStorage.setItem('nova-properties-changed', `${Date.now()}-${Math.random()}`); } catch { /* Polling remains available. */ }
+};
+const mutateProperty = async (operation: string, id: string, input: Partial<Property> = {}, expectedUpdatedAt: string | null = null): Promise<Property> => {
   try {
-    const properties = await getAllProperties();
+    const { data } = await crmApi.post<{ property: Property }>(`/storage/properties/${encodeURIComponent(id)}`, { operation, input, expectedUpdatedAt });
+    notifyInventory();
+    void getAllProperties().then(regenerateSitemap).catch(() => undefined);
+    return data.property;
+  } catch (error: any) { throw new Error(error.response?.data?.error || 'Could not save property. Please retry.'); }
+};
+export const createProperty = async (property: Omit<Property, 'id' | 'createdAt'>): Promise<Property> =>
+  mutateProperty('create', `prop_${crypto.randomUUID()}`, { ...property, isActive: property.isActive ?? true });
 
-    const newProperty: Property = {
-      ...property,
-      isActive: property.isActive ?? true,
-      id: `prop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedProperties = [...properties, newProperty];
-    await uploadJsonToS3(updatedProperties, 'properties.json');
-    void regenerateSitemap(updatedProperties);
-
-    return newProperty;
-  } catch (error) {
-    console.error('Error creating property:', error);
-    throw new Error('Failed to create property');
-  }
+export const updateProperty = async (id: string, updates: Partial<Property>, expectedUpdatedAt?: string): Promise<Property> => {
+  const existing = expectedUpdatedAt ? null : (await getAllProperties()).find(p => p.id === id);
+  return mutateProperty('update', id, updates, expectedUpdatedAt || existing?.updatedAt || existing?.createdAt || null);
 };
 
-// Update property
-export const updateProperty = async (
-  id: string,
-  updates: Partial<Property>
-): Promise<Property> => {
-  try {
-    const properties = await getAllProperties();
-    const index = properties.findIndex((p) => p.id === id);
-
-    if (index === -1) {
-      throw new Error('Property not found');
-    }
-
-    const updatedProperty: Property = {
-      ...properties[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-
-    properties[index] = updatedProperty;
-    await uploadJsonToS3(properties, 'properties.json');
-    void regenerateSitemap(properties);
-
-    return updatedProperty;
-  } catch (error) {
-    console.error('Error updating property:', error);
-    throw new Error('Failed to update property');
-  }
-};
-
-// Delete property
+// Archive is reversible; media is retained so restoring a listing is safe.
 export const deleteProperty = async (id: string): Promise<void> => {
-  try {
-    const properties = await getAllProperties();
-    const property = properties.find((p) => p.id === id);
-
-    if (!property) {
-      throw new Error('Property not found');
-    }
-
-    const filteredProperties = properties.filter((p) => p.id !== id);
-    await uploadJsonToS3(filteredProperties, 'properties.json');
-    void regenerateSitemap(filteredProperties);
-
-    for (const imagePath of property.images || []) {
-      await deleteImage(imagePath);
-    }
-
-    if (property.brochure) {
-      await deleteImage(property.brochure);
-    }
-  } catch (error) {
-    console.error('Error deleting property:', error);
-    throw new Error('Failed to delete property');
-  }
+  const existing = (await getAllProperties()).find(p => p.id === id);
+  await mutateProperty('archive', id, {}, existing?.updatedAt || existing?.createdAt || null);
+};
+export const restoreProperty = async (property: Property): Promise<void> => {
+  await mutateProperty('restore', property.id, {}, property.updatedAt || property.createdAt);
+};
+export const permanentlyDeleteProperty = async (property: Property): Promise<void> => {
+  await mutateProperty('delete', property.id, {}, property.updatedAt || property.createdAt);
 };
 
 // Upload image
@@ -184,6 +136,8 @@ export const getAllLeads = async (): Promise<Inquiry[]> => {
 export const createLead = async (
   data: Omit<Inquiry, 'id' | 'createdAt' | 'status'>
 ): Promise<Inquiry> => {
+  const phone = normalizeIndianPhone(data.phone);
+  if (!phone) throw new Error('Enter a valid Indian mobile number.');
   const newLead: Inquiry = {
     ...data,
     id: `lead_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -191,7 +145,7 @@ export const createLead = async (
     status: 'pending',
   };
 
-  await createWebsiteLeadInCrm(data);
+  await createWebsiteLeadInCrm({ ...data, phone });
   return newLead;
 };
 
@@ -213,7 +167,7 @@ const createWebsiteLeadInCrm = async (data: Omit<Inquiry, 'id' | 'createdAt' | '
     }),
   });
 
-  if (!response.ok) throw new Error(`CRM lead intake responded ${response.status}`);
+  if (!response.ok) { const body = await response.json().catch(() => null); throw new Error(body?.error || 'Could not submit your enquiry. Please retry.'); }
 };
 
 // Update lead status
@@ -261,17 +215,6 @@ export const getAllBills = async (): Promise<Bill[]> => {
 // legacy bills.json above. Everything lives under invoices/ — the metadata
 // list plus one PDF per document.
 
-const DOC_NUMBER_PREFIX: Record<BillingDocType, string> = {
-  sale_booking: 'SALE',
-  commission: 'COMM',
-  service: 'SERV',
-  // Not actually used to generate Token Receipt numbers — those keep their
-  // own existing sequential receiptCode counter (src/utils/tokenReceiptStorage.ts,
-  // e.g. "NONN0604") rather than switching to this S3-scan-based scheme.
-  // Present only so this Record stays exhaustive over BillingDocType.
-  token_receipt: 'TOKEN',
-};
-
 export const getAllBillingDocs = async (): Promise<BillingDoc[]> => {
   try {
     return await getJsonFromS3<BillingDoc[]>('invoices/documents.json');
@@ -289,16 +232,8 @@ export const getAllBillingDocs = async (): Promise<BillingDoc[]> => {
 // receipt counter) is what actually fixes the old duplicate-number bug: two
 // different document types generated back-to-back can no longer collide.
 export const getNextDocNumber = async (docType: BillingDocType): Promise<string> => {
-  const docs = await getAllBillingDocs();
-  const year = new Date().getFullYear();
-  const prefix = `NN-${DOC_NUMBER_PREFIX[docType]}-${year}-`;
-  const usedNumbers = docs
-    .map((doc) => doc.docNumber)
-    .filter((docNumber) => docNumber.startsWith(prefix))
-    .map((docNumber) => parseInt(docNumber.slice(prefix.length), 10))
-    .filter((n) => !Number.isNaN(n));
-  const next = (usedNumbers.length > 0 ? Math.max(...usedNumbers) : 0) + 1;
-  return `${prefix}${String(next).padStart(3, '0')}`;
+  const { data } = await crmApi.post<{ number: string }>('/storage/billing/number', { type: docType });
+  return data.number;
 };
 
 // Uploads the generated PDF Blob to invoices/{docNumber}.pdf and returns its URL.
@@ -315,16 +250,7 @@ export const uploadBillingDocPdf = async (pdfBlob: Blob, docNumber: string): Pro
 // on a perfectly valid literal.
 export const createBillingDoc = async <T extends BillingDoc>(doc: Omit<T, 'id' | 'createdAt'>): Promise<T> => {
   try {
-    const docs = await getAllBillingDocs();
-    const newDoc = {
-      ...doc,
-      id: doc.docNumber,
-      createdAt: new Date().toISOString(),
-    } as T;
-    await uploadJsonToS3([...docs, newDoc], 'invoices/documents.json');
-    return newDoc;
-  } catch (error) {
-    console.error('Error creating billing document:', error);
-    throw new Error('Failed to create billing document');
-  }
+    const { data } = await crmApi.post<{ document: T }>('/storage/billing/documents', doc);
+    return data.document;
+  } catch (error: any) { throw new Error(error.response?.data?.error || 'Failed to save billing document. Please retry.'); }
 };

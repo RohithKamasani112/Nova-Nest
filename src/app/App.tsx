@@ -1,29 +1,30 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { PageErrorBoundary } from '../components/PageErrorBoundary';
+import { writePropertySearch } from '../utils/propertySearchState';
+import React, { lazy, Suspense, useState, useCallback, useEffect } from 'react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { useUrlSync } from '../hooks/useUrlSync';
 import type { AppPage } from '../utils/seo';
 import { Navbar } from './components/Navbar';
 import { AdminSidebar } from './components/AdminSidebar';
 import { HomePage } from '../pages/HomePage';
-import { PropertiesPage } from '../pages/PropertiesPage';
-import { PropertyDetailsPage } from '../pages/PropertyDetailsPage';
-import { SalesHomePage } from '../pages/SalesHomePage';
-import { SalesLeadsPage } from '../pages/SalesLeadsPage';
-import { SettingsPage } from '../pages/SettingsPage';
-import { LoginPage } from '../pages/LoginPage';
-import { AdminPage } from '../pages/AdminPage';
-import { AdminDashboardPage } from '../pages/AdminDashboardPage';
-import { ManagePropertiesPage } from '../pages/ManagePropertiesPage';
-import { LeadsManagementPage } from '../pages/LeadsManagementPage';
-import { CrmPage } from '../pages/crm/CrmPage';
-import { GenerateBillPage } from '../pages/GenerateBillPage';
-import { SharePropertiesPage } from '../pages/SharePropertiesPage';
-import { AboutPage } from '../pages/AboutPage';
-import { ContactPage } from '../pages/ContactPage';
-import { ServicesPage } from '../pages/ServicesPage';
-import { LocalityPage } from '../pages/LocalityPage';
-import { BlogListPage } from '../pages/BlogListPage';
-import { BlogPostPage } from '../pages/BlogPostPage';
+const PropertiesPage = lazy(() => import('../pages/PropertiesPage').then(m => ({ default: m.PropertiesPage })));
+const PropertyDetailsPage = lazy(() => import('../pages/PropertyDetailsPage').then(m => ({ default: m.PropertyDetailsPage })));
+const SalesHomePage = lazy(() => import('../pages/SalesHomePage').then(m => ({ default: m.SalesHomePage })));
+const SalesLeadsPage = lazy(() => import('../pages/SalesLeadsPage').then(m => ({ default: m.SalesLeadsPage })));
+const SettingsPage = lazy(() => import('../pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const LoginPage = lazy(() => import('../pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const AdminPage = lazy(() => import('../pages/AdminPage').then(m => ({ default: m.AdminPage })));
+const AdminDashboardPage = lazy(() => import('../pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const ManagePropertiesPage = lazy(() => import('../pages/ManagePropertiesPage').then(m => ({ default: m.ManagePropertiesPage })));
+const CrmPage = lazy(() => import('../pages/crm/CrmPage').then(m => ({ default: m.CrmPage })));
+const GenerateBillPage = lazy(() => import('../pages/GenerateBillPage').then(m => ({ default: m.GenerateBillPage })));
+const SharePropertiesPage = lazy(() => import('../pages/SharePropertiesPage').then(m => ({ default: m.SharePropertiesPage })));
+const AboutPage = lazy(() => import('../pages/AboutPage').then(m => ({ default: m.AboutPage })));
+const ContactPage = lazy(() => import('../pages/ContactPage').then(m => ({ default: m.ContactPage })));
+const ServicesPage = lazy(() => import('../pages/ServicesPage').then(m => ({ default: m.ServicesPage })));
+const LocalityPage = lazy(() => import('../pages/LocalityPage').then(m => ({ default: m.LocalityPage })));
+const BlogListPage = lazy(() => import('../pages/BlogListPage').then(m => ({ default: m.BlogListPage })));
+const BlogPostPage = lazy(() => import('../pages/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
 import { Property, PropertyFilters } from '../types';
 import { Toaster } from 'react-hot-toast';
 import { Instagram, Phone, X, Youtube } from 'lucide-react';
@@ -75,12 +76,14 @@ function App() {
   };
   // Content slug for locality / blog-post pages (null for everything else).
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
-  const [showPageLoader, setShowPageLoader] = useState(true);
+  const [showPageLoader, setShowPageLoader] = useState(() => window.location.pathname === '/' && !sessionStorage.getItem('nova-visited'));
 
   // `slug` carries the locality / blog-post identifier for those pages. Every
   // other navigation clears it so a stale slug can never leak into the URL.
   const handleNavigate = (page: string, slug?: string | null) => {
+    if (!window.dispatchEvent(new Event('nova-before-navigate', { cancelable: true }))) return;
     if (page === 'properties') {
+      sessionStorage.removeItem('nova-browse-query'); sessionStorage.removeItem('nova-browse-scroll');
       setPropertyFilters({});
     }
     if (page === 'add-property') {
@@ -108,6 +111,7 @@ function App() {
   };
 
   const handleSearch = (filters: PropertyFilters) => {
+    sessionStorage.setItem('nova-browse-query', writePropertySearch(filters, '', 'newest'));
     setPropertyFilters(filters);
     setCurrentPage('properties');
   };
@@ -217,7 +221,7 @@ function App() {
       case 'manage-properties':
         return <ManagePropertiesPage onEditProperty={handleEditProperty} />;
       case 'leads':
-        return <LeadsManagementPage onNavigate={handleNavigate} />;
+        return <CrmPage onShareProperties={handleShareFromLead} />;
       case 'crm':
         return <CrmPage onShareProperties={handleShareFromLead} />;
       case 'generate-bill':
@@ -306,8 +310,10 @@ const AppContent: React.FC<{
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [currentPage]);
-  const submitWhatsappLead = (phone: string) => {
-    void createLead({
+  const submitWhatsappLead = async (phone: string) => {
+    const chat = window.open('about:blank', '_blank');
+    if (chat) chat.opener = null;
+    try { await createLead({
       propertyId: 'general',
       userId: 'guest',
       name: 'WhatsApp Enquiry',
@@ -315,11 +321,10 @@ const AppContent: React.FC<{
       phone,
       message: 'WhatsApp enquiry from floating contact button',
       type: 'contact-owner',
-    }).catch((error) => {
-      console.error('Failed to save WhatsApp lead:', error);
     });
     setShowWhatsappModal(false);
-    window.open(floatingWhatsappUrl, '_blank', 'noopener,noreferrer');
+    if (chat) chat.location.href = floatingWhatsappUrl; else window.location.href = floatingWhatsappUrl;
+    } catch (error) { chat?.close(); throw error; }
   };
 
   // Auth guard for admin pages. Session restore (getCurrentAuthUser reading
@@ -333,7 +338,8 @@ const AppContent: React.FC<{
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {showPageLoader && <PageLoader onDone={() => setShowPageLoader(false)} />}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:p-3 focus:text-primary">Skip to content</a>
+      {showPageLoader && <PageLoader onDone={() => { sessionStorage.setItem('nova-visited', '1'); setShowPageLoader(false); }} />}
 
       {!isAdminPage && (
         <Navbar
@@ -362,7 +368,7 @@ const AppContent: React.FC<{
                 animate="visible"
                 exit={reduce ? undefined : 'exit'}
               >
-                {renderAdminContent()}
+                <main id="main-content" tabIndex={-1}><PageErrorBoundary key={currentPage}><Suspense fallback={<div role="status" className="p-8 text-gray-500">Loading workspace...</div>}>{renderAdminContent()}</Suspense></PageErrorBoundary></main>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -378,7 +384,7 @@ const AppContent: React.FC<{
                 animate="visible"
                 exit={reduce ? undefined : 'exit'}
               >
-                {renderPage()}
+                <main id="main-content" tabIndex={-1}><PageErrorBoundary key={currentPage}><Suspense fallback={<div role="status" className="min-h-[40vh] p-8 text-center text-gray-500">Loading page...</div>}>{renderPage()}</Suspense></PageErrorBoundary></main>
               </motion.div>
             </AnimatePresence>
           </LayoutGroup>
@@ -408,7 +414,7 @@ const AppContent: React.FC<{
               independently controllable. */}
           {/* Sized at ~70% of the original pill (icon/padding/text all scaled
               down together) so proportions stay the same, just smaller. */}
-          <div className={`flex flex-col items-center gap-[6px] ${currentPage !== 'property-details' ? 'mb-[11px]' : ''}`}>
+          <div className={`hidden flex-col items-center gap-[6px] sm:flex ${currentPage !== 'property-details' ? 'mb-[11px]' : ''}`}>
             <motion.a
               href={INSTAGRAM_URL}
               target="_blank"

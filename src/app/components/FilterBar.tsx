@@ -1,3 +1,4 @@
+import { CATEGORY_LABELS } from '../../utils/propertySearchState';
 import React, { useState } from 'react';
 import { Property, PropertyFilters, SortOption } from '../../types';
 import { SlidersHorizontal, SortAsc, X } from 'lucide-react';
@@ -23,7 +24,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     { label: 'Apartment', value: ['apartment'] },
     { label: 'Villa', value: ['villa'] },
     { label: 'House', value: ['house'] },
-    { label: 'Plot', value: ['land'] },
+    { label: 'Plot / Land', value: ['land'] },
     { label: 'Commercial', value: ['condo'] },
   ];
   const advancedCategories: Property['category'][] = ['apartment', 'house', 'villa', 'condo', 'townhouse', 'land'];
@@ -70,7 +71,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     filters.bedrooms?.length ||
     filters.locality?.length ||
     filters.priceMin ||
-    filters.priceMax;
+    filters.priceMax || filters.status || filters.location || filters.areaMin !== undefined || filters.areaMax !== undefined || filters.featured || filters.verified;
 
   const pillClass = (active: boolean) =>
     `min-h-[44px] px-4 py-2.5 rounded-full border font-semibold transition-all duration-[250ms] whitespace-nowrap text-sm leading-none ${
@@ -118,11 +119,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </label>
 
         <button
+          aria-expanded={showAdvanced}
+          aria-controls="advanced-property-filters"
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="h-11 px-4 border border-border bg-white text-muted-foreground hover:border-gold/50 hover:text-gold hover:shadow-subtle rounded-lg font-semibold transition-all duration-[250ms] flex items-center justify-center gap-2"
         >
           <SlidersHorizontal size={18} />
-          Filters
+          More filters
         </button>
 
         {hasActiveFilters && (
@@ -136,6 +139,27 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         )}
       </div>
 
+      <div className="mt-4 flex flex-wrap items-center gap-6 border-t border-border pt-4">              <label className="block text-sm font-semibold text-charcoal">Sale or rent
+                <select aria-label="Sale or rent" value={filters.status || ''} onChange={e => onFilterChange({ ...filters, status: e.target.value ? e.target.value as 'buy' | 'rent' : undefined })} className="ml-3 rounded border p-3">
+                  <option value="">Sale &amp; Rent</option><option value="buy">For Sale</option><option value="rent">For Rent</option>
+                </select>
+              </label>
+              <div>
+                <label className="block text-sm font-semibold text-charcoal mb-3">BHK</label>
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3, 4, 5].map((beds) => (
+                    <button
+                      key={beds}
+                      onClick={() => toggleBedrooms(beds)}
+                      className={pillClass(Boolean(filters.bedrooms?.includes(beds)))}
+                    >
+                      {beds === 5 ? '5+' : beds} BHK
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+</div>
       <AnimatePresence>
         {showAdvanced && (
           <motion.div
@@ -143,13 +167,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
+            id="advanced-property-filters"
             className="overflow-hidden"
           >
             <div className="mt-6 pt-6 border-t border-black/10 space-y-6 max-h-[70vh] overflow-y-auto lg:max-h-none lg:overflow-visible">
               <div>
-                <label className="block text-sm font-semibold text-charcoal mb-3">Price Range</label>
+                <label className="block text-sm font-semibold text-charcoal mb-3">Price Range (INR{filters.status === 'rent' ? ' / month' : ''})</label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
+                    min="0"
+                    aria-label="Property range value"
                     type="number"
                     placeholder="Min"
                     value={filters.priceMin || ''}
@@ -157,6 +184,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     className={inputClass}
                   />
                   <input
+                    min="0"
+                    aria-label="Property range value"
                     type="number"
                     placeholder="Max"
                     value={filters.priceMax || ''}
@@ -171,22 +200,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 <div className="flex flex-wrap gap-2">
                   {advancedCategories.map((category) => (
                     <button key={category} onClick={() => toggleCategory(category)} className={`${pillClass(Boolean(filters.category?.includes(category)))} capitalize`}>
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-charcoal mb-3">Bedrooms</label>
-                <div className="flex flex-wrap gap-2">
-                  {[1, 2, 3, 4].map((beds) => (
-                    <button
-                      key={beds}
-                      onClick={() => toggleBedrooms(beds)}
-                      className={pillClass(Boolean(filters.bedrooms?.includes(beds)))}
-                    >
-                      {beds}+ Bed
+                      {CATEGORY_LABELS[category]}
                     </button>
                   ))}
                 </div>
@@ -207,6 +221,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 <label className="block text-sm font-semibold text-charcoal mb-3">Area (sqft)</label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
+                    min="0"
+                    aria-label="Property range value"
                     type="number"
                     placeholder="Min sqft"
                     value={filters.areaMin || ''}
@@ -214,6 +230,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     className={inputClass}
                   />
                   <input
+                    min="0"
+                    aria-label="Property range value"
                     type="number"
                     placeholder="Max sqft"
                     value={filters.areaMax || ''}

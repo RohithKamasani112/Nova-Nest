@@ -26,7 +26,7 @@ import {
   saveDraft,
   saveLastReceipt,
 } from '../../utils/tokenReceiptStorage';
-import { createBillingDoc, uploadBillingDocPdf } from '../../services/storageService';
+import { createBillingDoc, uploadBillingDocPdf, getNextDocNumber } from '../../services/storageService';
 import { TokenReceiptDoc } from '../../types';
 import { inputClass, labelClass, sectionTitleClass } from './formStyles';
 import { captureUnscaled, DocumentPreview } from './DocumentPreview';
@@ -157,10 +157,14 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack, onSa
     if (!requireValidBeforeAction('saving') || !previewRef.current) return;
     setSaving(true);
     try {
+      const allocated = await getNextDocNumber('token_receipt');
+      const numberedDraft = { ...draft, receiptCode: allocated };
+      setDraft(numberedDraft);
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       const pdfBlob = await captureUnscaled(previewRef.current, () => renderNodeToPdf(previewRef.current!));
-      const pdfUrl = await uploadBillingDocPdf(pdfBlob, draft.receiptCode);
+      const pdfUrl = await uploadBillingDocPdf(pdfBlob, allocated);
 
-      const { receiptCode, ...draftFields } = draft;
+      const { receiptCode, ...draftFields } = numberedDraft;
       const doc = (await createBillingDoc({
         docType: 'token_receipt',
         docNumber: receiptCode,
@@ -173,14 +177,14 @@ export const TokenReceiptForm: React.FC<TokenReceiptFormProps> = ({ onBack, onSa
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = buildReceiptFilename(draft);
+      a.download = buildReceiptFilename(numberedDraft);
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
 
-      commitReceiptCode(draft.receiptCode);
-      saveLastReceipt(draft);
+      commitReceiptCode(allocated);
+      saveLastReceipt(numberedDraft);
       setSavedDoc(doc);
       toast.success(`${receiptCode} saved & downloaded`);
       onSaved();

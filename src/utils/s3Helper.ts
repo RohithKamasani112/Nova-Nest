@@ -51,7 +51,7 @@ export const getFromS3 = async (path: string): Promise<string> => {
     const { data } = await crmApi.get('/public/storage/properties');
     return JSON.stringify(listingMedia(data));
   }
-  const { data } = await crmApi.get<{ content: string }>('/storage/object', { params: { path } });
+  const { data } = await crmApi.get<{ content: string; revision?: string | null }>('/storage/object', { params: { path } });
   return isPropertyCollection(path) ? JSON.stringify(listingMedia(JSON.parse(data.content))) : data.content;
 };
 
@@ -76,6 +76,10 @@ export const listS3Files = async (prefix: string): Promise<string[]> => {
 
 export const uploadJsonToS3 = async (data: unknown, path: string): Promise<void> => {
   await crmApi.put('/storage/object', { path, content: JSON.stringify(data), contentType: 'application/json' });
+  if (isPropertyCollection(path)) {
+    window.dispatchEvent(new Event('nova-properties-changed'));
+    try { localStorage.setItem('nova-properties-changed', `${Date.now()}-${Math.random()}`); } catch { /* Refresh polling remains available. */ }
+  }
 };
 
 export const uploadTextToS3 = async (content: string, path: string, contentType = 'text/plain'): Promise<string> => {

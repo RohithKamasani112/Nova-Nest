@@ -5,7 +5,6 @@ import {
   MapPinned,
   Users,
   Award,
-  CheckCircle,
   ArrowRight,
   Star,
 } from "lucide-react";

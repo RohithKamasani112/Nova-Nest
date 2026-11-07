@@ -27,7 +27,8 @@
     "test:team-sources": "npm run build && node --test dist/test/telecallerSources.test.js",
     "test:team-access:db": "npm run build && node --test dist/test/teamAccessDb.test.js",
     "test:storage": "npm run build && node --test dist/test/storage.test.js",
-    "test:deploy": "npm run build && node --test scripts/deploy-lambda.test.mjs"
+    "test:deploy": "npm run build && node --test scripts/deploy-lambda.test.mjs",
+    "test:inventory": "npm run build && node --test dist/test/storage.test.js dist/test/inventorySafety.test.js dist/test/sessionSafety.test.js && node dist/test/websiteLead.test.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.629.0",
@@ -48,7 +49,7 @@
     "serverless-http": "^3.2.0",
     "uuid": "^11.0.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -63,5 +64,10 @@
     "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "qs": "^6.16.1",
+    "glob": "^14.0.2",
+    "minimatch": "^11.0.1"
   }
 }

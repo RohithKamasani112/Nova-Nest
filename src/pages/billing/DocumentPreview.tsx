@@ -29,7 +29,7 @@ interface DocumentPreviewProps {
   // callers must neutralize it (style.transform = 'none') immediately before
   // calling renderNodeToPdf and restore it after, so html2canvas always
   // captures true-size content regardless of the current preview zoom.
-  contentRef: React.RefObject<HTMLDivElement | null>;
+  contentRef: React.RefObject<HTMLDivElement>;
   pageCount?: number;
   children: React.ReactNode;
 }

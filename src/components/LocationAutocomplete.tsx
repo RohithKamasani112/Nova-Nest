@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { MapPin } from 'lucide-react';
 
 const fallbackLocations = [
@@ -23,6 +23,7 @@ const fallbackLocations = [
 ];
 
 interface LocationAutocompleteProps {
+  flowOnMobile?: boolean;
   value: string;
   onChange: (value: string) => void;
   onSelect?: (value: string) => void;
@@ -33,6 +34,7 @@ interface LocationAutocompleteProps {
 }
 
 export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
+  flowOnMobile = false,
   value,
   onChange,
   onSelect,
@@ -41,8 +43,9 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   className = '',
   inputClassName = '',
 }) => {
+  const listId = useId();
   const [open, setOpen] = useState(false);
-  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const allLocations = useMemo(() => {
@@ -75,7 +78,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     onChange(location);
     onSelect?.(location);
     setOpen(false);
-    setFocusedIndex(0);
+    setFocusedIndex(-1);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -100,26 +103,38 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
+      <div className="relative">
       <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none" />
       <input
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open && suggestions.length > 0}
+        aria-controls={listId}
+        aria-activedescendant={open && focusedIndex >= 0 ? `${listId}-${focusedIndex}` : undefined}
+        aria-label={placeholder}
         type="text"
         placeholder={placeholder}
         value={value}
         onChange={(event) => {
           onChange(event.target.value);
           setOpen(true);
-          setFocusedIndex(0);
+          setFocusedIndex(-1);
         }}
         onFocus={() => setOpen(true)}
+        onBlur={event => { if (!rootRef.current?.contains(event.relatedTarget as Node)) setOpen(false); }}
         onKeyDown={handleKeyDown}
         className={inputClassName}
       />
+      </div>
 
       {open && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+        <div id={listId} role="listbox" aria-label="Location suggestions" className={`${flowOnMobile ? 'relative sm:absolute' : 'absolute'} top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden`}>
           {suggestions.map((location, index) => (
             <button
               key={location}
+              id={`${listId}-${index}`}
+              role="option"
+              aria-selected={focusedIndex === index}
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => selectLocation(location)}

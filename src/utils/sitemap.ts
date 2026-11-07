@@ -59,7 +59,7 @@ const renderEntry = (entry: SitemapEntry): string => {
 // included (isActive !== false).
 export const buildSitemapXml = (properties: Property[]): string => {
   const listingEntries: SitemapEntry[] = (properties || [])
-    .filter((p) => p && p.id && p.isActive !== false)
+    .filter((p) => p && p.id && p.isActive !== false && !p.archivedAt)
     .map((p) => ({
       loc: `${SITE_URL}${propertyPath(p)}`,
       changefreq: 'weekly',

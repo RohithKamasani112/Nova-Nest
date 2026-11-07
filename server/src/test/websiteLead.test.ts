@@ -7,6 +7,9 @@ process.env.S3_BUCKET_NAME ||= 'test-only-bucket';
 
 async function main() {
   const express = (await import('express')).default;
+  const { storageService } = await import('../services/storageService');
+  const originalRead = storageService.read;
+  storageService.read = async () => JSON.stringify([{ id: 'nova-property-1', isActive: true }, { id: 'hidden-property', isActive: false }]);
   const { pool } = await import('../db/pool');
   const { publicLeadsRouter } = await import('../routes/publicLeads');
   const originalQuery = pool.query;
@@ -37,9 +40,14 @@ async function main() {
     const invalid = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Missing phone' }) });
     assert.equal(invalid.status, 400);
     assert.equal(calls.length, before, 'Invalid enquiries must not reach the database');
+    const unavailable = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Visitor', phone: '9876543210', project: 'hidden-property' }) });
+    assert.equal(unavailable.status, 409); assert.equal(calls.length, before);
+    const badPhone = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Visitor', phone: 'Via Call' }) });
+    assert.equal(badPhone.status, 400);
     console.log('Website lead integration checks passed (public route, CRM source, contact, message, validation; database mocked).');
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    storageService.read = originalRead;
     pool.query = originalQuery;
     await pool.end();
   }

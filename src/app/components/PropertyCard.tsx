@@ -28,7 +28,7 @@ const formatPrice = (property: Property): string => {
 };
 
 const categoryLabel = (category: Property['category']) => {
-  if (category === 'land') return 'Plot';
+  if (category === 'land') return 'Plot / Land';
   if (category === 'condo') return 'Commercial';
   return category.charAt(0).toUpperCase() + category.slice(1);
 };
@@ -122,6 +122,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           onClick?.();
@@ -149,7 +150,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
               property.featured ? 'bg-charcoal text-accent' : 'bg-accent text-charcoal'
             }`}
           >
-            {property.featured ? 'New Launch' : categoryLabel(property.category)}
+            {property.featured ? 'Featured' : categoryLabel(property.category)}
           </span>
           {property.urgent && (
             <UrgentBadge
@@ -238,7 +239,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
               property.featured ? 'bg-charcoal text-accent' : 'bg-accent text-charcoal'
             }`}
           >
-            {property.featured ? 'New Launch' : categoryLabel(property.category)}
+            {property.featured ? 'Featured' : categoryLabel(property.category)}
           </span>
         </div>
 

@@ -7,8 +7,8 @@ export class StorageError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 export interface StorageSettings { bucket: string; folder: string; region: string; }
-const JSON_FILES = new Set(['properties.json', 'leads.json', 'invoices/documents.json', 'invoices/bills.json']);
-const PUBLIC_FIELDS = new Set(('id title price location locality description images videos brochure category status bedrooms bathrooms areaSqft amenities featured verified urgent createdAt updatedAt yearBuilt parking floors furnished latitude longitude videoUrl isDummy isActive pricePerSqft agentPhone nearbyPlaces maintenanceCharges securityDeposit facingDirection floorNumber availableFrom possessionStatus tenantPreference furnishingStatus').split(' '));
+const JSON_FILES = new Set(['invoices/counters.json', 'properties.json', 'leads.json', 'invoices/documents.json', 'invoices/bills.json']);
+const PUBLIC_FIELDS = new Set(('id title price location locality description images videos brochure category status bedrooms bathrooms areaSqft amenities featured verified urgent createdAt updatedAt carpetArea builtUpArea yearBuilt parking floors furnished latitude longitude videoUrl isDummy isActive pricePerSqft agentPhone nearbyPlaces maintenanceCharges securityDeposit facingDirection floorNumber availableFrom possessionStatus tenantPreference furnishingStatus').split(' '));
 const MIME_BY_EXTENSION: Record<string, string[]> = {
   jpg: ['image/jpeg'], jpeg: ['image/jpeg'], png: ['image/png'], webp: ['image/webp'], gif: ['image/gif'],
   avif: ['image/avif'], heic: ['image/heic'], pdf: ['application/pdf'], mp4: ['video/mp4'], webm: ['video/webm'],
@@ -49,7 +49,7 @@ export function normalizeStoragePath(input: string, settings: StorageSettings): 
 
 export function publicProperties(input: unknown): Record<string, unknown>[] {
   if (!Array.isArray(input)) throw new StorageError(502, 'Listing data is invalid.');
-  return input.filter(row => row && typeof row === 'object' && row.isActive !== false)
+  return input.filter(row => row && typeof row === 'object' && row.isActive !== false && !row.archivedAt)
     .map(row => Object.fromEntries(Object.entries(row).filter(([key]) => PUBLIC_FIELDS.has(key))));
 }
 
@@ -90,7 +90,104 @@ export function createStorageService(client: S3Client, getSettings = storageSett
     const relative = normalizeStoragePath(path, settings);
     return { ...settings, relative, Key: `${settings.folder}/${relative}` };
   };
+  const readVersion = async (path: string): Promise<{ content: string; revision: string | null }> => {
+    const { bucket, Key } = key(path);
+    try {
+      const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key }));
+      if ((result.ContentLength ?? 0) > 1_500_000) throw new StorageError(413, 'Stored document is too large.');
+      const content = await result.Body?.transformToString();
+      if (!content || Buffer.byteLength(content) > 1_500_000) throw new StorageError(502, 'Stored document is invalid.');
+      return { content, revision: result.ETag ?? null };
+    } catch (error) {
+      if ((error as { name?: string }).name === 'NoSuchKey') return { content: '[]', revision: null };
+      throw error;
+    }
+  };
+  const compareAndWrite = async (path: string, content: string, revision: string | null) => {
+    const { bucket, Key } = key(path);
+    if (Buffer.byteLength(content) > 1_500_000) throw new StorageError(413, 'Stored document is too large.');
+    try {
+      await client.send(new PutObjectCommand({ Bucket: bucket, Key, Body: content, ContentType: 'application/json',
+        ServerSideEncryption: 'AES256', CacheControl: 'no-store',
+        ...(revision ? { IfMatch: revision } : { IfNoneMatch: '*' }) }));
+    } catch (error) {
+      const e = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+      if (['PreconditionFailed', 'ConditionalRequestConflict'].includes(e.name ?? '') || [409, 412].includes(e.$metadata?.httpStatusCode ?? 0)) {
+        throw new StorageError(409, 'This record changed in another session. Refresh and review before saving.');
+      }
+      throw error;
+    }
+  };
   return {
+    readVersion,
+    compareAndWrite,
+    async mutateProperty(operation: string, id: string, input: Record<string, any>, expectedUpdatedAt: string | null, actor: string) {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const snapshot = await readVersion('properties.json');
+        const properties = JSON.parse(snapshot.content) as Record<string, any>[];
+        if (!Array.isArray(properties)) throw new StorageError(502, 'Listing data is invalid.');
+        const index = properties.findIndex(p => p.id === id);
+        const old = properties[index];
+        if (operation !== 'create' && !old) throw new StorageError(404, 'Property not found.');
+        if (operation === 'create' && old) throw new StorageError(409, 'Property already exists.');
+        if (old && expectedUpdatedAt !== (old.updatedAt || old.createdAt || null)) throw new StorageError(409, 'This property was changed by another user. Refresh before saving.');
+        const now = new Date(Math.max(Date.now(), (Date.parse(old?.updatedAt || old?.createdAt || '') || 0) + 1)).toISOString();
+        const { id: _id, createdAt: _created, updatedAt: _updated, history: _history, archivedAt: _archived, ...safe } = input;
+        let updated: Record<string, any> = { ...old, ...safe, id, createdAt: old?.createdAt || now, updatedAt: now };
+        if (operation === 'archive') updated = { ...old, isActive: false, archivedAt: now, updatedAt: now };
+        if (operation === 'restore') updated = { ...old, archivedAt: undefined, isActive: false, updatedAt: now };
+        if (operation === 'delete' && !old.archivedAt) throw new StorageError(400, 'Archive this property before permanently deleting it.');
+        if (operation === 'create' || operation === 'update') {
+          if (old?.archivedAt) throw new StorageError(400, 'Restore this property before editing it.');
+          if (updated.locality) updated.locality = String(updated.locality).trim().replace(/\s+/g, ' ');
+          if (updated.isActive !== false) {
+            for (const field of ['title', 'locality', 'location', 'description']) if (!String(updated[field] || '').trim()) throw new StorageError(400, `${field} is required to publish.`);
+            if (!(updated.price > 0) || !(updated.areaSqft > 0) || !updated.images?.length) throw new StorageError(400, 'A positive price, size and at least one image are required to publish.');
+          }
+        }
+        const fields = ['title', 'price', 'status', 'isActive', 'agentPhone', 'locality', 'archivedAt'];
+        updated.history = [...(old?.history || []), { at: now, actor, operation,
+          changes: Object.fromEntries(fields.filter(field => old?.[field] !== updated[field]).map(field => [field, { before: old?.[field] ?? null, after: updated[field] ?? null }])) }].slice(-100);
+        if (operation === 'delete') properties.splice(index, 1);
+        else if (index < 0) properties.push(updated);
+        else properties[index] = updated;
+        try {
+          await compareAndWrite('properties.json', JSON.stringify(canonicalPropertyMedia(properties, key('properties.json'))), snapshot.revision);
+          return updated;
+        } catch (error) { if (!(error instanceof StorageError && error.status === 409) || attempt === 3) throw error; }
+      }
+      throw new StorageError(409, 'Inventory is busy. Please retry.');
+    },
+    async appendBillingDocument(document: Record<string, any>) {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const snapshot = await readVersion('invoices/documents.json');
+        const documents = JSON.parse(snapshot.content) as Record<string, any>[];
+        if (!Array.isArray(documents)) throw new StorageError(502, 'Billing history is invalid.');
+        if (documents.some(doc => doc.docNumber === document.docNumber)) throw new StorageError(409, 'This document number already exists. Generate a new document.');
+        const saved = { ...document, id: document.docNumber, createdAt: new Date().toISOString() };
+        try { await compareAndWrite('invoices/documents.json', JSON.stringify([...documents, saved]), snapshot.revision); return saved; }
+        catch (error) { if (!(error instanceof StorageError && error.status === 409) || attempt === 4) throw error; }
+      }
+      throw new StorageError(409, 'Billing history is busy. Please retry.');
+    },
+    async reserveDocumentNumber(type: string) {
+      const prefixes: Record<string, string> = { sale_booking: 'SALE', commission: 'COMM', service: 'SERV', token_receipt: 'TOKEN' };
+      if (!prefixes[type]) throw new StorageError(400, 'Unknown document type.');
+      const year = new Date().getUTCFullYear();
+      const prefix = type === 'token_receipt' ? 'NONN' : `NN-${prefixes[type]}-${year}-`;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const snapshot = await readVersion('invoices/counters.json');
+        const counters = JSON.parse(snapshot.content);
+        const state: Record<string, number> = Array.isArray(counters) ? {} : counters;
+        const docs = JSON.parse((await readVersion('invoices/documents.json')).content) as Record<string, any>[];
+        const highest = docs.reduce((max, doc) => typeof doc.docNumber === 'string' && doc.docNumber.startsWith(prefix) ? Math.max(max, Number(doc.docNumber.slice(prefix.length)) || 0) : max, type === 'token_receipt' ? 603 : 0);
+        const next = Math.max(state[prefix] || 0, highest) + 1;
+        state[prefix] = next;
+        try { await compareAndWrite('invoices/counters.json', JSON.stringify(state), snapshot.revision); return prefix + String(next).padStart(type === 'token_receipt' ? 4 : 3, '0'); }
+        catch (error) { if (!(error instanceof StorageError && error.status === 409) || attempt === 7) throw error; }
+      }
+      throw new StorageError(409, 'Document numbering is busy. Please retry.');
+    },
     async read(path: string) {
       const resolved = key(path);
       const { bucket, Key, relative } = resolved;

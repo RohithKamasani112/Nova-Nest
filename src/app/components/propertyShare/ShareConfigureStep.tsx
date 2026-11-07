@@ -76,10 +76,10 @@ export const ShareConfigureStep: React.FC<ShareConfigureStepProps> = ({
         setStaleWarning(
           `${offMarket.length} selected propert${offMarket.length === 1 ? 'y is' : 'ies are'} no longer active: ${offMarket
             .map((p) => titleCase(p.title))
-            .join(', ')}. They're still included below — remove them if they're actually off-market.`
+            .join(', ')}. Go back and remove these listings before exporting.`
         );
       }
-    });
+    }).catch(() => { if (!cancelled) setStaleWarning('Could not check current availability. Export will recheck before generating a PDF.'); });
     return () => {
       cancelled = true;
     };
@@ -143,6 +143,9 @@ export const ShareConfigureStep: React.FC<ShareConfigureStepProps> = ({
     if (!previewRef.current) return;
     setDownloading(true);
     try {
+      const latest = new Map((await getAllProperties()).map(p => [p.id, p]));
+      const changed = propertyList.filter(p => { const current = latest.get(p.id); return !current || current.isActive === false || current.archivedAt || current.price !== p.price || (current.updatedAt || current.createdAt) !== (p.updatedAt || p.createdAt); });
+      if (changed.length) { setStaleWarning('Some selected listings have changed or are unavailable. Go back and reselect them before exporting.'); toast.error('Listing details changed. Please reselect the properties.'); return; }
       const blob = await captureUnscaled(previewRef.current, () => renderNodeToPdf(previewRef.current!, layout));
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

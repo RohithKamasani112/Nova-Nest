@@ -1,4 +1,6 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { matchesBhk } from '../utils/propertySearchState';
+import { usePropertyRefresh } from '../hooks/usePropertyRefresh';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Property, PropertyFilters } from '../types';
 import { getAllProperties } from '../services/storageService';
 import { PropertyCard } from '../app/components/PropertyCard';
@@ -269,14 +271,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
   useEffect(() => { loadProperties(); }, []);
   useEffect(() => { applyFilters(); }, [allProperties, selectedCategory, selectedStatus, sortBy, priceRange, selectedBedrooms, selectedAmenities]);
 
+  usePropertyRefresh(() => loadProperties());
+
   const loadProperties = async () => {
     try {
       const properties = await getAllProperties();
-      const activeProperties = properties.filter((property) => property.isActive !== false);
+      const activeProperties = properties.filter((property) => property.isActive !== false && !property.archivedAt);
       setAllProperties(activeProperties);
-      // Keep the full (filtered) set here so the counts reflect the true total;
-      // the grid below only renders the first 9 via slice().
-      setFilteredProperties(activeProperties);
     } catch (error) {
       console.error('Error loading properties:', error);
     } finally {
@@ -289,7 +290,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onSearch, o
     if (selectedStatus) filtered = filtered.filter((p) => p.status === selectedStatus);
     if (selectedCategory) filtered = filtered.filter((p) => p.category === selectedCategory);
     filtered = filtered.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1]);
-    if (selectedBedrooms.length > 0) filtered = filtered.filter((p) => selectedBedrooms.includes(p.bedrooms));
+    if (selectedBedrooms.length > 0) filtered = filtered.filter((p) => matchesBhk(p.bedrooms, selectedBedrooms));
     if (selectedAmenities.length > 0) {
       filtered = filtered.filter((p) => selectedAmenities.some((a) => p.amenities.includes(a)));
     }

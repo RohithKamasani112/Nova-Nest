@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import { normalizeIndianPhone } from '../../utils/contactValidation';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
+import React, { useState, useRef, useCallback } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { X } from 'lucide-react';
 import { WhatsAppIcon } from './icons/WhatsAppIcon';
@@ -8,7 +10,7 @@ interface WhatsAppContactModalProps {
   onClose: () => void;
   /** Called with the entered mobile number once validated. The parent is
    *  responsible for saving the lead and redirecting to WhatsApp. */
-  onSubmit: (phone: string) => void;
+  onSubmit: (phone: string) => void | Promise<void>;
 }
 
 /**
@@ -19,25 +21,28 @@ interface WhatsAppContactModalProps {
 export const WhatsAppContactModal: React.FC<WhatsAppContactModalProps> = ({ open, onClose, onSubmit }) => {
   const reduce = useReducedMotion();
   const [phone, setPhone] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const close = () => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => {
     setPhone('');
     setError('');
     onClose();
-  };
+  }, [onClose]);
+  useDialogFocus(open, dialogRef, close);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 10) {
+    if (submitting) return;
+    const digits = normalizeIndianPhone(phone);
+    if (!digits) {
       setError('Please enter a valid mobile number');
       return;
     }
     const value = phone.trim();
-    setPhone('');
-    setError('');
-    onSubmit(value);
+    setSubmitting(true); setError('');
+    try { await onSubmit(value); setPhone(''); } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not send enquiry. Please retry.'); } finally { setSubmitting(false); }
   };
 
   return (
@@ -59,14 +64,14 @@ export const WhatsAppContactModal: React.FC<WhatsAppContactModalProps> = ({ open
             transition={reduce ? { duration: 0.2 } : { type: 'spring', stiffness: 280, damping: 28 }}
             className="fixed inset-0 z-[70] flex items-center justify-center px-4"
           >
-            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="whatsapp-dialog-title" className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#25D366] text-white">
                     <WhatsAppIcon size={22} />
                   </span>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">Chat on WhatsApp</h2>
+                    <h2 id="whatsapp-dialog-title" className="text-lg font-bold text-gray-900">Chat on WhatsApp</h2>
                     <p className="text-xs text-gray-500">We'll connect with you shortly</p>
                   </div>
                 </div>
@@ -87,6 +92,8 @@ export const WhatsAppContactModal: React.FC<WhatsAppContactModalProps> = ({ open
               <form onSubmit={handleSubmit}>
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700">Mobile Number *</label>
                 <input
+                  aria-label="Mobile number"
+                  autoComplete="tel"
                   type="tel"
                   autoFocus
                   value={phone}
@@ -100,11 +107,11 @@ export const WhatsAppContactModal: React.FC<WhatsAppContactModalProps> = ({ open
                 {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
 
                 <button
-                  type="submit"
+                  type="submit" disabled={submitting}
                   className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] font-semibold text-white transition-colors hover:bg-[#1EBE57]"
                 >
                   <WhatsAppIcon size={20} />
-                  Continue to WhatsApp
+                  {submitting ? 'Sending enquiry...' : 'Continue to WhatsApp'}
                 </button>
               </form>
             </div>

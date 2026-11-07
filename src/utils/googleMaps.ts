@@ -1,3 +1,4 @@
+declare global { interface Window { gm_authFailure?: () => void } }
 // Loads the Google Maps JavaScript API via the officially recommended
 // "Dynamic Library Import" bootstrap (loading=async + importLibrary):
 // https://developers.google.com/maps/documentation/javascript/load-maps-js-api#dynamic-library-import
@@ -45,7 +46,7 @@ const installBootstrapLoader = (apiKey: string) => {
         libraries: [...requestedLibraries].join(','),
         callback: '__googleMapsBootstrapCallback',
       });
-      (window as Record<string, unknown>).__googleMapsBootstrapCallback = resolve;
+      (window as unknown as Record<string, unknown>).__googleMapsBootstrapCallback = resolve;
 
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;

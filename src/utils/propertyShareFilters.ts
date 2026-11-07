@@ -5,6 +5,7 @@ import { Property, PropertyFilters } from '../types';
 // signal admins already use to take a listing down once it's rented/sold,
 // so it doubles as "available" here rather than inventing a new field.
 export function matchesShareFilters(p: Property, f: PropertyFilters): boolean {
+  if (p.archivedAt) return false;
   if (f.status && p.status !== f.status) return false;
   if (f.bedrooms?.length && !f.bedrooms.includes(p.bedrooms)) return false;
   if (f.bathrooms?.length && !f.bathrooms.includes(p.bathrooms)) return false;
